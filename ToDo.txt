@@ -1,0 +1,13 @@
+Oveview of all ToDo Items and the responsible persons.
+
+- Build upon VMAP scripts from J-Y Kim [Jan,Petra]
+ - modifying using ehtim and other nifty 
+ 
+- Jet Pixel Analysys [Luca]
+ - Pixel-by-Pyxel analysis of continuum spectral analysis
+ - Synchrotron turnover fitting on pixel basis 
+ 
+- Alyning images [Anne,Mikhail]
+ - On model components [Mikhail]
+ - using 2D cross-correlation with mask in Fourier space [Anne]
+ - Spectral Index maps [Anne]
