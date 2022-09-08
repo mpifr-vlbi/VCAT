@@ -1,8 +1,8 @@
 Oveview of all ToDo Items and the responsible persons.
  
-- Jet Pixel Analysys [Luca, Eftychia, Jack]
+- Jet Pixel Analysys [Luca, Eftychia, Jack, Jan, Petra]
  - Pixel-by-Pixel analysis of continuum spectral analysis
- - Synchrotron turnover fitting on pixel basis
+ - Synchrotron turnover fitting, B-field estimate [Jan, Petra, Luca]
  
 - Alyning images [Anne, Mikhail]
  - On model components [Mikhail]
