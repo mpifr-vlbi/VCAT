@@ -1,1 +1,1 @@
-
+Requirements: astropy, scipy, itertools, skimage
