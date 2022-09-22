@@ -1,5 +1,6 @@
 Script to do the alingment: align_imagesEHTim.py:
 - Uses the ehtim library: pip install ehtim
-- Requires Scikit library: pip install scikit
+
+Additional requirements: mpl_toolkits, skimage, scipy, numpy
 
 Example-script to apply alignment to images: example_alignImages.py
