@@ -14,17 +14,10 @@ from skimage.registration import phase_cross_correlation
 from scipy.ndimage import fourier_shift
 from matplotlib.patches import Circle,Ellipse
 from skimage.draw import circle_perimeter,ellipse_perimeter
-from VLBIana.modules.plot_functions import *
-#import matplotlib.colors as colors
-#font = {'family' : 'normal',
-#               'weight' : 'normal',
-#               'size'   : 5}
-#matplotlib.rc('font', **font)
+from VCAT.modules.plot_functions import *
 import ehtim as eh
 
-from VLBIana.modules.jet_calculus import *
-
-#plt.rcParams.update({'font.size':7})
+from VCAT.modules.jet_calculus import *
 
 workDir     = os.getcwd()+'/'
 plotDir = workDir+'plots/'
@@ -39,9 +32,6 @@ def apply_shift(img,shift):
     return img2
 
 def align(img1,img2,inc1,inc2,mask1=False,mask2=False):
-
-    #align image1 with image2 
-    ##shift, error, diffphase = register_translation((img1), (img2),100)
     if mask1 is False:
         shift,error,diffphase = phase_cross_correlation((img1),(img2),upsample_factor=100)
     else:
