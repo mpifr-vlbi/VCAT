@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-import string,math,sys,fileinput,glob,os,time
+import string
+import math
+import sys
+import fileinput
+import glob
+import os
+import time
 from numpy import *
 from scipy import *
 import numpy as np
