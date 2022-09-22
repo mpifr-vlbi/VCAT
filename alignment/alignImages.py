@@ -1,4 +1,4 @@
-from VLBIana.align_imagesEHTim import *
+from align_imagesEHTim import *
 from glob import glob
 ########################################################
 label = ['L', 'C', 'X']
