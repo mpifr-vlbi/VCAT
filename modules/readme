@@ -1,1 +1,3 @@
+Additional functions to use as input for other scripts
+
 Requirements: astropy, scipy, itertools, skimage
