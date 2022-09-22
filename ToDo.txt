@@ -4,16 +4,17 @@ Oveview of all ToDo Items and the responsible persons.
  - Pixel-by-Pixel analysis of continuum spectral analysis
  - Synchrotron turnover fitting, B-field estimate [Jan, Petra, Luca]
  
-- Alyning images [Anne, Mikhail]
+- Aligning images [Anne, Mikhail]
  - On model components [Mikhail]
  - using 2D cross-correlation with mask in Fourier space [Anne]
  - Spectral Index maps [Anne]
  - Combine Annes 2D cross-corr with VMAP scripts with interactive masking from J-Y Kim [Jan, Petra, Anne]
   - modifying using ehtim and other nifty
   - make it interactive, especially for the masking
- - Also compare with Laura Vega Garcias code? Provide it to everyone. [Anne]
+ - Also compare with Laura Vega Garcias code. [Anne]
 
 - Ridge-line Fitting [Luca, Anne]
- - Combine
+ - Combine code by Luca, Anne and Jun Liu using only Python and option of cutting in polar-coordinates
+ - Jun Lius scripts: https://github.com/junliu/headache
  
 - Write everything up into a publication [Jan, Anne, Luca]
