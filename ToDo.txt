@@ -15,3 +15,5 @@ Oveview of all ToDo Items and the responsible persons.
 
 - Ridge-line Fitting [Luca, Anne]
  - Combine
+ 
+- Write everything up into a publication [Jan, Anne, Luca]
