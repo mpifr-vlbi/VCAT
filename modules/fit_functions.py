@@ -7,9 +7,6 @@ from scipy import stats
 from scipy.odr import *
 from astropy.io import fits
 
-'''
-A collection of fitting functions to draw from for other scripts
-'''
 def fractdiff(y,ym):
     return (y/ym)-1
 

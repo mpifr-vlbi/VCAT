@@ -41,46 +41,48 @@ for i, files in enumerate(vlba_maps):
     maps2_shifted.append(rr['file2'])
     inc_dec.append(rr['increment_dec'])
     inc_ra.append(rr['increment_ra'])
+    if i == len(vlba_maps)-2:
+        break
 
 sys.stdout.write('\n Final shifts {}\n'.format(shift))
 sys.stdout.write('\n Shift error {}\n'.format(shift_err))
 
 '''
-below I write arrays of the shifts relativ to the lowest frequency I had (1GHz) and to the highest frequency (43GHz)
+below I write arrays of the shifts relativ to the lowest frequency I had (low) and to the highest frequency (high)
 this sets either the lowest frequency map at (0,0) or the highest frequency map.
 This should work with any set of images.
 '''
-shift_ref1GHz_freq  = [label[0], label[0]+'_'+label[1]]
-shift_ref1GHz_dec   = [0, shift[0][0]]
-shift_ref1GHz_ra    = [0, shift[0][1]]
+shift_reflow_freq  = [label[0], label[0]+'_'+label[1]]
+shift_reflow_dec   = [0, shift[0][0]]
+shift_reflow_ra    = [0, shift[0][1]]
 for i in range(len(shift)-1):
-    shift_ref1GHz_freq.append(label[i+1]+'_'+label[i+2])
-    shift_ref1GHz_dec.append(shift_ref1GHz_dec[-1]+shift[i+1][0])
-    shift_ref1GHz_ra.append(shift_ref1GHz_ra[-1]+shift[i+1][1])
+    shift_reflow_freq.append(label[i+1]+'_'+label[i+2])
+    shift_reflow_dec.append(shift_reflow_dec[-1]+shift[i+1][0])
+    shift_reflow_ra.append(shift_reflow_ra[-1]+shift[i+1][1])
 
-shift_ref43GHz_freq = [label[-1], label[-1]+'_'+label[-2]]
-shift_ref43GHz_dec  = [0, -shift[-1][0]]
-shift_ref43GHz_ra   = [0, -shift[-1][1]]
+shift_refhigh_freq = [label[-1], label[-1]+'_'+label[-2]]
+shift_refhigh_dec  = [0, -shift[-1][0]]
+shift_refhigh_ra   = [0, -shift[-1][1]]
 for i in range(len(shift)-1):
-    shift_ref43GHz_freq.append(label[-2-i]+'_'+label[-3-i])
-    shift_ref43GHz_dec.append(shift_ref43GHz_dec[-1]-(shift[-2-i][0]))
-    shift_ref43GHz_ra.append(shift_ref43GHz_ra[-1]-(shift[-2-i][1]))
+    shift_refhigh_freq.append(label[-2-i]+'_'+label[-3-i])
+    shift_refhigh_dec.append(shift_refhigh_dec[-1]-(shift[-2-i][0]))
+    shift_refhigh_ra.append(shift_refhigh_ra[-1]-(shift[-2-i][1]))
 
-shift_ref43GHz_ra.reverse()
-shift_ref43GHz_dec.reverse()
-shift_ref43GHz_freq.reverse()
+shift_refhigh_ra.reverse()
+shift_refhigh_dec.reverse()
+shift_refhigh_freq.reverse()
 
 #Now I write the results to txt files, probably you should give other names for the files;)
 header = 'FREQS DEC RA'
-data = np.zeros(len(shift_ref43GHz_freq),dtype=[('fq', 'U6'), ('dec', float), ('ra', float)])
-data['fq']  = np.array(shift_ref43GHz_freq)
-data['dec'] = np.array(shift_ref43GHz_dec)
-data['ra']  = np.array(shift_ref43GHz_ra)
-np.savetxt('shifts_relative_to_43GHz.txt', data, fmt='%s %.3f %.3f', delimiter='\t', header=header) #change file name
+data = np.zeros(len(shift_refhigh_freq),dtype=[('fq', 'U6'), ('dec', float), ('ra', float)])
+data['fq']  = np.array(shift_refhigh_freq)
+data['dec'] = np.array(shift_refhigh_dec)
+data['ra']  = np.array(shift_refhigh_ra)
+np.savetxt('shifts_relative_to_high.txt', data, fmt='%s %.3f %.3f', delimiter='\t', header=header) #change file name
 #
-data['fq']  = np.array(shift_ref1GHz_freq)
-data['dec'] = np.array(shift_ref1GHz_dec)
-data['ra']  = np.array(shift_ref1GHz_ra)
+data['fq']  = np.array(shift_reflow_freq)
+data['dec'] = np.array(shift_reflow_dec)
+data['ra']  = np.array(shift_reflow_ra)
 np.savetxt('shifts_relative_to_1.5GHz.txt', data, fmt='%s %.3f %.3f', delimiter='\t', header=header) #change file name
 #
 # this writes a txt file with the derived shifts

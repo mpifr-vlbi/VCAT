@@ -8,7 +8,7 @@ from astropy.cosmology import FlatLambdaCDM
 
 #for drawing ellipses/circles
 import math
-from skimage.draw import (circle,circle_perimeter,ellipse,ellipse_perimeter)
+from skimage.draw import (circle_perimeter,ellipse,ellipse_perimeter)
 def keyfunc(s):
     return [int(''.join(g)) if k else ''.join(g) for k, g in groupby(s, str.isdigit)]
 
