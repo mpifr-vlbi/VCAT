@@ -11,7 +11,7 @@ from itertools import cycle,chain,compress
 from VCAT.modules.jet_calculus import *
 import VCAT.modules.fit_functions as ff
 from VCAT.modules.plot_functions import *
-
+import ehtim as eh
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
@@ -22,9 +22,17 @@ def trim_axs(axs, N):
   axs = axs.flat
   for ax in axs[N:]:
     ax.remove()
+
   return axs[:N]
 def keyfunc(s):
   return [int(''.join(g)) if k else ''.join(g) for k, g in groupby(s, str.isdigit)]
+
+def apply_shift(img,shift):
+    offset_image = fourier_shift(np.fft.fftn(img), shift)
+    imgalign = np.fft.ifftn(offset_image)
+    img2 = imgalign.real
+
+    return img2
 
 class modelComp(object):
     '''
@@ -51,6 +59,7 @@ class modelComp(object):
         self.model_sorted = None
         self.cchead = dict()
         self.ccmap  = dict()
+        self.ccmap_shifted = dict()
         self.keys   = []
         self.ids    = []
         self.eps    = [chr(value) for value in range(ord('a'),ord('a')+len(self.modFiles))]
@@ -98,6 +107,7 @@ class modelComp(object):
 , name='id', index=0)
             nid = len(self.model[key]['data'])
             self.model[key]['data']['ep'] = nid*[self.eps[ii]]
+            self.model[key]['data']['freq'] = nid*[self.model[key]['freq']]
             self.model[key]['data']['cid'] = mpl.colors.to_hex('red')
 #include tb here
             if self.z:
@@ -129,7 +139,6 @@ class modelComp(object):
                     if img.ndim == 4:
                         img = img.reshape(img.shape[2],img.shape[3])
 
-                #key = h['OBJECT']+'.'+str(h['CRVAL3']/1e9)+'.'+h['DATE-OBS']
                 key = self.keys[i]
                 self.cchead[key] = dict()
                 self.cchead[key]['head']    = h
@@ -140,6 +149,7 @@ class modelComp(object):
                 self.cchead[key]['freq']    = np.around(h['CRVAL3']/1e9,2)
                 self.cchead[key]['fov']     = self.cchead[key]['px_inc']*self.cchead[key]['naxis']*3.6e6 
                 self.ccmap[key] = img
+ 
         if shift:
             sys.stdout.write('shifting model data according to values in shiftFIle.\n')
             shiftFile= shift
@@ -150,6 +160,9 @@ class modelComp(object):
                 self.model[key]['data_shifted']['DELTAX'] += shift['RA']
                 self.model[key]['data_shifted']['DELTAY'] += shift['DEC']
                 self.model[key]['data_shifted']['DIST'] += np.sqrt(shift['RA']**2 + shift['DEC']**2)
+                inc=self.cchead[key]['px_inc']*3.6e6
+                print(inc)
+                self.ccmap_shifted[key] = apply_shift(self.ccmap[key],[shift['DEC']/inc,-shift['RA']/inc])
 
     def update_ids(self):
         sys.stdout.write('Updatend component id list.\n')
@@ -177,24 +190,9 @@ class modelComp(object):
                 mask = self.ids==model['id']
                 model['cid'] = self.id_colors[mask][0]
 
-    def change_id(self,old_ids,new_ids):
-        '''
-        Usage:
-            old_ids = ['a_2','b_5','c_6'] is a list of the component ids to be changed. Consisting of the epoch id (ep) and the component id in that epoch (id)
-            new_ids = ['a2','a2','b'] a list of names you want to assign to the components. The id of the component in this epoch will then be changed to this value
-        '''
-        sys.stdout.write('Change model ids according to imput.\n')
-        for ii,oids in enumerate(old_ids):
-            epoch,cid = oids.split('_')
-            key=self.keys[np.where(np.array(self.eps)==epoch)[0][0]]
-            jj=np.where(self.model[key]['data']['id']==cid)[0][0]
-            self.model[key]['data']['id'][jj]=new_ids[ii]
-
-        self.update_cm()
-
     def sort_by_id(self):
         sys.stdout.write('Creating class.model_sorted with components sorted by id.\n')
-        self.udate_ids()
+        self.update_ids()
 
         self.model_sorted = dict()
         for ID in self.ids:
@@ -209,6 +207,24 @@ class modelComp(object):
             self.model_sorted[ID]['date']= date
         self.update_cm()
 
+    def change_id(self,old_ids,new_ids):
+        '''
+        Usage:
+            old_ids = ['a_2','b_5','c_6'] is a list of the component ids to be changed. Consisting of the epoch id (ep) and the component id in that epoch (id)
+            new_ids = ['a2','a2','b'] a list of names you want to assign to the components. The id of the component in this epoch will then be changed to this value
+        '''
+        sys.stdout.write('Change model ids according to imput.\n')
+        for ii,oids in enumerate(old_ids):
+            epoch,cid = oids.split('_')
+            key=self.keys[np.where(np.array(self.eps)==epoch)[0][0]]
+            jj=np.where(self.model[key]['data']['id']==cid)[0][0]
+            self.model[key]['data']['id'][jj]=new_ids[ii]
+            if self.model[key]['data_shifted']:
+                self.model[key]['data_shifted']['id'][jj]= new_ids[ii]
+        self.update_cm()
+        self.sort_by_id()
+
+
 ###
     def plot_comp_xy(self,xax='DIST',yax='FLUX',out=False,comps=False,line=False,ccolor=False):
         sys.stdout.write('Plot component {} vs {}\n'.format(xax,yax))
@@ -220,13 +236,13 @@ class modelComp(object):
             model_sorted = self.model_sorted.copy()
 
         if ccolor:
-            ccolors= len(self.ids)*[ccolor]
+            ccolors= np.array(len(self.ids)*[ccolor])
         else:
             ccolors = self.id_colors
 
         fig,ax = plt.subplots(figsize=(12,8))
         for i,comp in enumerate(model_sorted):
-            color = ccolors[self.ids==comp['id'][0]]
+            color = ccolors[self.ids==comp][0]
             symbol = self.symbols[i]
             xx = self.model_sorted[comp][xax]
             yy = self.model_sorted[comp][yax]
@@ -243,9 +259,9 @@ class modelComp(object):
 
         if out:
             if type(out)==bool:
-                outf = self.model[comp]['source']+'_components_all.pdf'
+                outf = self.model[self.keys[0]]['source']+'_{}_vs_{}.pdf'.format(xax,yax)
             fig.savefig(outf,bbox_inches='tight')
-            sys.stdout.write('Plot has been written to {}'.format(outf))
+            sys.stdout.write('Plot has been written to {}\n'.format(outf))
         else:
             plt.show()
 
@@ -288,7 +304,7 @@ class modelComp(object):
               plt.show()
             plt.cla()
 
-    def overplot_model(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_color=False,cntr_color=False,cntr_lw=False,ccolor=False,plot_all=True,out=True,plot_id=True,plot_below=False):
+    def overplot_model(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_color=False,cntr_color=False,cntr_lw=False,ccolor=False,plot_all=True,out=True,plot_id=True,plot_below=False,shifted=False):
         sys.stdout.write('Plot modelcomponents over clean maps\n')
         if plot_all:
             nn = len(self.model)
@@ -326,9 +342,15 @@ class modelComp(object):
         #####################
         for ax,key in zip(axs,self.keys):
             modelh= self.model[key]
-            model = self.model[key]['data']
             clean = self.cchead[key]
-            ccmap =  self.ccmap[key]
+            if shifted:
+                model = self.model[key]['data_shifted']
+            else:
+                model = self.model[key]['data']
+            if shifted:
+                ccmap = self.ccmap_shifted[key]
+            else:
+                ccmap =  self.ccmap[key]
             if not ra:
                 ra  = clean['fov']/3.
                 dec = clean['fov']/5.
@@ -347,6 +369,7 @@ class modelComp(object):
                 lev.append(level0*2**i)
             xx  = np.linspace(-clean['naxis']*0.5*scale,(clean['naxis']*0.5-1)*scale,clean['naxis'])
             yy  = np.linspace(clean['naxis']*0.5*scale,-(clean['naxis']*0.5-1)*scale,clean['naxis'])
+            extent = np.max(xx),np.min(xx),np.min(yy),np.max(yy)
             vmax=0.5*ma.amax(ccmap)
             norm = mpl.colors.SymLogNorm(linthresh=level0,linscale=0.5,vmin=level0,vmax=vmax,base=np.e)
 
@@ -360,7 +383,8 @@ class modelComp(object):
             ax.invert_xaxis()
             plotBeam(clean['beam'][1],clean['beam'][0],clean['beam'][2],ra,-dec+0.2,ax)
 
-            cntr=ax.contour(xx,yy,ccmap,linewidths=cntr_lw,levels=lev,colors=cntr_color,alpha=1)
+           # cntr=ax.contour(xx,yy,ccmap,linewidths=cntr_lw,levels=lev,colors=cntr_color,alpha=1)
+            cntr = ax.contour(ccmap,linewidths=cntr_lw,levels=lev,colors=cntr_color,alpha=1,extent=extent)
             if plot_color:
                 extent = np.max(xx),np.min(xx),np.min(yy),np.max(yy)
                 im = ax.imshow(ccmap,cmap=colormap,extent=extent,origin='lower', interpolation='gaussian')
@@ -405,6 +429,8 @@ class modelComp(object):
         if out:
             if type(out)==bool:
                 outf = modelh['source']+'_Model_overplot.pdf'
+            if shifted:
+                outf = modelh['source']+'_Model_overplot_shifted.pdf'
             fig.savefig(outf,bbox_inches='tight')
             sys.stdout.write('Plot has been written to {}\n'.format(outf))
         else:
