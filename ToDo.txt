@@ -1,20 +1,28 @@
 Oveview of all ToDo Items and the responsible persons.
  
-- Jet Pixel Analysys [Luca, Eftychia, Jack, Jan, Petra]
- - Pixel-by-Pixel analysis of continuum spectral analysis
- - Synchrotron turnover fitting, B-field estimate [Jan, Petra, Luca]
- 
-- Aligning images [Anne, Mikhail]
- - On model components [Mikhail]
- - using 2D cross-correlation with mask in Fourier space [Anne]
- - Spectral Index maps [Anne]
- - Combine Annes 2D cross-corr with VMAP scripts with interactive masking from J-Y Kim [Jan, Petra, Anne]
-  - modifying using ehtim and other nifty
-  - make it interactive, especially for the masking
- - Also compare with Laura Vega Garcias code. [Anne]
+- Jet Pixel Analysys [Luca, Vieri, Jan, Petra, Jack]
+ - Script takes already aligned and convolved images and does the synchrotron fitting pixel by pixel DONE
+  - turn-over frequency, turn-over flux, Chi2 etc ... and produces plots of this
+ - Pixel-by-Pixel analysis of jet (Luca) DONE
+ - Synchrotron turnover fitting, B-field estimate (Luca) DONE
+ - Currently the script needs the jet to go along the y-axis, he wants to change it (Luca)
 
-- Ridge-line Fitting [Luca, Anne]
- - Combine code by Luca, Anne and Jun Liu using only Python and option of cutting in polar-coordinates
- - Jun Lius scripts: https://github.com/junliu/headache
+- Ridge-line Fitting [Luca, Vieri]
+ - Finalizing updates (Luca)
+ - Double-ridge line extension (Vieri, Luca)
+
+- Aligning images [Anne, Jan]
+ - On model components 
+ - using 2D cross-correlation with mask in Fourier space [Anne] DONE
+  - implementing new masks (Jan)
+  - Spectral Index maps [Anne] DONE
+  - add enclosing ellipe to restore images (Anne)
+  - combine VMAP ? (Anne,Jan, Petra, ChatGPT)
+  - make it interactive, especially for the masking, can reuse some info from VMAP (Jan, Anne, Florian)
+
+- Modelfit analysis (Anne)
  
 - Write everything up into a publication [Jan, Anne, Luca]
+
+- Github Documentation wiki/webpage [Anne]
+ - Combine documentation of everything (Anne)
