@@ -12,7 +12,7 @@ This file can be created using the alignment module.
 
 '''
 
-from VCAT.model_analysis.modelComps import *
+from VLBIana.model_analysis.modelComps import *
 
 #Getting lists of the modelfiles and clean files and sorting them after frequency, in this case
 modFs   = glob ('modelfits/*.fits')

@@ -884,7 +884,7 @@ class modelComp(object):
             plt.show()
         plt.cla()
 
-    def fit_comp_spectrum(self,add_data=False,plot_areas=False,plot_all_components=False,comps=False,exclude_comps=False,ccolor=False,out=True,fluxerr=False,fit_free_ssa=False,plot_fit_summary=False,annotate_fit_results=True):
+    def fit_comp_spectrum(self,add_data=False,plot_areas=False,plot_all_components=False,comps=False,exclude_comps=False,ccolor=False,out=True,fluxerr=False,fit_free_ssa=False,plot_fit_summary=True):
         '''
         If adding data please provide a dict as add_data={'flux':xxx, 'freq':yyy,'id':zzz})
         '''
@@ -1106,8 +1106,7 @@ class modelComp(object):
                         r'$\chi_\mathrm{{red}}^2={:.2f}$'.format(sn_ch2[i])
                     ))
 
-                if annotate_fit_results:
-                    ax.annotate(textstr, xy=(0.05,0.1),xycoords='axes fraction',fontsize=8,bbox=props)
+                ax.annotate(textstr, xy=(0.05,0.1),xycoords='axes fraction',fontsize=8,bbox=props)
                 sn_low = sn_p[i]-sn_sd[i]
                 sn_up = sn_p[i]+sn_sd[i]
                 for jj,SNL in enumerate(sn_low[:2]):
@@ -1183,10 +1182,10 @@ class modelComp(object):
                 #xmin = Rs2mas(100)
                 xmax = np.round(max(xx)+max(xxE))
                 ymin = np.floor(2*min(yy))
-                ymax = np.round(max(yy))
+                ymax = np.round(max(yy),decimals=1)
                 if yax[jj]=='athin':
-                    ymin = -10
-                    ymax = -0.5 
+                    #ymin = -10
+                    #ymax = -0.05 
                     ax.invert_yaxis()
                 ax.set_xlim(xmin,xmax)
                 ax.set_ylim(ymin,ymax)

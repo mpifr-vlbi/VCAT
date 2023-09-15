@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import VCAT.modules.fit_functions as ff
-from VCAT.modules.plot_functions import *
-from VCAT.modules.jet_calculus import *
+import VLBIana.modules.fit_functions as ff
+from VLBIana.modules.plot_functions import *
+from VLBIana.modules.jet_calculus import *
 
 plt.ioff()
-#plt.style.use('talkstyle')
+plt.style.use('pubstyle')
 class CleanMap(object):
     '''
     Useage example:
@@ -38,8 +38,8 @@ class CleanMap(object):
         self.cmaph['naxis'] = self.head['NAXIS1']
         self.cmaph['beam']  = [self.head['BMAJ']*3.6e6,self.head['BMIN']*3.6e6,self.head['BPA']]
         self.cmaph['freq']  = np.around(self.head['crval3']*1e-9,1)
-        self.cmaph['ppb']       = [PXPERBEAM(self.cmaph['beam'][0]*np.pi/180,self.cmaph['beam'][1]*np.pi/180,self.cmaph['px_inc']*3.6e6*np.pi/180)]
-        self.cmaph['fov']       = self.cmaph['px_inc']*self.cmaph['naxis']*3.6e6
+        self.cmaph['ppb']   = [PXPERBEAM(self.cmaph['beam'][0]*np.pi/180,self.cmaph['beam'][1]*np.pi/180,self.cmaph['px_inc']*3.6e6*np.pi/180)]
+        self.cmaph['fov']   = self.cmaph['px_inc']*self.cmaph['naxis']*3.6e6
 
     def modelFile(self, modelFile):
         self.modh = dict()
@@ -54,7 +54,7 @@ class CleanMap(object):
     def plotMap(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_mod=False,plot_cntr=True,plot_color=False,cntr_color=False,model_color=False,cntr_lw=False):
 
         if not cntr_color:
-            if plot_cntr:
+            if plot_mod:
                 cntr_color = 'grey'
             else:
                 cntr_color = 'black'
@@ -92,7 +92,10 @@ class CleanMap(object):
         ax.set_xlim(Dra)
         ax.set_ylim(Ddec)
         ax.invert_xaxis()
-        plotBeam(self.cmaph['beam'][1],self.cmaph['beam'][0],self.cmaph['beam'][2],ra,-dec+0.2,ax)
+        plot_title='{} - {} -{}GHz'.format(self.head['OBJECT'],self.head['DATE-OBS'],self.cmaph['freq'])
+        bbox_props= dict(boxstyle='round',alpha=0.2)
+        ax.annotate(plot_title, xy=(0.2,0.9),xycoords='axes fraction',fontsize=12,bbox=bbox_props,zorder=20)
+        plotBeam(self.cmaph['beam'][0],self.cmaph['beam'][1],self.cmaph['beam'][2],ra,-dec+0.2,ax)
         if plot_cntr:
             cntr=ax.contour(xx,yy,self.cmap,linewidths=cntr_lw,levels=lev,colors=cntr_color,alpha=1)
         if plot_color:
@@ -138,9 +141,11 @@ class CleanMap(object):
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 
         if saveFile:
+            fig_size='aanda'
             figsize=set_size(fig_size)
-            set_corrected_size(f,figsize)
+            #set_corrected_size(f,figsize)
             plt.savefig(saveFile,bbox_inches='tight')
+            sys.stdout.write('Plot file {} saved.\n'.format(saveFile))
         else:
             plt.show()
         plt.clf()

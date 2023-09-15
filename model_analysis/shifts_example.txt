@@ -1,0 +1,5 @@
+# FREQS DEC RA
+vlba_K_U 0.5 0.40
+vlba_Q_K 0.09 0.25
+vlba_Q 0.01 0.02
+W_map 0.0 0.0

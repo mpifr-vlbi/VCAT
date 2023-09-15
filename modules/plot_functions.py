@@ -22,7 +22,7 @@ from VLBIana.modules.jet_calculus import *
 import VLBIana.modules.fit_functions as ff
 from VLBIana.modules.plotSet import *
 ###################################
-#plt.style.use('talkstyle')
+plt.style.use('pubstyle')
 
 default_cmap = 'gist_earth'
 colormap = 'inferno'
@@ -66,7 +66,7 @@ def plotHist(data,ax=None,**kwargs):
         ax.annotate('$\mu ={:.1f}$ \n$std={:.1f}$'.format(mu,std),xy=args['acoord'],xycoords='axes fraction',size=args['asize'],horizontalalignment='left',verticalalignment='top')
 
 def axesWidthPlot (ax, **kwargs):
-    args ={'xlabel':r'Distance from the core \small{[mas]}','ylabel':r'De-convolved jet width \small{[mas]}','xscale':'log','yscale':'log'}
+    args ={'xlabel':r'Distance from core \small{[mas]}','ylabel':r'De-convolved width \small{[mas]}','xscale':'log','yscale':'log'}
     args.update(kwargs)
 
     xlabel = args['xlabel']
@@ -87,7 +87,7 @@ def axesWidthPlot (ax, **kwargs):
 
 
 def plot_fit(x,fitfunc,beta,betaerr,chi2,ax=None,**kwargs):
-    args = {'color':'k', 'annotate':False,'asize':asize,'annox':0.6,'annoy':0.05,'lw':1}
+    args = {'color':'k', 'annotate':False,'asize':asize,'annox':0.6,'annoy':0.05,'lw':1,'ls':'-','label':None}
     args.update(kwargs)
     ax = ax or plt.gca()
     if fitfunc == 'scatter':
@@ -102,7 +102,10 @@ def plot_fit(x,fitfunc,beta,betaerr,chi2,ax=None,**kwargs):
         #text = '$W_\mathrm{{0}}={:.2f}\pm{:.2f}$\n$k_\mathrm{{u}}={:.2f}\pm{:.2f}$\n$k_\mathrm{{d}}={:.2f}\pm{:.2f}$\n$\chi_\mathrm{{red}}^2={:.2f}$\nBreak at {:.1f} mas'.format(beta[0],betaerr[0],beta[1],betaerr[1],beta[2],betaerr[2],chi2,beta[-1])
         text = '$W_\mathrm{{0}}={:.2f}\pm{:.2f}$\n$k_\mathrm{{u}}={:.2f}\pm{:.2f}$\n$k_\mathrm{{d}}={:.2f}\pm{:.2f}$\n$z_\mathrm{{B}} = {:.1f}\pm {:.1f}$ mas'.format(beta[0],betaerr[0],beta[1],betaerr[1],beta[2],betaerr[2],beta[-1],betaerr[-1])
 
-    ax.plot(x,function,'-'+args['color'],lw=args['lw'])
+    if args['label']:
+        ax.plot(x,function,color=args['color'],lw=args['lw'],ls=args['ls'],label=args['label'],zorder=1)
+    else:
+        ax.plot(x,function,color=args['color'],lw=args['lw'],ls=args['ls'],zorder=1)
     if args['annotate']:
         ax.annotate(text, xy=(args['annox'],args['annoy']),xycoords='axes fraction',size=args['asize'],horizontalalignment='left',verticalalignment='bottom',bbox=bbox_props)
 
@@ -123,8 +126,9 @@ def add_subplot_unshare(ax):
 def plotBeam(bmaj,bmin,bpos,ramax,decmin,ax=None,color='grey'):
     ax = ax or plt.gca()
     ell_dist = 2
-    ell_x = ramax-bmaj*ell_dist
-    ell_y = decmin+bmaj*ell_dist
+    ell_x = ramax-ramax*0.15
+    ell_y = decmin+0.5*bmaj
+    bpos+=90
     if color:
         e = Ellipse([ell_x,ell_y],bmaj,bmin,-bpos, fc=color,zorder=2)
     else:

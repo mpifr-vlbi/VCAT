@@ -57,10 +57,26 @@ def broken_powerlaw(p,x):
     s=10
     return w0*2**((au-ad)/s)*(x/xb)**au*(1+(x/xb)**s)**((ad-au)/s)
 
+def Snu_real(p,nu):
+    num,Sm,athin = p
+    athick = 2.5
+    taum =3/2*(np.sqrt(1-(8*athin/3/athick))-1)
+    return Sm*(nu/num)**athick*(1-np.exp(-taum*(nu/num)**(athin-athick)))/(1-np.exp(-taum))
+
 def Snu(p,nu):
     num,Sm,athick,athin = p
     taum =3/2*(np.sqrt(1-(8*athin/3/athick))-1)
     return Sm*(nu/num)**athick*(1-np.exp(-taum*(nu/num)**(athin-athick)))/(1-np.exp(-taum))
+
+def ffa(p,nu):
+    nuf,Sm,a=p
+    return Sm*nu**-a*np.exp(-(nu/nuf)**-2.1)
+
+def ssa_ffa(p,nu):
+    nuF,SF,aF,num,Sm,athin = p
+    athick= -2.5
+    taum =3/2*(np.sqrt(1-(8*athin/3/athick))-1)
+    return (Sm*(nu/num)**athick*(1-np.exp(-taum*(nu/num)**(athin-athick)))/(1-np.exp(-taum))) + (SF*nu**-aF*np.exp(-(nu/nuF)**-2.1))
 
 def scatter(p,x):
     ws,wi = p
