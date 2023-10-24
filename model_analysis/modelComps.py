@@ -415,7 +415,9 @@ class modelComp(object):
               plt.show()
             plt.cla()
 
-    def plot_evolution_map(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_color=False,cntr_color=False,cntr_lw=False,ccolor=False,out=True,plot_id=True,plot_below=False,shifted=False,plot_cmp_arrow=False,plot_label=True,plot_ontop=False,plot_cmp_name=False,epochs=False,plot_cmp_lines=False,plot_comps=True,plot_title=False,exclude_model=False,cmp_name_color=None):
+    def plot_evolution_map(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_color=False,cntr_color=False,cntr_lw=False,ccolor=False,out=True,plot_id=False,plot_below=False,shifted=False,plot_cmp_arrow=False,plot_label=True,plot_ontop=False,plot_cmp_name=False,epochs=False,plot_cmp_lines=False,plot_comps=False,plot_title=False,exclude_model=False,cmp_name_color=None,nx=1):
+        """ Plot evolution of VLBI maps
+        """
         sys.stdout.write('Plot modelcomponents over clean maps\n')
         if epochs:
             ids         = []
@@ -429,7 +431,7 @@ class modelComp(object):
             ids = self.ids
             id_colors = self.id_colors
         nn = len(epochs)
-        nx = 1
+        nx = nx
         ny = int(np.ceil(nn/nx))
 
         if not cntr_color:
@@ -461,8 +463,6 @@ class modelComp(object):
            # if kk>1:
             #    shifty.append(shifty[kk-1]-2*dec[kk-1])
 
-        print(dec)
-        print(shifty)
         if plot_ontop:
             Ddec = [-dec[0],dec[0]]
         else:
@@ -681,14 +681,18 @@ class modelComp(object):
 
 
 
-    def overplot_model(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_color=False,cntr_color=False,cntr_lw=False,ccolor=False,out=True,plot_id=True,shifted=False,plot_cmp_arrow=False,plot_label=True):
+    def overplot_model(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_model=True,plot_color=False,cntr_color=False,cntr_lw=False,ccolor=False,out=True,plot_id=True,shifted=False,plot_cmp_arrow=False,plot_label=True):
+        """I changed alot here to try to plot all maps with the same colorbar. However, that does not look nice for the data I tested. I have to continue work on this.
+        """
         sys.stdout.write('Plot modelcomponents over clean maps\n')
 #        if plot_all:
         nn = len(self.model)
         if nn>6:
             nx = 4
+        elif nn==6:
+            nx = 3
         else:
-            nx = 2
+            nx = 1
         ny = int(np.ceil(nn/nx))
 
         if not cntr_color:
@@ -708,26 +712,39 @@ class modelComp(object):
         RA = ra
         DEC = dec
         if type(dec)==list:
-            if len(dec)>2:
+            if len(dec)>2 or np.logical_and(len(dec)==2, len(self.keys)==2):
                 if len(dec) > len(self.keys):
                     sys.stdout.write('please give only 1 parameter for each fits-image ra and dec\n')
                     return
                 load_gs = True
                 gs_heights= dec
-            elif len(dec)==2:
+            elif len(dec)==2 and len(self.keys)==1:
                 Dra  = ra
                 Ddec = dec
         else:
             Dra = [-ra,ra]
             Ddec= [-dec,dec]
 
-        xsize =6
+        xsize = 6
+        ysize = 3
         xxs = xsize*nx
-        yys=np.mean(dec)*xxs/np.mean(ra)
-        yys*=ny
+        yys = np.mean(dec)*xxs/np.mean(ra)
+        yys = ysize*ny
 
-        fig,axs = plt.subplots(ny,nx, figsize=(xxs,yys))
-        axs   = trim_axs(axs,len(self.model))
+        fig,ax = plt.subplots(ny,nx, figsize=(xxs,yys))
+        ax   = trim_axs(ax,len(self.model))
+        #fig = plt.figure(constrained_layout = True)
+        #gs = fig.add_gridspec(ny,nx, hspace=0, wspace=0)
+        #ax = gs.subplots(sharex = 'col')
+
+        vmin = ma.amin([self.cchead[key]['noise'] for key in self.keys])*1e3
+        vmax = ma.amax([self.ccmap[key] for key in self.keys])*1e3
+        level00=vmin*min(sigma)
+        #lev = []
+        #for i in range(0,10):
+        #    lev.append(level0*2**i)
+        #norm = mpl.colors.SymLogNorm(linthresh=level0,linscale=0.5,vmin=level0,vmax=0.5*vmax,base=10)
+
 
         lines   = []
         labels  = []
@@ -735,7 +752,7 @@ class modelComp(object):
         ####################
         # setting all parameters for plotting a clean image
         #####################
-        for ax,key in zip(axs,self.keys):
+        for aa,key in zip(ax.flat,self.keys):
             modelh= self.model[key]
             clean = self.cchead[key]
             if shifted:
@@ -746,6 +763,23 @@ class modelComp(object):
                 ccmap = self.ccmap_shifted[key]
             else:
                 ccmap =  self.ccmap[key]
+            ccmap *=1e3
+            if len(sigma)>1:
+                _sigma = sigma[kk]
+            else:
+                _sigma   = sigma
+            #vmin = clean['noise']*1e3
+            #vmax = ma.amax(ccmap)
+
+            level0  = vmin*_sigma
+            lev=[-level0]
+            for i in range(0,10):
+                lev.append(level0*2**i)
+#            vmax=ma.amax(ccmap)
+            #ccmap[ccmap <=level0] = level0
+            norm = mpl.colors.SymLogNorm(linthresh=level00,linscale=0.5,vmin=level00,vmax=vmax,base=10)
+            #sys.stdout.write('vmax={} ; vmin={}\n lev={} \n'.format(vmax,vmin,lev))
+
             if load_gs:
                 Dra = [-ra[kk],ra[kk]]
                 Ddec = [-dec[kk],dec[kk]]
@@ -753,72 +787,66 @@ class modelComp(object):
                 DEC = dec[kk]
 
             scale   = -clean['px_inc']*3.6e6
-            sigma   = sigma
-            level0  = clean['noise']*sigma
-            lev=[]
-            for i in range(0,10):
-                lev.append(level0*2**i)
             xx  = np.linspace(-clean['naxis']*0.5*scale,(clean['naxis']*0.5-1)*scale,clean['naxis'])
             yy  = np.linspace(clean['naxis']*0.5*scale,-(clean['naxis']*0.5-1)*scale,clean['naxis'])
             extent = np.max(xx),np.min(xx),np.min(yy),np.max(yy)
-            vmax=0.5*ma.amax(ccmap)
-            norm = mpl.colors.SymLogNorm(linthresh=level0,linscale=0.5,vmin=level0,vmax=vmax,base=np.e)
+
 
             ##################
             # Plotting
             ###################
-            #f,ax = plt.subplots()
-            ax.axis('scaled')
-            ax.set_xlim(Dra)
-            ax.set_ylim(Ddec)
-            ax.set_aspect(1)
-            ax.set_adjustable("datalim")
-            ax.invert_xaxis()
-            plotBeam(clean['beam'][0],clean['beam'][1],clean['beam'][2],RA,-DEC,ax)
+            #f,aa = plt.subplots()
+            aa.axis('scaled')
+            aa.set_xlim(Dra)
+            aa.set_ylim(Ddec)
+            aa.set_aspect(1)
+            aa.set_adjustable("datalim")
+            aa.invert_xaxis()
+            print(DEC)
+            plotBeam(clean['beam'][0],clean['beam'][1],clean['beam'][2],RA,-DEC,aa,color='white')
 
-           # cntr=ax.contour(xx,yy,ccmap,linewidths=cntr_lw,levels=lev,colors=cntr_color,alpha=1)
-            cntr = ax.contour(ccmap,linewidths=cntr_lw,levels=lev,colors=cntr_color,alpha=1,extent=extent)
+            cntr = aa.contour(ccmap,linewidths=cntr_lw,levels=lev[1:],colors=cntr_color,alpha=1,extent=extent)
             if plot_color:
-                im = ax.imshow(ccmap,cmap=self.colormap,extent=extent,origin='lower', interpolation='gaussian')
+                im = aa.imshow(ccmap,cmap=self.colormap,extent=extent,origin='lower', interpolation='gaussian')
                 im.set_norm(norm)
+                plt.style.use('dark_background')
+            if plot_model:
+                Mx  = model['DELTAX']
+                My  = model['DELTAY']
+                Mposa   = model['POSANGLE']
+                Mmaj    = model['MAJOR AX']
+                Mmin    = model['MINOR AX']
+                for j,xx in enumerate(Mx):
+                    epid=model['id'][j]
+                    ccolor = ccolors[self.ids==epid][0]
+                    e_comp = Ellipse([Mx[j],My[j]],Mmaj[j],Mmin[j],-Mposa[j]+90, color=ccolor, zorder=2, fill=False,lw=0.5)
+                    aa.add_artist(e_comp)
+                    maj1_x = Mx[j]-np.sin(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
+                    maj1_y = My[j]+np.cos(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
+                    maj2_x = Mx[j]+np.sin(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
+                    maj2_y = My[j]-np.cos(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
 
-            Mx  = model['DELTAX']
-            My  = model['DELTAY']
-            Mposa   = model['POSANGLE']
-            Mmaj    = model['MAJOR AX']
-            Mmin    = model['MINOR AX']
-            for j,xx in enumerate(Mx):
-                epid=model['id'][j]
-                ccolor = ccolors[self.ids==epid][0]
-                e_comp = Ellipse([Mx[j],My[j]],Mmaj[j],Mmin[j],-Mposa[j]+90, color=ccolor, zorder=2, fill=False,lw=0.5)
-                ax.add_artist(e_comp)
-                maj1_x = Mx[j]-np.sin(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
-                maj1_y = My[j]+np.cos(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
-                maj2_x = Mx[j]+np.sin(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
-                maj2_y = My[j]-np.cos(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
-
-                min1_x = Mx[j]-np.sin(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
-                min1_y = My[j]+np.cos(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
-                min2_x = Mx[j]+np.sin(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
-                min2_y = My[j]-np.cos(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
-                if maj1_y==maj2_y:
-                    ax.plot(maj1_x,maj1_y, color = ccolor,marker='+', markersize=5,lw=1,label=model['id'][j])
-                else:
-                    ax.plot([maj1_x,maj2_x],[maj1_y,maj2_y], color = ccolor, lw = 1,label=model['id'][j])
-                    ax.plot([min1_x,min2_x],[min1_y,min2_y], color = ccolor, lw = 1)
-                if plot_cmp_arrow:
-                    ax.annotate('{}'.format(model['id'][j]),xy=(Mx[j],My[j]), xycoords='data', xytext=(-5, (-1)**j*40), textcoords='offset points',arrowprops=dict(arrowstyle="->", connectionstyle="arc3"), color=ccolor,fontsize=8)
+                    min1_x = Mx[j]-np.sin(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
+                    min1_y = My[j]+np.cos(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
+                    min2_x = Mx[j]+np.sin(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
+                    min2_y = My[j]-np.cos(-np.pi/180*(Mposa[j]+90))*Mmin[j]*0.5
+                    if maj1_y==maj2_y:
+                        aa.plot(maj1_x,maj1_y, color = ccolor,marker='+', markersize=5,lw=1,label=model['id'][j])
+                    else:
+                        aa.plot([maj1_x,maj2_x],[maj1_y,maj2_y], color = ccolor, lw = 1,label=model['id'][j])
+                        aa.plot([min1_x,min2_x],[min1_y,min2_y], color = ccolor, lw = 1)
+                    if plot_cmp_arrow:
+                        aa.annotate('{}'.format(model['id'][j]),xy=(Mx[j],My[j]), xycoords='data', xytext=(-5, (-1)**j*40), textcoords='offset points',arrowprops=dict(arrowstyle="->", connectionstyle="arc3"), color=ccolor,fontsize=8)
 
 
-            # set axis, labels, etc.
-            ax.set(xlabel='RA [mas]', ylabel='DEC [mas]')
-            ax.minorticks_on()
-            ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-            ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-            ax.set_title('{} - {:.1f} GHz - {}'.format(modelh['source'],modelh['freq'],modelh['date_obs']),size=12)
+            aa.set(xlabel='RA [mas]', ylabel='DEC [mas]')
+            aa.minorticks_on()
+            aa.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+            aa.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+            aa.set_title('{} - {:.1f} GHz - {}'.format(modelh['source'],modelh['freq'],modelh['date_obs']),size=12)
 # The following lines sort the labels and handles alphabetically 
             if plot_label:
-                handles, Labels = ax.get_legend_handles_labels()
+                handles, Labels = aa.get_legend_handles_labels()
                 labels.extend(Labels)
                 lines.extend(handles)
             kk+=1
@@ -827,13 +855,17 @@ class modelComp(object):
             by_label = dict(zip(labels, lines))
             keys_list = sorted(by_label, key=keyfunc)
             sorted_by_label = {key: by_label[key] for key in keys_list}
-            pos = ax.get_position()
-            ax.set_position([pos.x0, pos.y0, pos.width, pos.height * 0.85])
-            #ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
+            pos = aa.get_position()
+            aa.set_position([pos.x0, pos.y0, pos.width, pos.height * 0.85])
+            #aa.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
             fig.legend(sorted_by_label.values(), sorted_by_label.keys(),loc='upper left', bbox_to_anchor=(1,0.98),ncol=4)
-            #secx = ax.secondary_xaxis('left',)
+            #secx = aa.secondary_xaxis('left',)
             #secx.set_xlabel(args['Freq'])
 # sorting done, legend plottet
+
+        # set axis, labels, etc.
+        cbar = fig.colorbar(im, ax=ax, orientation='vertical',fraction=0.15,pad=0.15)
+        cbar.set_label(r'$S$ [mJy/beam]')
 
         plt.tight_layout()#pad=0.2,w_pad=0.2,h_pad=0.2)
         fig.subplots_adjust(right=0.95, top=0.98)

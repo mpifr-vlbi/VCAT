@@ -125,8 +125,25 @@ def Rs(m,return_pc=True):
         R=R.to(u.parsec)
     return R
 
-def mastopc(z=None,d=None):
+def mas2pc(z=None,d=None):
+    """To convert mas to parsec.
+
+    Uses either a redshift (z) or a distnace (d) to compute the conversion from mas to parsec.
+
+    Parameters
+    ----------
+    z : float
+      The redshift
+    d : distance
+    
+    Returns
+    -------
+    float
+        the conversion between mas and parsec.
+    """
     cosmo=FlatLambdaCDM(H0=71,Om0=0.27) #Komatsu+09
+#    cosmo=FlatLambdaCDM(H0=70,Om0=0.30) #Komatsu+09
+
     if d:
         D=d*1e6*u.parsec
     else:
@@ -135,22 +152,22 @@ def mastopc(z=None,d=None):
 #   return 1/(60*60*1e3)*D
 
 def resinRs(z,f,M):
-    mtp = mastopc(z)
+    mtp = mas2pc(z)
     return const.c/f*1e9*u.s/8600e3/u.m*180/np.pi*3.5e6*mtp*u.pc/((2*const.G*10**(M)*const.M_sun/const.c**2).to(u.pc))/2.
 
 def mas2Rs(x,M=10**8.2,z=0.005037,D=False):
     rs =Rs(M)
     if D:
-        mtp = mastopc(d=D)
+        mtp = mas2pc(d=D)
     else:
-        mtp=mastopc(z)
+        mtp=mas3pc(z)
     return x*mtp/rs
 def Rs2mas(x,M=10**8.2,z=0.005037,D=False):
     rs =Rs(M)
     if D:
-        mtp = mastopc(d=D)
+        mtp = mas2pc(d=D)
     else:
-        mtp=mastopc(z)
+        mtp=mas2pc(z)
     return x*rs/mtp
 
 def app_ang(width,z,sd=False):

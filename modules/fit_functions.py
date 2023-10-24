@@ -58,6 +58,8 @@ def broken_powerlaw(p,x):
     return w0*2**((au-ad)/s)*(x/xb)**au*(1+(x/xb)**s)**((ad-au)/s)
 
 def Snu_real(p,nu):
+    """SSA spectrum following Tuerler+ 1999
+    """
     num,Sm,athin = p
     athick = 2.5
     taum =3/2*(np.sqrt(1-(8*athin/3/athick))-1)
