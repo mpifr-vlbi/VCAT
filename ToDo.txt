@@ -6,23 +6,37 @@ Oveview of all ToDo Items and the responsible persons.
  - Pixel-by-Pixel analysis of jet (Luca) DONE
  - Synchrotron turnover fitting, B-field estimate (Luca) DONE
  - Currently the script needs the jet to go along the y-axis, he wants to change it (Luca)
+  - Still working on this, but the script will have a rotation implemented, piping to CASA in the background to rotate the map. 
 
 - Ridge-line Fitting [Luca, Vieri]
  - Finalizing updates (Luca)
  - Double-ridge line extension (Vieri, Luca)
 
 - Aligning images [Anne, Jan]
- - On model components 
- - using 2D cross-correlation with mask in Fourier space [Anne] DONE
+ - On model components (Felix)
+  - propagation errors properly, calculate magentic field strengths etc, spectral fit
+- using 2D cross-correlation with mask in Fourier space [Anne] DONE
   - implementing new masks (Jan)
   - Spectral Index maps [Anne] DONE
   - add enclosing ellipe to restore images (Anne)
   - combine VMAP ? (Anne,Jan, Petra, ChatGPT)
   - make it interactive, especially for the masking, can reuse some info from VMAP (Jan, Anne, Florian)
+ - Align script changes by Anne, Felix, and Jan (Anne, Felix, Jan)
+  - Get an idea of the uncertainty of the shift and its impact on the spectral index map (Felix)
+  - Use other masks (Jan)
+  - use VMAP cross-correlation plots to show these plots for the alignment (Anne)
 
 - Modelfit analysis (Anne)
+ - Felix will test it (Felix)
  
-- Write everything up into a publication [Jan, Anne, Luca]
+- Write everything up into a publication, should we have a deadline? Spring 2024 [Jan, Anne, Luca]
 
 - Github Documentation wiki/webpage [Anne]
  - Combine documentation of everything (Anne)
+ - will send a mail with a reference script
+
+- Make another code to specifically re-gridded the image (same pixel-size, beam, and center on the peak),also do rotation (Anne,Luca)
+  Maybe add to CleanMap class
+
+- Have meetings every two weeks, Anne creates a when2meet (Anne)
+
