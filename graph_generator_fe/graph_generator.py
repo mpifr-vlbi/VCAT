@@ -270,6 +270,11 @@ class FitsImage(object):
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
+        
+        if len(xlim)==2:
+            ra_max,ra_min=xlim
+        if len(ylim)==2:
+            dec_min,dec_max=ylim
 
         self.fig, self.ax = plt.subplots(1, 1)
 
