@@ -1,0 +1,40 @@
+VCAT meeting 12.02.2024.
+
+- Anne shows github to-do list
+- Luca: Working on ridgeline script. Often one dimensional Gauss for ridgeline works
+ better for clearly edge brightened jet, work on that. So far, worked with chisq
+ criterion to decide if one or two Gaussians are best.
+ Ridgeline fir for two-sides jets sometimes has unknown problems.
+- Anne (from last minutes): option 1: derive ridgeline from slices, option 2:
+ use polar coordinates. Latter should be better for curved jet.
+- Luca: Up to now, follow evolution of brightest pixel along jet and adjust the
+ perpendicular.
+- Felix: way to go polar then?
+- Luca: old code by Nick MacDonald that does that not working well.
+- Anne: use code by Jun Liu? 'headache' uses polar coords. Worth looking into?
+ Aleksei find maximum of jet slice by doing circles. Luca could talk to Jan and Alexei
+ for that.
+- Anne: links to headache git: https://github.com/junliu/headache
+- Luca: wants precise list of things already done and think about structure of final
+ VCAT package. Suggests google sheet to track progress.
+ Link here: https://docs.google.com/spreadsheets/d/10T53wqHsvBxpH8uEKn1AwZu_dLI-9nOOFI3rDqgabQc/edit#gid=0
+- Felix: says github tracks code history and has function to add comments to commits.
+ Good to have sheet with overall progress still. Should be enough and any project
+ planning software is likely overkill.
+Anne, Jan and Felix will schedule extra meeting to discuss alignment script, as
+ everyone has been working on improvements on different parts that need to be aligned.
+- Felix will test modelfit plotting script by Anne.
+- Luca: ridgeline fit script should work independently. Original script was too large
+ right now.
+- Felix: could have ridge line fit return values/file/object to pass to other scripts.
+- Anne: align way to comment code. Will test automated scripts to comment code.
+- Florian: has script using difmap to restore maps with common beam. Could also do pixel
+ size. What approach to use for common beams in aligning maps? difmap, ehtim (latter used
+ in Anne's alignment script, just Gaussian blur)?
+- Luca: for VLA maps, quite different results with both kinds of approaches.
+- Florian will provide script. Also has script to mathematically determine best common beam.
+- Anne: Please upload as work alone script.
+- FLorian: shows pol.-map plot script (also modelfit plot, CC plot). Should be useful in
+ the future.
+
+Next meeting scheduled for 26.02.
