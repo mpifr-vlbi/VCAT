@@ -12,6 +12,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.time import Time
 import sys
 
+#optimized draw on Agg backend
+mpl.rcParams['path.simplify'] = True
+mpl.rcParams['path.simplify_threshold'] = 1.0
+mpl.rcParams['agg.path.chunksize'] = 1000
+
 #define some matplotlib figure parameters
 mpl.rcParams['font.family'] = 'Quicksand'
 #mpl.rcParams['axes.spines.top'] = False
@@ -21,20 +26,19 @@ mpl.rcParams['axes.linewidth'] = 1.0
 font_size_axis_title=13
 font_size_axis_tick=12
 
-#class to handle image data incl. polarization (Q,U) and also clean and gauss models
+
 class ImageData(object):
     def __init__(self,
-                 fits_file="", #fits files with either Stokes I or Stokes I,Q,U,V (as from CASA image)
-                 stokes_i=[], #optional input of stokes I 2d-array
-                 model="", #fits files which include a model table (like DIFMAP export clean/modelfit), or CASA .fits model export 
-                 lin_pol=[], #optional input of lin_pol 2d-array
-                 evpa=[], #optional input of evpa 2d-array
-                 pol_from_stokes=True, #if True reads polarization from stokes_q and stokes_u channels, if false reads in the lin_pol and evpa fields
-                 stokes_q="", #can input .fits file paths to .fits files with stokes q or a 2d-array of stokes q values
-                 stokes_u="", #can input .fits file paths to .fits files with stokes u or a 2d-array of stokes u values
-                 model_save_dir="tmp/mod_files/", #will write model input to a folder as .mod files
-                 is_casa_model=False #need to put true here if input model was a .fits model from CASA
-                 ):
+                 fits_file="",
+                 stokes_i=[],
+                 model="",
+                 lin_pol=[],
+                 evpa=[],
+                 pol_from_stokes=True,
+                 stokes_q="",
+                 stokes_u="",
+                 model_save_dir="tmp/mod_files/",
+                 is_casa_model=False):
 
         self.file_path = fits_file
         self.model_file_path = model
@@ -50,10 +54,12 @@ class ImageData(object):
         else:
             self.no_fits=True
 
+        stokes_q_path=stokes_q
+        stokes_u_path=stokes_u
         #read stokes data from input files if defined
         if stokes_q != "":
             try:
-                stokes_q = fits.open(fits_file)[0].data[0, 0, :, :]
+                stokes_q = fits.open(stokes_q)[0].data[0, 0, :, :]
             except:
                 stokes_q=stokes_q
         else:
@@ -61,7 +67,7 @@ class ImageData(object):
 
         if stokes_u != "":
             try:
-                stokes_u = fits.open(fits_file)[0].data[0, 0, :, :]
+                stokes_u = fits.open(stokes_u)[0].data[0, 0, :, :]
             except:
                 stokes_u = stokes_u
         else:
@@ -132,6 +138,7 @@ class ImageData(object):
             only_stokes_i = True #in this case override the polarization data with the data that was input to Q and U
 
         if only_stokes_i:
+            #DIFMAP Style
             pols=1
             # Check if linpol/evpa/stokes_i have same dimensions!
             dim_wrong = True
@@ -155,6 +162,7 @@ class ImageData(object):
                     self.evpa=np.zeros(np.shape(self.Z))
             self.image_data[0, 0, :, :] = self.Z
         else:
+            #CASA STYLE
             pols=3
             dim_wrong=False
             self.stokes_q=hdu_list[0].data[1,0,:,:]
@@ -165,6 +173,8 @@ class ImageData(object):
         if pol_from_stokes and not dim_wrong:
             self.lin_pol = np.sqrt(self.stokes_q ** 2 + self.stokes_u ** 2)
             self.evpa = 0.5 * np.arctan2(self.stokes_u, self.stokes_q)
+            #shift to 0-180 (only positive)
+            self.evpa[np.where(self.evpa<0)] = self.evpa[np.where(self.evpa<0)]+np.pi
 
 
         # Set beam parameters
@@ -188,30 +198,90 @@ class ImageData(object):
 
         self.date = get_date(fits_file)
 
-     ##TODO check for "is_casa_model" and if so, import the CASA model!
-        if model!="":
+
+        #calculate image noise
+        unused, levs_i = get_sigma_levs(self.Z, 1) #get noise for stokes i
+        try:
+            unused, levs_pol = get_sigma_levs(self.lin_pol, 1) #get noise for polarization
+        except:
+            levs_pol=[0]
+
+        # calculate image noise
+        unused, levs_i_3sigma = get_sigma_levs(self.Z, 3)  # get noise for stokes i
+        try:
+            unused, levs_pol_3sigma = get_sigma_levs(self.lin_pol, 3)  # get noise for polarization
+        except:
+            levs_pol_3sigma = [0]
+
+        self.noise = levs_i[0]
+        self.pol_noise = levs_pol[0]
+
+        self.noise_3sigma  = levs_i_3sigma[0]
+        self.pol_noise_3sigma = levs_pol_3sigma[0]
+
+        #calculate integrated total flux in image
+        self.integrated_flux_image = JyPerBeam2Jy(np.sum(self.Z), self.beam_maj, self.beam_min, self.degpp * self.scale)
+
+        #calculate integrated pol flux in image
+        self.integrated_pol_flux_image = JyPerBeam2Jy(np.sum(self.lin_pol),self.beam_maj,self.beam_min,self.degpp*self.scale)
+
+        #calculate average EVPA (mask where lin pol < 3 sigma or stokes i < 3 sigma (same as in plot)
+        integrate_evpa = np.ma.masked_where((self.lin_pol < self.pol_noise_3sigma) | (self.Z < self.noise_3sigma),
+                                            self.evpa)
+        self.evpa_average = np.average(integrate_evpa)
+
+        if model!="" and not is_casa_model:
             #TODO basic checks if file is valid
             self.model=getComponentInfo(model)
             #write .mod file from .fits input
             os.makedirs(model_save_dir,exist_ok=True)
             write_mod_file(self.model, model_save_dir + self.date + ".mod", freq=self.freq)
-        elif is_casa_model:
+        if is_casa_model:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)
+            os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
+            os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
+            os.makedirs(model_save_dir + "mod_files_u", exist_ok=True)
             write_mod_file_from_casa(self.file_path,channel="i", export=model_save_dir+"mod_files/"+self.date + ".mod")
+            write_mod_file_from_casa(self.file_path,channel="i", export=model_save_dir+"mod_files_clean/"+self.date + ".mod")
             write_mod_file_from_casa(self.file_path,channel="q", export=model_save_dir+"mod_files_q/"+self.date + ".mod")
             write_mod_file_from_casa(self.file_path,channel="u", export=model_save_dir+"mod_files_u/"+self.date + ".mod")
 
         else:
             self.model=None
-            try:
-                #try to import model which is attached to the main .fits file
-                self.model = getComponentInfo(fits_file)
-                os.makedirs(model_save_dir, exist_ok=True)
-                write_mod_file(self.model, model_save_dir + self.date + ".mod", freq=self.freq)
-            except:
-                pass
+        try:
+            os.makedirs("tmp/mod_files_clean", exist_ok=True)
+            os.makedirs("tmp/mod_files_q", exist_ok=True)
+            os.makedirs("tmp/mod_files_u", exist_ok=True)
+            #try to import model which is attached to the main .fits file
+            model_i = getComponentInfo(fits_file)
+            if self.model==None:
+                self.model = model_i
+            write_mod_file(model_i, "tmp/mod_files_clean/"+ self.date + ".mod", freq=self.freq)
+            #load stokes q and u clean models
+            model_q=getComponentInfo(stokes_q_path)
+            write_mod_file(model_q, "tmp/mod_files_q/" + self.date + ".mod", freq=self.freq)
+            model_u=getComponentInfo(stokes_u_path)
+            write_mod_file(model_u, "tmp/mod_files_u/" + self.date + ".mod", freq=self.freq)
+        except:
+            pass
+
         hdu_list.close()
+
+        #calculate cleaned flux density from mod files
+        #first stokes I
+        try:
+            self.integrated_flux_clean=total_flux_from_mod("tmp/mod_files_clean/" + self.date + ".mod")
+        except:
+            self.integrated_flux_clean = 0
+        #and then polarization
+        try:
+            flux_q=total_flux_from_mod("tmp/mod_files_q/" + self.date + ".mod")
+            flux_u=total_flux_from_mod("tmp/mod_files_u/" + self.date + ".mod")
+            self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
+        except:
+            self.integrated_pol_flux_clean=0
+
 
 class FitsImage(object):
     """class that generate Matplotlib graph."""
@@ -229,18 +299,20 @@ class FitsImage(object):
                  im_color='inferno', # string for matplotlib colormap
                  plot_beam=True, #choose whether to plot beam or not
                  overplot_gauss=False, #choose whether to plot modelfit components
+                 component_color="black", # choose component color for Gauss component
                  overplot_clean=False, #choose whether to plot clean components
-                 xlim=[],#set manual xplot lim
-                 ylim=[],#set manual yplot lim
+                 xlim=[], #xplot limits, e.g. [5,-5]
+                 ylim=[], #yplot limits
                  ###HERE STARTS POLARIZATION INPUT
-                 plot_evpa=True, #decide whether to plot EVPA or not
+                 plot_evpa=False, #decide whether to plot EVPA or not
+                 evpa_width=2, #choose width of EVPA lines
                  evpa_len=8,  # choose length of EVPA in pixels
                  lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
                  evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
-                 rotate_evpa=0,  # rotate EVPAs by a given angle in degrees (North through East)
-                 evpa_color="white", #set EVPA color for plot
-                 title="", #plot title (default is date)
-                 rcparams={}  # option to modify matplotlib look
+                 rotate_evpa=0, # rotate EVPAs by a given angle in degrees (North through East)
+                 evpa_color="white", # set EVPA color for plot
+                 title="", # plot title (default is date)
+                 rcparams={} # option to modify matplotlib look
                  ):
 
         super().__init__()
@@ -262,6 +334,7 @@ class FitsImage(object):
         degpp = self.clean_image.degpp
         extent = self.clean_image.extent
         date=self.clean_image.date
+        self.evpa_width=evpa_width
         # Set beam parameters
         beam_maj = self.clean_image.beam_maj
         beam_min = self.clean_image.beam_min
@@ -270,16 +343,18 @@ class FitsImage(object):
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
-        
-        if len(xlim)==2:
-            ra_max,ra_min=xlim
-        if len(ylim)==2:
-            dec_min,dec_max=ylim
+
+        if len(xlim) == 2:
+            ra_max, ra_min = xlim
+        if len(ylim) == 2:
+            dec_min, dec_max = ylim
 
         self.fig, self.ax = plt.subplots(1, 1)
 
+        self.components=[]
+
         #component default color
-        self.component_color = "black"
+        self.component_color = component_color
 
         fit_noise = True  # if True, the noise value and rms deviation will be fitted as described in the PhD-thesis of Moritz Böck (https://www.physik.uni-wuerzburg.de/fileadmin/11030400/Dissertation_Boeck.pdf); if False, the noise frome difmap will be used
 
@@ -308,18 +383,24 @@ class FitsImage(object):
                 plot_lin_pol = np.array(self.clean_image.lin_pol)
                 plot_frac_pol = plot_lin_pol / np.array(self.clean_image.Z)
                 plot_frac_pol = np.ma.masked_where((plot_lin_pol < levs1_linpol[0]) | (self.clean_image.Z<levs1[0]),
-                                                  plot_frac_pol)  # Check if this is actually the right thing to do
+                                                  plot_frac_pol)
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.01],extent,
                                   label="Fractional Linear Polarization")
                 self.evpa_color="black"
                 contour_color="grey"
 
-            if plot_evpa:
-                self.plotEvpa(self.clean_image.evpa, rotate_evpa, evpa_len, evpa_distance, levs1_linpol, levs1)
+        if plot_evpa and np.sum(self.clean_image.lin_pol)!=0:
+            levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut)
+            self.plotEvpa(self.clean_image.evpa, rotate_evpa, evpa_len, evpa_distance, levs1_linpol, levs1)
 
         # Contour plot
         if contour == True:
+            if contour_cmap=="" or contour_cmap==None:
+                contour_cmap=None
+            else:
+                contour_color=None
+
             self.ax.contour(X, Y, Z, linewidths=contour_width, levels=levs, colors=contour_color,
                             alpha=contour_alpha,
                             cmap=contour_cmap)
@@ -382,7 +463,7 @@ class FitsImage(object):
                 for j in range(len(g_x)):
                     # plot component
                     component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
-        
+
         self.xmin,self.xmax = ra_min, ra_max
         self.ymin,self.ymax = dec_min, dec_max
         
@@ -454,30 +535,29 @@ class FitsImage(object):
         # create mask where to plot EVPA (only where stokes i and lin pol have plotted contours)
         mask = np.zeros(np.shape(stokes_i), dtype=bool)
         mask[:] = (self.clean_image.lin_pol > levs1_linpol[0]) * (stokes_i > levs1_i[0])
-        XLoc, YLoc = np.where(mask)
+        YLoc, XLoc = np.where(mask)
 
         y_evpa = evpa_len * np.cos(evpa[mask])
         x_evpa = evpa_len * np.sin(evpa[mask])
+        evpa=evpa[mask]
 
-        SelPix = range(0, len(stokes_i), evpa_distance)
+        SelPix = range(0, len(stokes_i), int(evpa_distance))
 
         lines = []
         for i in range(0, len(XLoc)):
             if XLoc[i] in SelPix and YLoc[i] in SelPix:
-                Xpos = -float(self.clean_image.X[XLoc[i]]) #TODO check where the minus comes from!
-                Ypos = -float(self.clean_image.Y[YLoc[i]]) #TODO check where the minus comes from!
-                X0 = float(Xpos - x_evpa[i] / 2.)
-                X1 = float(Xpos + x_evpa[i] / 2.)
+                Xpos = float(self.clean_image.X[XLoc[i]])
+                Ypos = float(self.clean_image.Y[YLoc[i]])
                 Y0 = float(Ypos - y_evpa[i] / 2.)
                 Y1 = float(Ypos + y_evpa[i] / 2.)
-                lines.append(((Y0, X0), (Y1, X1)))
+                X0 = float(Xpos - x_evpa[i] / 2.)
+                X1 = float(Xpos + x_evpa[i] / 2.)
+                lines.append(((X0, Y0), (X1, Y1)))
         lines = tuple(lines)
-
-        ##TODO something is still wrong here with the sign and orientation of the EVPA, please double check!
 
 
         # plot the evpas
-        evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=2)
+        evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width)
         self.ax.add_collection(evpa_lines)
 
 
@@ -663,4 +743,22 @@ def get_date(filename):
             year = time[2]
         date = year + "-" + month + "-" + day
     return date
+
+#needs a mod_file as input an returns the total flux
+def total_flux_from_mod(mod_file):
+    lines=open(mod_file).readlines()
+    total_flux=0
+    for line in lines:
+        if not line.startswith("!"):
+            linepart=line.split()
+            total_flux+=float(linepart[0])
+    return total_flux
                 
+def PXPERBEAM(b_maj,b_min,px_inc):
+    beam_area = np.pi/(4*np.log(2))*b_min*b_maj
+    PXPERBEAM = beam_area/(px_inc**2)
+    return PXPERBEAM
+#
+
+def JyPerBeam2Jy(jpb,b_maj,b_min,px_inc):
+    return jpb/PXPERBEAM(b_maj,b_min,px_inc)

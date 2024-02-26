@@ -139,7 +139,7 @@ def align_images(image_array, #input images to be aligned
 def stack_fits(fits_files, #a list of filepaths to fits files (either full polarization or just stokes I)
         stokes_q_fits=[], #a list of filepaths to fits files containing stokes Q
         stokes_u_fits=[], #a list of filepaths to fits files conataining stokes U
-        export_fits=False, #choose whether to write an output fits file (stacked)
+        export_file=False, #choose whether to write an output fits file (stacked)
         output_file="stacked.fits", #choose file name for output file
         overwrite=True, #choose whether to overwrite an already existing image or not
         align=True #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightest pixel in Stokes I)
@@ -212,10 +212,12 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
                 else:
                     output_stacked[pol][spw]=stack_images(data_to_stack)
 
-        if export_fits:
-            file=fits.open(fits_files[0])
-            file[0].data=output_stacked
-            file.writeto(output_file,overwrite=overwrite)
+
+        if export_file:
+
+            file_output=fits.open(fits_files[0])
+            file_output[0].data=output_stacked
+            file_output[0].writeto(output_file,overwrite=overwrite)
         
         return output_stacked
 
@@ -312,9 +314,10 @@ def get_common_beam(fits_files,
         plot_beams=False, #makes a simple plot of all the beams for double checking
         tolerance=0.0001 #adjust the numeric tolarance for determining the common beam
         ):
-       
-    fig = plt.figure()
-    ax = fig.add_subplot()
+    
+    if plot_beams:   
+    	fig = plt.figure()
+    	ax = fig.add_subplot()
 
     sample_points=np.empty(shape=(ppe*len(fits_files),2))
     for ind,file_path in enumerate(fits_files):
