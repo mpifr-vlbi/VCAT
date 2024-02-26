@@ -305,30 +305,6 @@ def stack_pol_fits(fits_files, #list of file paths to fits files with full polar
 
         return output_stacked
         
-#takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
-def get_sigma_levs(image, #2d array/list
-        sigma_contour_limit=3 #choose the lowest sigma contour to plot
-        ):
-    
-    Z1 = image.flatten()
-    bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins = "auto")
-    bin_widths = np.diff(bin_borders)
-    bin_centers = bin_borders[:-1] + bin_widths / 2.
-    bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
-    
-    t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), 0.001)
-    fit_t = fitting.LevMarLSQFitter()
-    t = fit_t(t_init, bin_centers, bin_heights, weights = 1. / bin_heights_err)
-    noise=t.stddev.value
-
-    #Set contourlevels to mean value + 3 * rms_noise * 2 ** x
-    levs1 = t.mean.value + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * t.stddev.value * np.logspace(0, 100, 100, endpoint = False, base = 2)
-    levs = t.mean.value + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * t.stddev.value * np.logspace(0, 100, 100, endpoint = False, base = 2)
-    levs = np.flip(levs)
-    levs = np.concatenate((levs, levs1))
-    
-    return levs,levs1[0]
-
 #this method is intended to determine the (smallest) common beam of multiple fits-images
 
 def get_common_beam(fits_files,
