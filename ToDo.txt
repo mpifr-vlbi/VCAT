@@ -55,4 +55,3 @@ Oveview of all ToDo Items and the responsible persons.
 - RM Maps add at a later point [Felix]
 
 - Have meetings every two weeks (Anne)
-
