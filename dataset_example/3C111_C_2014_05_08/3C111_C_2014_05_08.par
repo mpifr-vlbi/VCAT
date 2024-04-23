@@ -1,0 +1,30 @@
+! Command file created by the difmap on Tue Apr 23 11:27:32 2024
+mapunits mas
+multi_model true
+get 3C111_C_2014_05_08
+mapsize 2048,0.08, 2048,0.08
+select I, 1, 8
+uvtaper 0, 0
+uvrange 0, 0
+uvweight 0, -1, false
+selftaper 0, 0
+selflims 0, 0, false
+xyrange 0, 0, 0, 0
+beamloc 0, 0, 0.01, 0.3
+polvec 0, 0, 0, 1, 1
+integer niter; niter=100
+float gain; gain=0.05
+float cutoff; cutoff=0
+float cmul; cmul=0
+logical docont; docont=true
+mapcolor color, 1.000000, 0.500000
+mapfunc linear, 0.000000, 0.000000
+string vflags; vflags="fbm3e"
+string rflags; rflags=""
+string pflags; pflags=""
+string tflags; tflags=""
+selfflag true, 3, 4
+scangap 3600
+float levs(13)
+levs(1:13) = -0.04, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92
+fix_weights false
