@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="description" content="None" />
+      <link rel="shortcut icon" href="img/favicon.ico" />
+    <title>VCAT</title>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "VCAT Docs";
+        var mkdocs_page_input_path = "index.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="." class="icon icon-home"> VCAT
+        </a>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">VCAT Docs</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#table-of-contents">Table Of Contents</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#project-overview">Project Overview</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#VCAT">VCAT</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#acknowledgements">Acknowledgements</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#please-cite">Please Cite</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="" href="hot-to-guides.md">How-to guides</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="references/">References</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href=".">VCAT</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">VCAT Docs</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="welcome-to-vcat">Welcome to VCAT</h1>
+<p>This site contains the project documentation for the <code>VCAT</code> project which
+ is a Python package to analyze multi-frequency VLBI data and produce informative plots.
+It should help you to make VLBI analysis fast and provides a good starting
+ point for more complex projects.</p>
+<h2 id="table-of-contents">Table Of Contents</h2>
+<p>This documentation consists of four separate parts:</p>
+<ol>
+<li><a href="how-to-guides.md">How-To Guides</a></li>
+<li><a href="references/">References</a></li>
+</ol>
+<p>Quickly find what you're looking for depending on
+your use case by looking at the different pages.</p>
+<h2 id="project-overview">Project Overview</h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="VCAT"></a>
+    <div class="doc doc-contents first">
+
+      <p>Organizing, analyzing and plotting of multifrequency VLBI data.</p>
+<p>Modules exported by this package:</p>
+<ul>
+<li><code>alignmenti/align_imagesEHTim.py</code>: Align two VLBI maps using 2D crosscorrelation.</li>
+<li><code>graph_generator_fei/graph_generator.py</code>: Generate plots for polarization VLBI data.</li>
+<li><code>px_analysis</code>: Analysie multi-frequency maps on a px-basis.</li>
+<li><code>px_analysis/Jets_analysis_v1.1_100123.py</code>: ?</li>
+<li><code>px_analysis/Jets_analysis_v1_1001.py</code>: ?</li>
+<li><code>px_analysis/Turnover_pixel.py</code>: ?</li>
+<li><code>VLBI_map_analysis</code>: Plot and analyse clean maps and model components.</li>
+<li><code>VLBI_map_analysis/cleanMap.py</code>: Provides the cleanMap class to plot VLBI clean map and models.</li>
+<li><code>VLBI_map_analysis/modelComps.py</code>: Provides the cleanMap class to plot VLBI clean map and models.</li>
+<li><code>VLBI_map_analysis/derive_beta_theta.py</code>: Derive and plot allowed parameter space for Theta and Beta.</li>
+<li><code>VLBI_map_analysis/stackedImages.py</code>: Derive and plot a stacked mape out of several VLBI epochs.</li>
+<li><code>VLBI_map_analysis/modules</code>: Helper functions for fitting and plotting.</li>
+<li><code>dataset_examples</code>: example multi-frequency polarization dataset.</li>
+<li><code>examples</code>: example scripts for running parts of this module.</li>
+</ul>
+<p>Examples for running the modules are in the folder examples.</p>
+<p>Example data for running the modules is in examples/example_data.</p>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="acknowledgements">Acknowledgements</h2>
+<p>This package makes use of the ehtim-library: https://github.com/achael/eht-imaging
+Please consider citing the original publication given at the repo.</p>
+<h2 id="please-cite">Please Cite</h2>
+<p>If you are using this package please cite the github repository.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="references/" class="btn btn-neutral float-right" title="References">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+    
+      <span><a href="references/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.6.0
+Build Date UTC : 2024-06-17 09:55:03.893390+00:00
+-->

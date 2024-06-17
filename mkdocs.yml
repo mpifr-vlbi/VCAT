@@ -1,0 +1,12 @@
+site_name: VCAT
+
+theme:
+  name: readthedocs
+
+plugins:
+  - mkdocstrings
+
+nav:
+  - VCAT Docs: index.md
+  - How-to guides: hot-to-guides.md
+  - references.md
