@@ -15,11 +15,14 @@ There are a couple of python packages required for the software package:
 
 * astropy
 * scipy
-* math
 * numpy
-* mpl_toolkits
-* skimage
+* scikit-image
 * ehtim
+
+Furthermore it is recommended to install the following astronomical packages for more advanced routines:
+
+* CASA
+* difmap
 
 Information for contributors
 ----------------------------
