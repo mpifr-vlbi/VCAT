@@ -139,7 +139,7 @@ def align_images(image_array, #input images to be aligned
 def stack_fits(fits_files, #a list of filepaths to fits files (either full polarization or just stokes I)
         stokes_q_fits=[], #a list of filepaths to fits files containing stokes Q
         stokes_u_fits=[], #a list of filepaths to fits files conataining stokes U
-        export_file=False, #choose whether to write an output fits file (stacked)
+        export_fits=False, #choose whether to write an output fits file (stacked)
         output_file="stacked.fits", #choose file name for output file
         overwrite=True, #choose whether to overwrite an already existing image or not
         align=True #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightest pixel in Stokes I)
@@ -168,13 +168,14 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
         if file[0].data.shape[0]==1:
             only_stokes_i=True
 
+
  
     if wrong_len:
         raise Exception("Error! Please put in more than one fits file, otherwise stacking makes no sense!")
     elif not_stokes:
         raise Exception("Error! Your fits-files are not in STOKES format. This is currently not implemented!")
     else:
-        
+        print(len(stokes_q_fits),len(stokes_u_fits),len(fits_files))
         if only_stokes_i and (len(stokes_q_fits)!=len(fits_files) or len(stokes_u_fits)!=len(fits_files)):
             print("Warning! Only Stokes I input given!")
             print("-> will produce only Stokes I stacked image")
@@ -212,12 +213,10 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
                 else:
                     output_stacked[pol][spw]=stack_images(data_to_stack)
 
-
-        if export_file:
-
-            file_output=fits.open(fits_files[0])
-            file_output[0].data=output_stacked
-            file_output[0].writeto(output_file,overwrite=overwrite)
+        if export_fits:
+            file=fits.open(fits_files[0])
+            file[0].data=output_stacked
+            file.writeto(output_file,overwrite=overwrite)
         
         return output_stacked
 
@@ -307,6 +306,30 @@ def stack_pol_fits(fits_files, #list of file paths to fits files with full polar
 
         return output_stacked
         
+#takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
+def get_sigma_levs(image, #2d array/list
+        sigma_contour_limit=3 #choose the lowest sigma contour to plot
+        ):
+    
+    Z1 = image.flatten()
+    bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins = "auto")
+    bin_widths = np.diff(bin_borders)
+    bin_centers = bin_borders[:-1] + bin_widths / 2.
+    bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
+    
+    t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), 0.001)
+    fit_t = fitting.LevMarLSQFitter()
+    t = fit_t(t_init, bin_centers, bin_heights, weights = 1. / bin_heights_err)
+    noise=t.stddev.value
+
+    #Set contourlevels to mean value + 3 * rms_noise * 2 ** x
+    levs1 = t.mean.value + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * t.stddev.value * np.logspace(0, 100, 100, endpoint = False, base = 2)
+    levs = t.mean.value + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * t.stddev.value * np.logspace(0, 100, 100, endpoint = False, base = 2)
+    levs = np.flip(levs)
+    levs = np.concatenate((levs, levs1))
+    
+    return levs,levs1[0]
+
 #this method is intended to determine the (smallest) common beam of multiple fits-images
 
 def get_common_beam(fits_files,
@@ -314,10 +337,10 @@ def get_common_beam(fits_files,
         plot_beams=False, #makes a simple plot of all the beams for double checking
         tolerance=0.0001 #adjust the numeric tolarance for determining the common beam
         ):
-    
-    if plot_beams:   
-    	fig = plt.figure()
-    	ax = fig.add_subplot()
+
+    if plot_beams:
+        fig = plt.figure()
+        ax = fig.add_subplot()
 
     sample_points=np.empty(shape=(ppe*len(fits_files),2))
     for ind,file_path in enumerate(fits_files):

@@ -11,6 +11,7 @@ import os
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.time import Time
 import sys
+import pexpect
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -23,28 +24,91 @@ mpl.rcParams['font.family'] = 'Quicksand'
 #mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.linewidth'] = 1.0
 
-font_size_axis_title=13
-font_size_axis_tick=12
+font_size_axis_title=dp(13)
+font_size_axis_tick=dp(12)
 
+class KinematicPlot(object):
+    def __init__(self):
+
+        super().__init__()
+        self.fig, self.ax = plt.subplots(1, 1)
+        self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
+
+    def plot_kinematics(self,component_collection,color):
+        if component_collection.length()>0:
+            self.ax.scatter(component_collection.year,component_collection.dist,c=color,marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Distance from Core [mas]', fontsize=font_size_axis_title)
+
+    def plot_fluxs(self,component_collection,color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.fluxs, c=color, label=component_collection.name,marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Flux Density [Jy]', fontsize=font_size_axis_title)
+
+    def plot_tbs(self,component_collection,color):
+        if component_collection.length() > 0:
+            lower_limit_inds = np.where(np.array(component_collection.tbs_lower_limit))[0]
+            tb_value_inds = np.where(np.array(component_collection.tbs_lower_limit)==False)[0]
+            self.ax.plot(np.array(component_collection.year)[tb_value_inds],
+                    np.array(component_collection.tbs)[tb_value_inds], c=color, label=component_collection.name,marker=".")
+            self.ax.scatter(np.array(component_collection.year)[lower_limit_inds],
+                    np.array(component_collection.tbs)[lower_limit_inds], c=color, marker="^")
+
+            self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)
+        self.ax.set_yscale("log")
+
+    def set_limits(self,x,y):
+        self.ax.set_xlim(x)
+        self.ax.set_ylim(y)
+    def plot_linear_fit(self,x_min,x_max,slope,y0,color,label=""):
+        def y(x):
+            return slope*x+y0
+        self.ax.plot([x_min,x_max],[y(x_min),y(x_max)],color,label=label)
 
 class ImageData(object):
+    """ Class to handle VLBI Image data (single image with or without polarization)
+
+    Attributes:
+        fits_file: Path to a .fits file containing the data (Stokes-I (DIFMAP) or Full Polarization (CASA)).
+        uvf_file: Path to a .uvf file corresponding to the fits_file
+        freq: Frequency of the Image in GHz
+        stokes_i: Optional input of a 2d-array with Stokes-I values
+        model: Path to a .fits file including the 
+        lin_pol: Optional input of a 2d-array with lin-pol values
+        evpa: Optional input of a 2d-array with EVPA values
+        pol_from_stokes: Select whether to read in polarization from stokes_q/u or lin_pol/evpa
+        stokes_q: Path to a .fits file containing Stokes-Q data
+        stokes_u: Path to a .fits file containing Stokes-U data
+        model_save_dir: Path where to store created .mod files 
+        is_casa_model: If a model .fits from CASA was imported, set to True, otherwise set to False
+        difmap_path: Provide the path to your difmap executable
+    """
+
+
     def __init__(self,
-                 fits_file="",
-                 stokes_i=[],
-                 model="",
-                 lin_pol=[],
-                 evpa=[],
-                 pol_from_stokes=True,
-                 stokes_q="",
-                 stokes_u="",
-                 model_save_dir="tmp/mod_files/",
-                 is_casa_model=False):
+            fits_file="",
+            uvf_file="",
+            stokes_i=[],
+            model="",
+            lin_pol=[],
+            evpa=[],
+            pol_from_stokes=True,
+            stokes_q="",
+            stokes_u="",
+            model_save_dir="tmp/mod_files_model/",
+            is_casa_model=False,
+            difmap_path=""):
 
         self.file_path = fits_file
         self.model_file_path = model
         self.lin_pol=lin_pol
         self.evpa=evpa
         self.stokes_i=stokes_i
+        self.uvf_file=uvf_file
+        self.difmap_path=difmap_path
+        self.residual_map_path=""
 
         # Read clean files in
         if fits_file!="":
@@ -99,24 +163,25 @@ class ImageData(object):
 
         # Convert Pixel into unit
         self.X = np.linspace(0, hdu_list[0].header["NAXIS1"], hdu_list[0].header["NAXIS1"],
-                        endpoint=False)  # NAXIS1: number of pixels at R.A.-axis
+                endpoint=False)  # NAXIS1: number of pixels at R.A.-axis
         for j in range(len(self.X)):
             self.X[j] = (self.X[j] - hdu_list[0].header["CRPIX1"]) * hdu_list[0].header[
-                "CDELT1"] * self.scale  # CRPIX1: reference pixel, CDELT1: deg/pixel
-        self.X[int(hdu_list[0].header["CRPIX1"])] = 0.0
+                    "CDELT1"] * self.scale  # CRPIX1: reference pixel, CDELT1: deg/pixel
+            self.X[int(hdu_list[0].header["CRPIX1"])] = 0.0
 
         self.Y = np.linspace(0, hdu_list[0].header["NAXIS2"], hdu_list[0].header["NAXIS2"],
-                        endpoint=False)  # NAXIS2: number of pixels at Dec.-axis
+                endpoint=False)  # NAXIS2: number of pixels at Dec.-axis
         for j in range(len(self.Y)):
             self.Y[j] = (self.Y[j] - hdu_list[0].header["CRPIX2"]) * hdu_list[0].header[
-                "CDELT2"] * self.scale  # CRPIX2: reference pixel, CDELT2: deg/pixel
-        self.Y[int(hdu_list[0].header["CRPIX2"])] = 0.0
+                    "CDELT2"] * self.scale  # CRPIX2: reference pixel, CDELT2: deg/pixel
+            self.Y[int(hdu_list[0].header["CRPIX2"])] = 0.0
 
         self.extent = np.max(self.X), np.min(self.X), np.min(self.Y), np.max(self.Y)
 
         if not self.no_fits:
             self.image_data = hdu_list[0].data
             self.Z = self.image_data[0, 0, :, :]
+
         else:
             try:
                 self.Z=self.stokes_i
@@ -134,7 +199,7 @@ class ImageData(object):
         if hdu_list[0].data.shape[0] == 1:
             only_stokes_i = True
         if (np.shape(self.Z) == np.shape(stokes_q) and np.shape(self.Z) == np.shape(stokes_u) and
-                        np.shape(stokes_q) == np.shape(stokes_u)):
+                np.shape(stokes_q) == np.shape(stokes_u)):
             only_stokes_i = True #in this case override the polarization data with the data that was input to Q and U
 
         if only_stokes_i:
@@ -227,7 +292,7 @@ class ImageData(object):
 
         #calculate average EVPA (mask where lin pol < 3 sigma or stokes i < 3 sigma (same as in plot)
         integrate_evpa = np.ma.masked_where((self.lin_pol < self.pol_noise_3sigma) | (self.Z < self.noise_3sigma),
-                                            self.evpa)
+                self.evpa)
         self.evpa_average = np.average(integrate_evpa)
 
         if model!="" and not is_casa_model:
@@ -235,17 +300,16 @@ class ImageData(object):
             self.model=getComponentInfo(model)
             #write .mod file from .fits input
             os.makedirs(model_save_dir,exist_ok=True)
-            write_mod_file(self.model, model_save_dir + self.date + ".mod", freq=self.freq)
+            write_mod_file(self.model, model_save_dir + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
         if is_casa_model:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
             os.makedirs(model_save_dir + "mod_files_u", exist_ok=True)
-            write_mod_file_from_casa(self.file_path,channel="i", export=model_save_dir+"mod_files/"+self.date + ".mod")
-            write_mod_file_from_casa(self.file_path,channel="i", export=model_save_dir+"mod_files_clean/"+self.date + ".mod")
-            write_mod_file_from_casa(self.file_path,channel="q", export=model_save_dir+"mod_files_q/"+self.date + ".mod")
-            write_mod_file_from_casa(self.file_path,channel="u", export=model_save_dir+"mod_files_u/"+self.date + ".mod")
+            write_mod_file_from_casa(self.file_path,channel="i", export=model_save_dir+"mod_files_clean/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            write_mod_file_from_casa(self.file_path,channel="q", export=model_save_dir+"mod_files_q/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            write_mod_file_from_casa(self.file_path,channel="u", export=model_save_dir+"mod_files_u/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
 
         else:
             self.model=None
@@ -257,63 +321,100 @@ class ImageData(object):
             model_i = getComponentInfo(fits_file)
             if self.model==None:
                 self.model = model_i
-            write_mod_file(model_i, "tmp/mod_files_clean/"+ self.date + ".mod", freq=self.freq)
+            write_mod_file(model_i, "tmp/mod_files_clean/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
             #load stokes q and u clean models
             model_q=getComponentInfo(stokes_q_path)
-            write_mod_file(model_q, "tmp/mod_files_q/" + self.date + ".mod", freq=self.freq)
+            write_mod_file(model_q, "tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
             model_u=getComponentInfo(stokes_u_path)
-            write_mod_file(model_u, "tmp/mod_files_u/" + self.date + ".mod", freq=self.freq)
+            write_mod_file(model_u, "tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
         except:
             pass
 
-        hdu_list.close()
+        #calculate residual map if uvf and modelfile present
+        if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model:
+            self.residual_map_path = model_save_dir + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
+                    "_") + "GHz_residual.fits"
+            get_residual_map(self.uvf_file,model_save_dir+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
+                    difmap_path=self.difmap_path,
+                    save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp)
+
+            hdu_list.close()
 
         #calculate cleaned flux density from mod files
         #first stokes I
         try:
-            self.integrated_flux_clean=total_flux_from_mod("tmp/mod_files_clean/" + self.date + ".mod")
+            self.integrated_flux_clean=total_flux_from_mod("tmp/mod_files_clean/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
         except:
             self.integrated_flux_clean = 0
         #and then polarization
         try:
-            flux_q=total_flux_from_mod("tmp/mod_files_q/" + self.date + ".mod")
-            flux_u=total_flux_from_mod("tmp/mod_files_u/" + self.date + ".mod")
+            flux_q=total_flux_from_mod("tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_u=total_flux_from_mod("tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
         except:
             self.integrated_pol_flux_clean=0
 
 
+
 class FitsImage(object):
-    """class that generate Matplotlib graph."""
+    """Class that generates Matplotlib graph for a VLBI image.
+    
+    Attributes:
+        image_data: ImageData object which includes the VLBI image.
+        stokes_i_sigma_cut: Select the sigma cut to apply to Stokes I
+        plot_mode: Choose which parameter to plot (options: "stokes_i","lin_pol","frac_pol")
+        im_colormap: Choose whether to do colormap or not
+        contour: Choose whether to do contour plot or not
+        contour_color: Choose contour color
+        contour_cmap: Choose colormap for contours
+        contour_alpha: Choose transparency for contours
+        contour_width: Choose width of contours
+        im_color: Choose colormap name
+        plot_beam: Choose whether to plot the beam or not
+        overplot_gauss: Choose whether to overplot modelfit components (if available in image_data)
+        component_color: Choose color to plot components
+        overplot_clean: Choose whether to overplot clean components (if available in image_data)
+        xlim: Choose X-plot limits
+        ylim: Choose Y-plot limits
+        plot_evpa: Choose whether to plot EVPAs or not
+        evpa_width: Choose EVPA width
+        evpa_len: Choose EVPA len in pixels
+        lin_pol_sigma_cut: Choose lowest sigma contour for lin pol
+        evpa_distance: Choose the distance of EVPA vectors to plot in pixels
+        rotate_evpa: rotate EVPAs by a given angle in degrees (North through East)
+        evpa_color: Choose EVPA color
+        title: Choose plot title
+        rcParams: Put in matplotlib rcParams for more modification to the plots        
+    """
 
     def __init__(self,
-                 image_data, #ImageData object
-                 stokes_i_sigma_cut=3, #sigma_cut for stokes_i_contours
-                 plot_mode="stokes_i", #possible modes "stokes_i", "lin_pol", "frac_pol"
-                 im_colormap=False, #Choose whether to do colormap or not
-                 contour=True, #Choose whether to do contour plot or not
-                 contour_color = 'grey',  # input: array of color-strings; if None, the contour-colormap (contour_cmap) will be used
-                 contour_cmap = None,  # matplotlib colormap string
-                 contour_alpha = 1,  # transparency
-                 contour_width = 0.5,  # contour linewidth
-                 im_color='inferno', # string for matplotlib colormap
-                 plot_beam=True, #choose whether to plot beam or not
-                 overplot_gauss=False, #choose whether to plot modelfit components
-                 component_color="black", # choose component color for Gauss component
-                 overplot_clean=False, #choose whether to plot clean components
-                 xlim=[], #xplot limits, e.g. [5,-5]
-                 ylim=[], #yplot limits
-                 ###HERE STARTS POLARIZATION INPUT
-                 plot_evpa=False, #decide whether to plot EVPA or not
-                 evpa_width=2, #choose width of EVPA lines
-                 evpa_len=8,  # choose length of EVPA in pixels
-                 lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
-                 evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
-                 rotate_evpa=0, # rotate EVPAs by a given angle in degrees (North through East)
-                 evpa_color="white", # set EVPA color for plot
-                 title="", # plot title (default is date)
-                 rcparams={} # option to modify matplotlib look
-                 ):
+            image_data, #ImageData object
+            stokes_i_sigma_cut=3, #sigma_cut for stokes_i_contours
+            plot_mode="stokes_i", #possible modes "stokes_i", "lin_pol", "frac_pol"
+            im_colormap=False, #Choose whether to do colormap or not
+            contour=True, #Choose whether to do contour plot or not
+            contour_color = 'grey',  # input: array of color-strings; if None, the contour-colormap (contour_cmap) will be used
+            contour_cmap = None,  # matplotlib colormap string
+            contour_alpha = 1,  # transparency
+            contour_width = 0.5,  # contour linewidth
+            im_color='inferno', # string for matplotlib colormap
+            plot_beam=True, #choose whether to plot beam or not
+            overplot_gauss=False, #choose whether to plot modelfit components
+            component_color="black", # choose component color for Gauss component
+            overplot_clean=False, #choose whether to plot clean components
+            xlim=[], #xplot limits, e.g. [5,-5]
+            ylim=[], #yplot limits
+            ###HERE STARTS POLARIZATION INPUT
+            plot_evpa=False, #decide whether to plot EVPA or not
+            evpa_width=2, #choose width of EVPA lines
+            evpa_len=8,  # choose length of EVPA in pixels
+            lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
+            evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
+            rotate_evpa=0, # rotate EVPAs by a given angle in degrees (North through East)
+            evpa_color="white", # set EVPA color for plot
+            title="", # plot title (default is date)
+            rcparams={} # option to modify matplotlib look
+            ):
 
         super().__init__()
 
@@ -378,15 +479,15 @@ class FitsImage(object):
 
             if plot_mode=="lin_pol":
                 self.plotColormap(self.clean_image.lin_pol,im_color,levs_linpol,levs1_linpol,extent,
-                                  label="Linear Polarized Intensity [Jy/beam]")
-            if plot_mode=="frac_pol":
-                plot_lin_pol = np.array(self.clean_image.lin_pol)
+                        label="Linear Polarized Intensity [Jy/beam]")
+                if plot_mode=="frac_pol":
+                    plot_lin_pol = np.array(self.clean_image.lin_pol)
                 plot_frac_pol = plot_lin_pol / np.array(self.clean_image.Z)
                 plot_frac_pol = np.ma.masked_where((plot_lin_pol < levs1_linpol[0]) | (self.clean_image.Z<levs1[0]),
-                                                  plot_frac_pol)
+                        plot_frac_pol)
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.01],extent,
-                                  label="Fractional Linear Polarization")
+                        label="Fractional Linear Polarization")
                 self.evpa_color="black"
                 contour_color="grey"
 
@@ -402,10 +503,10 @@ class FitsImage(object):
                 contour_color=None
 
             self.ax.contour(X, Y, Z, linewidths=contour_width, levels=levs, colors=contour_color,
-                            alpha=contour_alpha,
-                            cmap=contour_cmap)
+                    alpha=contour_alpha,
+                    cmap=contour_cmap)
 
-        # Set beam ellipse, sourcename and observation date positions
+            # Set beam ellipse, sourcename and observation date positions
         size_x = np.absolute(ra_max) + np.absolute(ra_min)
         size_y = np.absolute(dec_max) + np.absolute(dec_min)
         if size_x > size_y:
@@ -421,7 +522,7 @@ class FitsImage(object):
             self.ax.add_artist(beam)
 
         if title=="":
-            self.ax.set_title(date, fontsize=font_size_axis_title)
+            self.ax.set_title(date + " " + "{:.0f}".format(self.freq/1e9)+" GHz", fontsize=font_size_axis_title)
         else:
             self.ax.set_title(title, fontsize=font_size_axis_title)
 
@@ -430,7 +531,7 @@ class FitsImage(object):
             model_df = getComponentInfo(self.model_image_file)
 
             # sort in gauss and clean components
-            model_gauss_df = model_df[model_df["Major_axis"] > 0.].reset_index()
+            model_gauss_df = model_df #model_df[model_df["Major_axis"] > 0.].reset_index()
             model_clean_df = model_df[model_df["Major_axis"] == 0.].reset_index()
 
             # Overplot clean components
@@ -442,10 +543,10 @@ class FitsImage(object):
                 for j in range(len(c_x)):
                     if c_flux[j] < 0.:
                         self.ax.plot(c_x[j] * scale, c_y[j] * scale, marker='+', color='red', alpha=clean_alpha,
-                                     linewidth=0.2, zorder=2)
+                                linewidth=0.2, zorder=2)
                     else:
                         self.ax.plot(c_x[j] * scale, c_y[j] * scale, marker='+', color='green', alpha=clean_alpha,
-                                     linewidth=0.2, zorder=2)
+                                linewidth=0.2, zorder=2)
 
             # Overplot Gaussian components
             if overplot_gauss == True:
@@ -462,8 +563,8 @@ class FitsImage(object):
 
                 for j in range(len(g_x)):
                     # plot component
-                    component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
-
+                    self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
+                    
         self.xmin,self.xmax = ra_min, ra_max
         self.ymin,self.ymax = dec_min, dec_max
         
@@ -487,7 +588,7 @@ class FitsImage(object):
                      extent, #plot lims x_min,x_max,y_min,y_max
                      label="Flux Density [Jy]" #label for colorbar
                      ):
-        col = self.ax.imshow(Z, cmap=im_color, norm=colors.SymLogNorm(linthresh=levs1[0], linscale=0.5, vmin=levs[99],
+        col = self.ax.imshow(Z, cmap=im_color, norm=colors.SymLogNorm(linthresh=levs1[0], linscale=0.5, vmin=levs1[0],
                                                                       vmax=0.5 * np.max(Z), base=10.), extent=extent,
                              origin='lower')
         divider = make_axes_locatable(self.ax)
@@ -501,6 +602,11 @@ class FitsImage(object):
         comp = Ellipse([x * scale, y * scale], maj * scale, min * scale, -pos + 90,
                        fill=False, zorder=2, color=self.component_color, lw=0.5)
         ellipse=self.ax.add_artist(comp)
+
+        #deal with point like components
+        if maj==0 and min==0:
+            maj=0.1/scale
+            min=0.1/scale
 
         # Plotting axes of the ellipses
         maj1_x = x - np.sin(-np.pi / 180 * pos) * maj * 0.5
@@ -561,10 +667,19 @@ class FitsImage(object):
         self.ax.add_collection(evpa_lines)
 
 
-# takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list
                    sigma_contour_limit=3  # choose the lowest sigma contour to plot
                    ):
+    """Takes an image (2d) array as input and calculates the sigma levels for plotting using a histogram approach
+
+    Args:
+        image: 2d array of image data
+        sigma_contour_limit: Sigma level for the lowest sigma contour to plot
+
+    Returns:
+        Positive and negative sigma levels of the image (the lowest one corresponds to the sigma_contour_limit
+    """
+
     Z1 = image.flatten()
     bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins="auto")
     bin_widths = np.diff(bin_borders)
@@ -590,6 +705,14 @@ def get_sigma_levs(image,  # 2d array/list
 
 #gets components from .fits file
 def getComponentInfo(filename):
+    """Imports component info from a modelfit .fits file.
+
+    Args:
+        filename: Path to a modelfit (or clean) .fits file
+    Returns:
+        Pandas Dataframe with the model data (Flux, Delta_x, Delta_y, Major Axis, Minor Axis, PA, Typ_obj)    
+    """
+
 
     #TODO also include reading .mod files
 
@@ -620,12 +743,19 @@ def getComponentInfo(filename):
     else:
         data_df = pd.concat([data_df, comp_data1_df], axis=0, ignore_index=True)
     os.makedirs("tmp",exist_ok=True)
-    os.makedirs("tmp/mod_files",exist_ok=True)
     return data_df
 
-#writes a .mod file given an input of from getComponentInfo(fitsfile)
 def write_mod_file(model_df,writepath,freq,scale=60*60*1000):
+    """writes a .mod file given an input DataFrame with component info.
 
+    Args:
+        model_df: DataFrame with model component info (e.g. generated by getComponentInfo())
+        writepath: Filepath where to write the .mod file
+        freq: Frequency of the observation in GHz
+        scale: Conversion of the image scale to degrees (default milli-arc-seconds -> 60*60*1000)
+    Returns:
+        Nothing, but writes a .mod file to writepath
+    """
     flux = np.array(model_df["Flux"])
     delta_x = np.array(model_df["Delta_x"])
     delta_y = np.array(model_df["Delta_y"])
@@ -679,6 +809,16 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000):
     sys.stdout = original_stdout
 
 def write_mod_file_from_casa(file_path,channel="i",export="export.mod"):
+    """Writes a .mod file from a CASA exported .fits model file.
+
+    Args:
+        file_path: File path to a .fits model file as exported from a CASA .model file (e.g. with exportfits() in CASA)
+        channel: Choose the Stokes channel to use (options: "i","q","u","v")
+        export: File path where to write the .mod file
+    Returns:
+        Nothing, but writes a .mod file to export
+    """
+
     image_data=ImageData(file_path)
     if channel=="i":
         clean_map=image_data.Z
@@ -717,6 +857,13 @@ def write_mod_file_from_casa(file_path,channel="i",export="export.mod"):
     write_mod_file(model_df,export,image_data.freq,image_data.scale)
 
 def get_date(filename):
+    """Returns the date of an observation from a .fits file.
+
+    Args:
+        filename: Path to the .fits file
+    Returns:
+        Date in the format year-month-day
+    """
 
     hdu_list=fits.open(filename)
     # Plot date
@@ -746,6 +893,13 @@ def get_date(filename):
 
 #needs a mod_file as input an returns the total flux
 def total_flux_from_mod(mod_file):
+    """needs a mod_file as input an returns the total flux
+    Args:
+        mod_file: Path to a .mod file
+    Returns:
+        The total flux in the .mod file (usually in mJy, depending on the .mod file)
+    """
+
     lines=open(mod_file).readlines()
     total_flux=0
     for line in lines:
@@ -755,10 +909,87 @@ def total_flux_from_mod(mod_file):
     return total_flux
                 
 def PXPERBEAM(b_maj,b_min,px_inc):
+    """calculates the pixels per beam.
+    Args:
+        b_maj: major axis
+        b_min: minor axis
+        px_inc: pixel size
+    Returns:
+        pixels per beam
+    """
     beam_area = np.pi/(4*np.log(2))*b_min*b_maj
     PXPERBEAM = beam_area/(px_inc**2)
     return PXPERBEAM
-#
+
 
 def JyPerBeam2Jy(jpb,b_maj,b_min,px_inc):
+    """Converts Jy/beam to Jy
+    Args:
+        jbp: Jansky per beam value
+        b_maj: Major Axis
+        b_min: Minor Axis
+        px_inc: pixel size
+    Returns:
+        Jansky value
+    """
+
     return jpb/PXPERBEAM(b_maj,b_min,px_inc)
+
+# calculates the image noise from the residual map in a given box area
+def get_residual_map(uvf_file,mod_file, difmap_path, save_location="residual.fits", npix=2048,pxsize=0.05):
+    """ calculates residual map and stores it as .fits file.
+    Args:
+        uvf_file: Path to a .uvf file
+        mod_file: Path to a .mod file
+        difmap_path: Path to the DIFMAP executable
+        save_location: Path where to store the residual map .fits file
+        npix: Number of pixels to use
+        pxsize: Pixel Size (usually in mas)
+    Returns:
+        Nothing, but writes a .fits file including the residual map
+    """
+
+    # add difmap to PATH
+    if difmap_path != None and not difmap_path in os.environ['PATH']:
+        os.environ['PATH'] = os.environ['PATH'] + ':{0}'.format(difmap_path)
+
+    # Initialize difmap call
+    child = pexpect.spawn('difmap', encoding='utf-8', echo=False)
+    child.expect_exact("0>", None, 2)
+
+    def send_difmap_command(command, prompt="0>"):
+        child.sendline(command)
+        child.expect_exact(prompt, None, 2)
+
+    send_difmap_command("obs "+uvf_file)
+    send_difmap_command("select i")
+    send_difmap_command("uvw 0,-1")  # use natural weighting
+    send_difmap_command("rmod "+mod_file)
+    send_difmap_command("maps " + str(npix) + "," + str(pxsize))
+    send_difmap_command("wdmap " + save_location) #save the residual map to a fits file
+
+    os.system("rm -rf difmap.log*")
+
+def get_noise_from_residual_map(residual_fits, center_x, center_y, x_width, y_width,scale=0):
+    """calculates the noise from the residual map in a given box
+
+    Args:
+        residual_fits: Path to .fits file with residual map
+        center_x: X-center of the box to use for noise calculation in pixels
+        center_y: Y-center of the box to use for noise calculation in pixels
+        x_width: X-width of the box in pixels
+        y_width: Y-width of the box in pixels
+    Returns:
+        Noise in the given box from the residual map
+    """
+
+    residual_map = ImageData(residual_fits)
+    data=residual_map.Z
+
+    x_max=np.argmin(abs(residual_map.X*scale-(center_x-x_width/2)))
+    y_min=np.argmin(abs(residual_map.Y*scale-(center_y-y_width/2)))
+    x_min=np.argmin(abs(residual_map.X*scale-(center_x+x_width/2)))
+    y_max=np.argmin(abs(residual_map.Y*scale-(center_y+y_width/2)))
+
+    return np.average(data[x_min:x_max,y_min:y_max]) #TODO check order of x/y here and if AVERAGE is the correct thing to do!!!
+
