@@ -17,7 +17,15 @@ def stack_images(image_array, #input images to be stacked
         weighted=False, #choose whether to use the weighted option
         weights_array=[] #put in weights to use for stacking
         ):
-    
+    """Stacks .fits images.
+    Args:
+        image_array: List of 2d-arrays to stack
+        weighted: Choose if stacking should be weighted
+        weights_array: List of 2d-arrays to use for weighting the stacking
+    Returns:
+        Stacked image as 2d-array
+    """
+
     #make sure everything is numpy
     for ind,image in enumerate(image_array):
         image_array[ind]=np.array(image)
@@ -75,7 +83,14 @@ def align_images(image_array, #input images to be aligned
         center=[-1,-1], #position where to put the brightest pixel, default or negative values put the brightest pixel to the center
         align_by=[] #can input another set of image (equal dimensions as image_array) to align by.
         ):
-
+    """Aligns multiple 2d-arrays on the brightest pixel centered on a given pixel position
+    Args:
+        image_array: List of 2d-arrays to be aligned
+        center: [x,y] position where to put the brightest pixels
+        align_by: optional List of 2d-arrays that will be used to align image_array
+    Returns:
+        List of aligned images (2d-arrays)
+    """
     #check if there was input to the align_by field
     do_align_by = False
     for ind,image in enumerate(align_by):
@@ -144,7 +159,25 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
         overwrite=True, #choose whether to overwrite an already existing image or not
         align=True #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightest pixel in Stokes I)
         ):
+    """This function stacks .fits files
+
+    This function creates a stacked fits file by stacking I,Q,U and all IFs independent from each other. 
+    With the "align" option, the images will be centered at the brightest pixel in total intensity (aligned)
     
+    Args:
+        fits_files: List of file paths to .fits files (either full polarization (CASA) or just stokes I (DIFMAP))
+        stokes_q_fits: List of file paths to .fits files containing Stokes Q (optional)
+        sotkes_u_fits: List of file paths to .fits files containing Stokes U (optional)
+        export_fits: Choose whether to write an output .fits file (stacked)
+        output_file: Name of the output fits file
+        overwrite: Choose whether to overwrite an already existing output_file 
+        align: Choose whether to align the images on the brightes pixel in Stokes I before stacking (all pols will be aligned according to the brightes pixel in Stokes I)
+    Returns:
+        Stacked images as 2d-arrays, for the I,Q,U,V and the IFs (output_stacked[stokes][IF])
+    """
+
+
+
     #check if there is more than one fits file
     wrong_len=False
     if len(fits_files)<1:
@@ -231,6 +264,19 @@ def stack_pol_fits(fits_files, #list of file paths to fits files with full polar
         align=True #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightes pixel in Stokes I)
         ):
 
+    """This function and creates a stacked image by first calculation linear polarization P and EVPA and stacking P and EVPA and NOT Q,U. 
+    If weighted is set to true, the EVPA stack is weighted with the linear Polarization. The "align" option centers all polarizations on the Stokes I peak before stacking
+
+    Args:
+        fits_files: List of file paths to .fits files with full polarization (CASA) or Stokes I only data (DIFMAP)
+        stokeq_q_fits: List of file paths to .fits files with Stokes Q data (optional)
+        stokes_u_fits: List of file paths to .fits files with Stokes U data (optional)
+        weighted: Choose whetther to weight the EVPA stacking by the level of linear polarization
+        align: Choose whether to align the images on the brightes pixel in Stokes I before stacking (all pols will be aligned according to the brightes pixel in Stokes I)
+    Returns:
+        Stacked images as 2d-arrays, for Stokes I [0], lin. pol [1], EVPA [2] and IFs (output_stacked[channel][IFs])
+    """
+
     #check if there is more than one fits file
     wrong_len=False
     if len(fits_files)<1:
@@ -310,7 +356,18 @@ def stack_pol_fits(fits_files, #list of file paths to fits files with full polar
 def get_sigma_levs(image, #2d array/list
         sigma_contour_limit=3 #choose the lowest sigma contour to plot
         ):
-    
+    """Takes an image (2d) array as input and calculates the sigma levels for plotting using a histogram approach
+
+    Args:
+        image: 2d array of image data
+        sigma_contour_limit: Sigma level for the lowest sigma contour to plot
+
+    Returns:
+        Positive and negative sigma levels of the image (the lowest one corresponds to the sigma_contour_limit
+    """
+
+
+
     Z1 = image.flatten()
     bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins = "auto")
     bin_widths = np.diff(bin_borders)
@@ -337,7 +394,16 @@ def get_common_beam(fits_files,
         plot_beams=False, #makes a simple plot of all the beams for double checking
         tolerance=0.0001 #adjust the numeric tolarance for determining the common beam
         ):
+    """Determines the smallest common beam of multiple images.
 
+    Args:
+        ppe: Sample points used for test ellipse
+        plot_beams: If true, a simple plot of all the beams is created to check the result
+        tolerance: adjust the numeric tolerance for determining the common beam
+    Returns:
+        Beam parameters (Major Axis, Minor Axis, Position Angle) of the smallest common beam 
+    """
+    
     if plot_beams:
         fig = plt.figure()
         ax = fig.add_subplot()
@@ -476,6 +542,26 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         uvf_files=[], #optional input array of file paths to .uvf files for fits_files
         do_selfcal=True
         ):
+
+        """Convolves images with a defined beam (either custom input or common beam).
+
+        Args:
+            fits_files: List of file_paths to .fits images as input
+            difmap_path: Location of the DIFMAP executable
+            bmaj: Beam Major Axis to convolve with (in mas)
+            bmin: Beam Minor Axis to convolve with (in mas)
+            posa: Beam Position Angle to convolve with (in degrees)
+            channel: Polarization channel to use for convolution (options: "i","q","u","v")
+            output_dir: Specify output directory
+            n_pixel: Specify number of pixels to use (like in DIFMAP mapsize command)
+            pixel_size: Specify pixel size to be used (like in DIFMAP mapsize command)
+            use_common_beam: Choose whether to fold with the common beam of the input images (True), or whether to use the input bmaj,bmin,posa beam (false)
+            mod_files: List of mod_files corresponding to .fits images
+            uvf_files: List of uvf_files corresponding to .fits images
+            do_selfcal: Choose whether to do "selfcal" before convolution (recommended)
+        Returns:
+            Nothing, but puts convolved .fits images into output_dir
+        """
 
         #check if custom beam is correctly defined when using it
         if not use_common_beam and (bmaj<0 or bmin<0):
