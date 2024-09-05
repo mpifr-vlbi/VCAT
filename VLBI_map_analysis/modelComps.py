@@ -9,9 +9,9 @@ import scipy as sp
 from glob import glob
 import sys,os
 from itertools import cycle,chain,compress
-from VLBIana.modules.jet_calculus import *
-from VLBIana.modules.plot_functions import *
-import VLBIana.modules.fit_functions as ff
+from VCAT.VLBI_map_analysis.modules.jet_calculus import *
+from VCAT.VLBI_map_analysis.modules.plot_functions import *
+import VCAT.VLBI_map_analysis.modules.fit_functions as ff
 import ehtim as eh
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
@@ -57,7 +57,7 @@ class modelComp(object):
     Then you can use modF.model_sorted for plotting by id
     e.g. as is done in modF.plot_comp_xy(xax='date',yax='FLUX')
     '''
-    def __init__(self,modFiles,cleanFiles=None,shift=None,colormap=None,z=None,use_ehtim=True): #**kwargs
+    def __init__(self,modFiles,cleanFiles,shift=None,colormap=None,z=None,use_ehtim=True): #**kwargs
        # args = {'cleanFiles':None,
        #         'shift':None,
        #         'colormap':None,
@@ -110,6 +110,8 @@ class modelComp(object):
             self.model[key]['source'] = h['OBJECT']
             self.model[key]['beam'] = [h['BMAJ'],h['BMIN'],h['BPA']]
             self.model[key]['noise'] = h['NOISE']
+            self.model[key]['peak'] = h['DATAMAX']
+            self.model[key]['snr'] = self.model[key]['peak']/self.model[key]['noise']
             self.model[key]['px_inc'] = h['CDELT2']
             self.model[key]['data']['DELTAX'] *= 3.6e6
             self.model[key]['data']['DELTAY'] *= 3.6e6
@@ -150,39 +152,105 @@ class modelComp(object):
                 mask = self.ids==model['id']
                 model['cid'] = self.id_colors[mask][0]
 
-        if cleanFiles:
-            sys.stdout.write('Load clean fits files to class.\n')
-            for i,cleanFile in enumerate(cleanFiles):
-                with fits.open(cleanFile) as f:
-                    h = f[0].header
-                    if not use_ehtim:
-                        img = f[0].data
-                        if img.ndim == 4:
-                            img = img.reshape(img.shape[2],img.shape[3])
+        sys.stdout.write('Load clean fits files to class.\n')
+        for i,cleanFile in enumerate(cleanFiles):
+            with fits.open(cleanFile) as f:
+                h = f[0].header
+                if not use_ehtim:
+                    img = f[0].data
+                    if img.ndim == 4:
+                        img = img.reshape(img.shape[2],img.shape[3])
 
-                if use_ehtim:
-                    file = eh.image.load_fits(cleanFile,aipscc=True)
-                    fovx = file.fovx()
-                    #fovy = file.fovy()
-                    maps_ps = file.psize
-                    maps_beam=[h['BMAJ']*np.pi/180,h['BMIN']*np.pi/180,h['BPA']*np.pi/180]
-                    naxis1  = int(fovx/maps_ps)
-                    ppb = PXPERBEAM(maps_beam[0],maps_beam[1],maps_ps)
-                    img = file.regrid_image(fovx,naxis1).blur_gauss(maps_beam,frac=1).imarr(pol='I')
-                    img *= ppb
-                    img = np.flipud(img)
+            if use_ehtim:
+                file = eh.image.load_fits(cleanFile,aipscc=True)
+                fovx = file.fovx()
+                #fovy = file.fovy()
+                maps_ps = file.psize
+                maps_beam=[h['BMAJ']*np.pi/180,h['BMIN']*np.pi/180,h['BPA']*np.pi/180]
+                naxis1  = int(fovx/maps_ps)
+                ppb = PXPERBEAM(maps_beam[0],maps_beam[1],maps_ps)
+                img = file.regrid_image(fovx,naxis1).blur_gauss(maps_beam,frac=1).imarr(pol='I')
+                img *= ppb
+                img = np.flipud(img)
 
-                key = self.keys[i]
-                self.cchead[key] = dict()
-                self.cchead[key]['head']    = h
-                self.cchead[key]['beam']    = [h['BMAJ']*3.6e6,h['BMIN']*3.6e6,h['BPA']]
-                self.cchead[key]['noise']   = h['NOISE']
-                self.cchead[key]['px_inc']  = h['CDELT2']
-                self.cchead[key]['naxis']   = h['NAXIS1']
-                self.cchead[key]['freq']    = np.around(h['CRVAL3']/1e9,2)
-                self.cchead[key]['fov']     = self.cchead[key]['px_inc']*self.cchead[key]['naxis']*3.6e6
-                self.ccmap[key] = img
+            key = self.keys[i]
+            self.cchead[key] = dict()
+            self.cchead[key]['head'] = h
+            self.cchead[key]['beam'] = [h['BMAJ']*3.6e6,h['BMIN']*3.6e6,h['BPA']]
+            self.cchead[key]['noise'] = h['NOISE']
+            self.cchead[key]['peak'] = h['DATAMAX']
+            self.cchead[key]['snr'] = self.cchead[key]['peak']/self.cchead[key]['noise']
+            self.cchead[key]['px_inc'] = h['CDELT2']
+            self.cchead[key]['naxis'] = h['NAXIS1']
+            self.cchead[key]['freq'] = np.around(h['CRVAL3']/1e9,2)
+            self.cchead[key]['fov'] = self.cchead[key]['px_inc']*self.cchead[key]['naxis']*3.6e6
+            self.ccmap[key] = img
  
+            #added to estimate positional uncertainties
+            mx = np.array(self.model[key]['data']['DELTAX'])
+            my = np.array(self.model[key]['data']['DELTAY'])
+            jet_ang = np.arctan(np.abs(my)/np.abs(mx))*180/np.pi
+            for i,ma in enumerate(jet_ang):
+                if np.logical_and(mx[i]>0,my[i]>0):
+                    jet_ang[i]=90-ma
+                elif np.logical_and(mx[i]>0,my[i]<0):
+                    jet_ang[i]=90+ma
+                elif np.logical_and(mx[i]<0,my[i]<0):
+                    jet_ang[i]=-(90+ma)
+                elif np.logical_and(mx[i]<0,my[i]>0):
+                    jet_ang[i]=-(90-ma)
+            self.model[key]['data']['jet_pa']=jet_ang
+            self.model[key]['data']['comp_along_jetpa'] = axis_along_pa(self.model[key]['data']['MAJOR AX'],self.model[key]['data']['MINOR AX'],self.model[key]['data']['POSANGLE'],self.model[key]['data']['jet_pa'])
+            self.model[key]['data']['beam_along_jetpa'] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],self.model[key]['data']['jet_pa']))
+            self.model[key]['data']['beam_along_x'] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],0.0))
+            self.model[key]['data']['beam_along_y'] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],90.0))
+
+            self.model[key]['data']['beam_along_comp_major'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
+            self.model[key]['data']['beam_along_comp_minor'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
+            i = 0
+
+            for _maj,_min in zip(self.model[key]['data']['MAJOR AX'], self.model[key]['data']['MINOR AX']):
+                if _maj == _min:
+                    # For now just take the mean(beam) if component is circular, seems reasonable.
+                    self.model[key]['data']['beam_along_comp_major'][i] = np.mean([self.cchead[key]['beam'][0],self.cchead[key]['beam'][1]])
+                    self.model[key]['data']['beam_along_comp_minor'][i] = self.model[key]['data']['beam_along_comp_major'][i]
+                else:
+                    sys.stdout.write("Calculate beam along component axes for elliptical components.\n")
+                    self.model[key]['data']['beam_along_comp_major'][i] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],self.model[key]['data']['POSANGLE'][i]))
+                    self.model[key]['data']['beam_along_comp_minor'][i] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],self.model[key]['data']['POSANGLE'][i]+90))
+                i += 1
+
+            self.model[key]['data']['err_comp_along_jetpa'] = derive_positional_error(self.model[key]['data']['beam_along_jetpa'],self.model[key]['data']['comp_along_jetpa'],self.cchead[key]['snr'],self.model[key]['snr'])
+################ TEST 
+            sys.stdout.write('{}\n'.format(self.model[key]['snr']))
+            sys.stdout.write('{}\n'.format(self.cchead[key]['snr']))
+
+            sys.stdout.write('{}\n'.format(self.model[key]['data']['beam_along_jetpa']))
+            sys.stdout.write('{}\n'.format(self.model[key]['data']['comp_along_jetpa']))
+            sys.stdout.write('{}\n'.format(self.model[key]['data']['err_comp_along_jetpa']))
+
+            self.model[key]['data']['err_comp_along_jetpa'] = [(pp if pp>bb/10 else bb/10) for pp,bb in zip(self.model[key]['data']['err_comp_along_jetpa'],self.model[key]['data']['beam_along_jetpa'])]
+
+            self.model[key]['data']['err_comp_along_major'] = derive_positional_error(self.model[key]['data']['beam_along_comp_major'],self.model[key]['data']['MAJOR AX'],self.cchead[key]['snr'],self.model[key]['snr'])
+            i = 0
+            for pp,bb in zip(self.model[key]['data']['err_comp_along_major'],self.model[key]['data']['beam_along_comp_major']):
+                if pp<bb/10 :
+                    #sys.stdout.write('comp error along major ax is smaller than beam/10. Setting error to beam/10.\n')
+                    self.model[key]['data']['err_comp_along_major'][i] = bb/10
+                i += 1
+
+            self.model[key]['data']['err_comp_along_minor'] =  np.zeros(len(self.model[key]['data']['err_comp_along_major']))
+            i = 0
+            for _maj,_min in zip(self.model[key]['data']['MAJOR AX'], self.model[key]['data']['MINOR AX']):
+                if _maj == _min :
+                    self.model[key]['data']['err_comp_along_minor'][i] =  self.model[key]['data']['err_comp_along_major'][i]
+                else:
+                    sys.stdout.write("Calculate error for minor axes for elliptical components.\n")
+                    self.model[key]['data']['err_comp_along_minor'][i] = derive_positional_error(self.model[key]['data']['beam_along_comp_minor'][i],self.model[key]['data']['MAJOR AX'][i],self.cchead[key]['snr'],self.model[key]['snr'])
+                i += 1
+
+            self.model[key]['data']['err_comp_along_minor'] = [(pp if pp>bb/10 else bb/10) for pp,bb in zip(self.model[key]['data']['err_comp_along_minor'],self.model[key]['data']['beam_along_comp_minor'])]
+
         if shift:
             sys.stdout.write('shifting model data according to values in shiftFIle.\n')
             shiftFile= shift
@@ -584,7 +652,7 @@ class modelComp(object):
                     for j,MMx in enumerate(Mx):
                         epid=model['id'][j]
                         ccolor = ccolors[ids==epid][0]
-                        e_comp = Ellipse([Mx[j],My[j]],Mmaj[j],Mmin[j],-Mposa[j]+90, color=ccolor, zorder=2, fill=False,lw=0.5)
+                        e_comp = Ellipse([Mx[j],My[j]],Mmaj[j],Mmin[j],angle=-Mposa[j]+90, color=ccolor, zorder=2, fill=False,lw=0.5)
                         ax.add_artist(e_comp)
                         maj1_x = Mx[j]-np.sin(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
                         maj1_y = My[j]+np.cos(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
@@ -819,7 +887,7 @@ class modelComp(object):
                 for j,xx in enumerate(Mx):
                     epid=model['id'][j]
                     ccolor = ccolors[self.ids==epid][0]
-                    e_comp = Ellipse([Mx[j],My[j]],Mmaj[j],Mmin[j],-Mposa[j]+90, color=ccolor, zorder=2, fill=False,lw=0.5)
+                    e_comp = Ellipse([Mx[j],My[j]],Mmaj[j],Mmin[j],angle=-Mposa[j]+90, color=ccolor, zorder=2, fill=False,lw=0.5)
                     aa.add_artist(e_comp)
                     maj1_x = Mx[j]-np.sin(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
                     maj1_y = My[j]+np.cos(-np.pi/180*Mposa[j])*Mmaj[j]*0.5
@@ -988,6 +1056,7 @@ class modelComp(object):
 
         for i,comp in enumerate(model_sorted):
             cflux = model_sorted[comp]['FLUX']
+
             if fluxerr:
                 if comp==fluxerr['comp']:
                     cfluxerr = fluxerr['error']*cflux.copy()
@@ -1014,7 +1083,7 @@ class modelComp(object):
             #fit Snu
             print('Fit SSA to Comp '+cid[0])
             if fit_free_ssa:
-                sn_x0 = np.array([20,np.max(cflux),3,-1])
+                sn_x0 = np.array([120,np.max(cflux),2.5,-3])
             else:
                 sn_x0 = np.array([20,np.max(cflux),-1])
             if cid[0]=='A15':
@@ -1255,11 +1324,11 @@ class modelComp(object):
 
             model.sort('DIST',reverse=True)
             model['FLUX']*=1e3
-            ff = ['%s','%1.0f','%2.2f','%2.2f','%2.2f','%2.1f','%2.2f','%2.2f']
-            kk = ['id','FLUX','DELTAX','DELTAY','MAJOR AX','ratio','DIST','logtb']
+            ff = ['%s','%1.0f','%2.2f','%2.2f','%2.2f','%2.1f','%2.2f','%2.2f','%2.2f']
+            kk = ['id','FLUX','DELTAX','DELTAY','MAJOR AX','ratio','DIST','err_comp_along_comppa','logtb']
             formats=dict(zip(kk,ff))
             with open('Allmodel.tex',mode='a') as f:
-                f.write('\\midrule\\multicolumn{8}{c}{%2.1f\\,GHz - Band}\\\\\\midrule\n'%self.model[key]['freq'])
+                f.write('\\midrule\\multicolumn{9}{c}{%2.1f\\,GHz - Band}\\\\\\midrule\n'%self.model[key]['freq'])
 #                if i==0:
                 model.write(f,format='ascii.no_header', include_names=kk,delimiter='&', formats=formats,fill_values=[(ascii.masked, '  --  ')],overwrite=False)
 
@@ -1281,9 +1350,9 @@ class modelComp(object):
             f.write('\\caption{Parameters of Gaussian model fitting components for '+','.join(freq_list)+'\,GHz observation for '+self.model[self.keys[0]]['source']+'.\label{tab:vlbamodels}\n')
             f.write('\\begin{adjustbox}{width=\linewidth}\n')
             f.write('\\begin{threeparttable}\n')
-            f.write('\\begin{tabular}{lSSSSSSc}\\toprule\n')
-            f.write('{ID} & {Flux density} & {RA} & {DEC} & {Major \\tnote{1}} & {Ratio\\tnote{2}} & {Distance} & {$\log\,T_\mathrm{b}$} \\\\\n')
-            f.write(' & {$[$mJy$]$} & {$[$mas$]$} & {$[$mas$]$} & {$[$mas$]$} & & {$[$mas$]$} & {$[$K$]$} \\\\\n')
+            f.write('\\begin{tabular}{lSSSSSSSc}\\toprule\n')
+            f.write('{ID} & {Flux density} & {RA} & {DEC} & {Major \\tnote{1}} & {Ratio\\tnote{2}} & {Distance} & {Distance Error} & {$\log\,T_\mathrm{b}$} \\\\\n')
+            f.write(' & {$[$mJy$]$} & {$[$mas$]$} & {$[$mas$]$} & {$[$mas$]$} & & {$[$mas$]$} & {$[$mas$]$} & {$[$K$]$} \\\\\n')
 #            f.write('\\midrule\n')
             f.writelines(file_lines)
             f.write('\\bottomrule\n')

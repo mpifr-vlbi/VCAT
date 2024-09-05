@@ -1,21 +1,61 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#VCAT/modules/cleanMap.py
+
+"""Provides the cleanMap class to plot VLBI clean map and models.
+
+This module allows the user to handle multiple clean map fits files and to
+create plots of the clean map, including color and/or contours.
+
+Examples:
+    >>> from VCAT.VLBI_map_analysis.modules.cleanMap import *
+    >>> cmap = CleanMap('example_data/NGC1052_U_map.fits')
+    >>> cmap.plotMap(plot_mod='example_data/NGC1052_U_model.fits')
+    (<Figure size 1920x1362 with 1 Axes>, <AxesSubplot: xlabel='RA [mas]', ylabel='DEC [mas]'>)
+
+"""
 
 import numpy as np
-import ehtim as eh
-import VLBIana.modules.fit_functions as ff
-from VLBIana.modules.plot_functions import *
-from VLBIana.modules.jet_calculus import *
+import VCAT.VLBI_map_analysis.modules.fit_functions as ff
+from VCAT.VLBI_map_analysis.modules.plot_functions import *
+from VCAT.VLBI_map_analysis.modules.jet_calculus import *
 
 plt.style.use('pubstyle')
 plt.ioff()
-class CleanMap(object):
-    '''
-    Useage example:
-    Map = CleanMap('maps/NGC1052_C.fits')
-    Map.plotMap(plot_mod='models/NGC1052_C_model.fits')
+class CleanMap:
+    '''Organize and plot VLBI clean maps.
+
+    Here, a clean map is loaded, either directly the img from the fits or using
+    the Pyhton module ehtim, which has to be instlaled separately. Then a map
+    can be plotted in color scales and/or as contour. Optinal a model components
+    fits file can be loaded and the model components be plotted on top of the map.
+
+    Attributes:
+        map: The input fits file for the clean map.
+        ccomp: Loading clean components, too.
+        load_eht: Loas clean maps using ehtim library.
+        map: The clean map fits file.
+        head: The header of the fits file.
+        comp: The clean component list.
+        cmap: The image loaded from the fits file or with ehtim.
+        cmaph: The clean component header.
+        modFile: The model components fits file.
+        modh: The header of the model components fits.
+
+    Examples:
+        >>> cmap = CleanMap('example_data/NGC1052_U_map.fits')
+        >>> cmap.plotMap(plot_mod='example_data/NGC1052_U_model.fits')
+        (<Figure size 1920x1362 with 1 Axes>, <AxesSubplot: xlabel='RA [mas]', ylabel='DEC [mas]'>)
     '''
     def __init__(self,mapFile, ccomp = False, load_eht = False):
+        """Initializes the instance for the clean map.
+
+        Args:
+            map: The input fits file for the clean map.
+            ccomp: Loading clean components, too.
+            load_eht: Loas clean maps using ehtim library.
+
+        """
         self.map = mapFile
         self.head = None
         self.comp = None
@@ -29,6 +69,7 @@ class CleanMap(object):
             with fits.open(mapFile) as hdulist:
                 self.head = hdulist[0].header
                 if load_eht:
+                    import ehtim as eh
                     img = eh.image.load_fits(mapFile,aipscc=False)
                     self.cmap = img.imarr(pol='I')
                     maps_beam=[self.head['BMAJ']*np.pi/180,self.head['BMIN']*np.pi/180,self.head['BPA']*np.pi/180]
@@ -51,8 +92,16 @@ class CleanMap(object):
         self.cmaph['fov']   = self.cmaph['px_inc']*self.cmaph['naxis']*3.6e6
 
     def modelFile(self, modelFile):
+        """A function to open model component fits files and get model fit parameters.
+
+        Args:
+            modelFile: the model component map fits file.
+
+        Returns:
+            None
+        """
         self.modh = dict()
-        with fits.open(modelFile) as f:
+        with fits.open(modelFile) as f: #load model component parameters from fits file
             self.modFile = f[1].data
         self.modh['x']          = self.modFile['DELTAX']*3.6e6
         self.modh['y']          = self.modFile['DELTAY']*3.6e6
@@ -60,7 +109,47 @@ class CleanMap(object):
         self.modh['min']        = self.modFile['MINOR AX']*3.6e6
         self.modh['posa']       = self.modFile['POSANGLE']
 
-    def plotMap(self,sigma=3,fig_size='screen',ra=False,dec=False,saveFile=False,plot_mod=False,plot_cntr=True,plot_color=False,cntr_color=False,model_color=False,cntr_lw=False,sourcename=False):
+    def plotMap(
+        self,
+        sigma: int = 3,
+        fig_size: str ='screen',
+        ra: int | bool = False,
+        dec: int | bool = False,
+        saveFile: str | bool = False,
+        plot_mod: str | bool = False,
+        plot_cntr: str = 'black',
+        plot_color: bool = False,
+        negative_contour: bool = True,
+        cntr_color: str = 'black',
+        model_color: str = 'red',
+        cntr_lw: int | bool = False,
+        sourcename: str | bool =False
+    ):
+        """Function to plot the clean map.
+        Args:
+            sigma: Sigma to use for the contour level definition.
+            fig_size: String to define output medium for figure used in plotSet.py.
+                Options are 'screen','aanda' (one column wide),'aanda*'
+                (two columns wide),'beamer'
+            ra: Provide th RA for the map.
+            dec: Provide the DEC for the map.
+            saveFile: File name for saving.
+            plot_mod: False no model components are plotted. Set to model component
+                file name if model components should be plotted on top of map.
+            plot_cntr: True if contours should be plotted.
+            plot_color: True for color plot
+            cntr_color: custom contour color
+            model_color: custom model component color
+            cntr_lw: custom line width of contours
+            sourcename: custom source name, if not set source is read from header.
+
+        Returns:
+            A PDF file containing the plot of the map.
+
+        Raises:
+            IOError: An error occured plotting the map.
+
+        """
         font_color = 'black'
         if plot_color:
             box_color = 'white'
@@ -68,7 +157,7 @@ class CleanMap(object):
         else:
             box_color = 'black'
             box_alpha = 0.2
-        if not cntr_color:
+        if cntr_color=='black':
             if plot_mod:
                 cntr_color = 'grey'
             if plot_color:
@@ -88,19 +177,22 @@ class CleanMap(object):
             Ddec = dec
         else:
             Dra = [-ra,ra]
-            Ddec    = [-dec,dec]
+            Ddec = [-dec,dec]
 
         scale   = -self.cmaph['px_inc']*3.6e6
         sigma   = sigma
         level0= self.cmaph['noise']*sigma
-        lev=[]
+        if negative_contour:
+            sys.stdout.write("Plot also 1st negative contour.\n")
+            lev = [-level0]
+        else:
+            lev=[]
         for i in range(0,10):
             lev.append(level0*2**i)
-        xx  = np.linspace(-self.cmaph['naxis']*0.5*scale,(self.cmaph['naxis']*0.5-1)*scale,self.cmaph['naxis'])
-        yy  = np.linspace(self.cmaph['naxis']*0.5*scale,-(self.cmaph['naxis']*0.5-1)*scale,self.cmaph['naxis'])
-        vmax=0.5*ma.amax(self.cmap)
+        xx = np.linspace(-self.cmaph['naxis']*0.5*scale, (self.cmaph['naxis']*0.5-1)*scale, self.cmaph['naxis'])
+        yy = np.linspace(self.cmaph['naxis']*0.5*scale, -(self.cmaph['naxis']*0.5-1)*scale, self.cmaph['naxis'])
+        vmax = 0.5*ma.amax(self.cmap)
         norm = mpl.colors.SymLogNorm(linthresh=level0*1e3,linscale=0.5,vmin=level0*1e3,vmax=vmax*1e3,base=10)
-        #norm = mpl.colors.SymLogNorm(linthresh=level0*1e3,linscale=0.5,vmin=level0*1e3,vmax=0.5*imax*1e3,base=10)    im1 = ax[0,0].imshow(file1_plt*1e3,cmap=colormap,norm=norm,extent=extent1,zorder=1)
 
 
         ##################
@@ -125,21 +217,15 @@ class CleanMap(object):
             extent = np.max(xx),np.min(xx),np.min(yy),np.max(yy)
             im = ax.imshow(self.cmap*1e3,cmap=colormap,extent=extent,origin='lower', interpolation='gaussian')
             im.set_norm(norm)
-            cbar = f.colorbar(im, ax=ax, location='top',pad=0.02,shrink=0.5)#,ticks=[1e-3,1e-2,1e-1,1])
-    #   cbar.ax.set_xticklabels([])
+            cbar = f.colorbar(im, ax=ax, location='top',pad=0.02,shrink=0.5)
             cbar.set_label(r'$S_\nu$ [mJy/beam]')
 
-    #        cax = divider.append_axes('right', size='5%', pad=0.05)
-    #        cbar = f.colorbar(im, use_gridspec=True,cax=cax)
-    #        cbar.set_label(r'Jy/beam')
             plt.style.use('dark_background')
 
         #######
         # plot model if wanted 
         #######
         if plot_mod:
-            if not model_color:
-                model_color='red'
             if not type(self.modh) == dict:
                 self.modelFile(plot_mod)
             Mx = self.modh['x']

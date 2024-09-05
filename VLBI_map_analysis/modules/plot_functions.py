@@ -6,7 +6,7 @@ import numpy as np
 import numpy.ma as ma
 from scipy import stats
 from matplotlib.lines import Line2D
-from matplotlib.pyplot import cm
+from matplotlib import colormaps
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib as mpl
@@ -27,7 +27,7 @@ plt.style.use('pubstyle')
 default_cmap = 'gist_earth'
 colormap = 'inferno'
 mpl.rcParams['image.cmap'] = default_cmap
-cmap = cm.get_cmap(default_cmap)
+cmap = colormaps.get_cmap(default_cmap)
 bbox_props = dict(boxstyle="square,pad=0.3",color='k',fill=None, lw=0.5)
 n=8
 colors = cmap(np.linspace(0,0.95,n))
@@ -130,9 +130,9 @@ def plotBeam(bmaj,bmin,bpos,ramax,decmin,ax=None,color='grey'):
     ell_y = decmin+0.5*bmaj
     bpos+=90
     if color:
-        e = Ellipse([ell_x,ell_y],bmaj,bmin,-bpos, fc=color,zorder=2)
+        e = Ellipse([ell_x,ell_y], bmaj, bmin, angle=-bpos, fc=color,zorder=2)
     else:
-        e = Ellipse([ell_x,ell_y],bmaj,bmin,-bpos, fc=color,zorder=2)
+        e = Ellipse([ell_x,ell_y], bmaj, bmin, angle=-bpos, fc=color,zorder=2)
     ax.add_artist(e)
 
 def privImshow(img,noise,extent,ax=None,**kwargs):
