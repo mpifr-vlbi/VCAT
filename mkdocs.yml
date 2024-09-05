@@ -8,5 +8,5 @@ plugins:
 
 nav:
   - VCAT Docs: index.md
-  - How-to guides: hot-to-guides.md
+  - How-to guides: how-to-guides.md
   - references.md

@@ -127,8 +127,8 @@ def plot_aligned_maps(maps,masked_shift=True, beam='max', fig_size='aanda', plot
         _pos = 0
     if type(beam) == list:
         _maj,_min,_pos = beam
-        _maj = r2m
-        _min = r2m
+        _maj /= r2m
+        _min /= r2m
         _pos = _pos*180/np.pi
 
     common_beam = [_maj,_min,_pos]
