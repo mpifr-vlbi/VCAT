@@ -123,7 +123,9 @@ class CleanMap:
         cntr_color: str = 'black',
         model_color: str = 'red',
         cntr_lw: int | bool = False,
-        sourcename: str | bool =False
+        sourcename: str | bool = False,
+        plot_annotate: str | bool = True,
+        plot_cbar: str | bool = True
     ):
         """Function to plot the clean map.
         Args:
@@ -209,7 +211,8 @@ class CleanMap:
             Source = self.head['OBJECT']
         plot_title='{} - {} -{}GHz'.format(Source,self.head['DATE-OBS'],self.cmaph['freq'])
         bbox_props= dict(boxstyle='round', alpha=box_alpha, color=box_color)
-        ax.annotate(plot_title, xy=(0.1,0.9), xycoords='axes fraction', fontsize=12, color=font_color, bbox=bbox_props, zorder=20)
+        if plot_annotate:
+            ax.annotate(plot_title, xy=(0.1,0.9), xycoords='axes fraction', fontsize=12, color=font_color, bbox=bbox_props, zorder=20)
         plotBeam(self.cmaph['beam'][0],self.cmaph['beam'][1],self.cmaph['beam'][2],ra,-dec+0.2,ax)
         if plot_cntr:
             cntr=ax.contour(xx,yy,self.cmap,linewidths=cntr_lw,levels=lev,colors=cntr_color,alpha=1)
@@ -217,8 +220,9 @@ class CleanMap:
             extent = np.max(xx),np.min(xx),np.min(yy),np.max(yy)
             im = ax.imshow(self.cmap*1e3,cmap=colormap,extent=extent,origin='lower', interpolation='gaussian')
             im.set_norm(norm)
-            cbar = f.colorbar(im, ax=ax, location='top',pad=0.02,shrink=0.5)
-            cbar.set_label(r'$S_\nu$ [mJy/beam]')
+            if plot_cbar:
+                cbar = f.colorbar(im, ax=ax, location='top',pad=0.02,shrink=0.5)
+                cbar.set_label(r'$S_\nu$ [mJy/beam]')
 
             plt.style.use('dark_background')
 

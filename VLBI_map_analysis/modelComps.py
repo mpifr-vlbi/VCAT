@@ -114,24 +114,24 @@ class modelComp(object):
             self.model[key]['snr'] = self.model[key]['peak']/self.model[key]['noise']
             self.model[key]['px_inc'] = h['CDELT2']
             self.model[key]['data']['DELTAX'] *= 3.6e6
+            self.model[key]['data']['err_RA']= np.zeros(len(self.model[key]['data']['MAJOR AX']))
             self.model[key]['data']['DELTAY'] *= 3.6e6
+            self.model[key]['data']['err_DEC']= np.zeros(len(self.model[key]['data']['MAJOR AX']))
             self.model[key]['data']['MAJOR AX'] *= 3.6e6
+            self.model[key]['data']['err_major'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
             self.model[key]['data']['MINOR AX'] *= 3.6e6
+            self.model[key]['data']['err_minor'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
             self.model[key]['data']['ratio'] = self.model[key]['data']['MINOR AX'] / self.model[key]['data']['MAJOR AX']
             self.model[key]['data']['DIST'] = np.sign(self.model[key]['data']['DELTAX'])*np.sqrt(self.model[key]['data']['DELTAX']**2 + self.model[key]['data']['DELTAY']**2 )
+            self.model[key]['data']['err_pos_comp_along_jetpa'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
+            self.model[key]['data']['tb'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
+
             self.model[key]['data'].add_column(np.arange(1,len(self.model[key]['data'])+1,1).astype(str)
 , name='id', index=0)
             nid = len(self.model[key]['data'])
             self.model[key]['data']['ep'] = nid*[self.keys[ii]]
             self.model[key]['data']['freq'] = nid*[self.model[key]['freq']]
             self.model[key]['data']['cid'] = mpl.colors.to_hex('red')
-#include tb here
-            if self.z:
-                self.model[key]['data']['tb'] = derive_tb(self.model[key]['data']['FLUX'],self.model[key]['freq'],self.z,self.model[key]['data']['MAJOR AX'],self.model[key]['data']['ratio'])
-                for ii,value in enumerate(self.model[key]['data']['tb']):
-                    if value>1e13:
-                        self.model[key]['data']['tb'] [ii] = np.nan
-                self.model[key]['data']['logtb'] = np.log10(self.model[key]['data']['tb'])
 
     #generate a list of the all components
         [self.ids.extend(self.model[key]['data']['id']) for key in self.keys]
@@ -185,8 +185,10 @@ class modelComp(object):
             self.cchead[key]['freq'] = np.around(h['CRVAL3']/1e9,2)
             self.cchead[key]['fov'] = self.cchead[key]['px_inc']*self.cchead[key]['naxis']*3.6e6
             self.ccmap[key] = img
- 
-            #added to estimate positional uncertainties
+
+
+
+            # added to estimate positional uncertainties
             mx = np.array(self.model[key]['data']['DELTAX'])
             my = np.array(self.model[key]['data']['DELTAY'])
             jet_ang = np.arctan(np.abs(my)/np.abs(mx))*180/np.pi
@@ -204,11 +206,10 @@ class modelComp(object):
             self.model[key]['data']['beam_along_jetpa'] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],self.model[key]['data']['jet_pa']))
             self.model[key]['data']['beam_along_x'] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],0.0))
             self.model[key]['data']['beam_along_y'] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],90.0))
-
             self.model[key]['data']['beam_along_comp_major'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
             self.model[key]['data']['beam_along_comp_minor'] = np.zeros(len(self.model[key]['data']['MAJOR AX']))
-            i = 0
 
+            i = 0
             for _maj,_min in zip(self.model[key]['data']['MAJOR AX'], self.model[key]['data']['MINOR AX']):
                 if _maj == _min:
                     # For now just take the mean(beam) if component is circular, seems reasonable.
@@ -220,39 +221,87 @@ class modelComp(object):
                     self.model[key]['data']['beam_along_comp_minor'][i] = np.array(axis_along_pa(self.cchead[key]['beam'][0],self.cchead[key]['beam'][1],self.cchead[key]['beam'][2],self.model[key]['data']['POSANGLE'][i]+90))
                 i += 1
 
-            self.model[key]['data']['err_comp_along_jetpa'] = derive_positional_error(self.model[key]['data']['beam_along_jetpa'],self.model[key]['data']['comp_along_jetpa'],self.cchead[key]['snr'],self.model[key]['snr'])
-################ TEST 
-            sys.stdout.write('{}\n'.format(self.model[key]['snr']))
-            sys.stdout.write('{}\n'.format(self.cchead[key]['snr']))
+            self.model[key]['data']['err_pos_comp_along_jetpa'] = derive_positional_error(self.model[key]['data']['beam_along_jetpa'],self.model[key]['data']['comp_along_jetpa'],self.cchead[key]['snr'],self.model[key]['snr'])
 
-            sys.stdout.write('{}\n'.format(self.model[key]['data']['beam_along_jetpa']))
-            sys.stdout.write('{}\n'.format(self.model[key]['data']['comp_along_jetpa']))
-            sys.stdout.write('{}\n'.format(self.model[key]['data']['err_comp_along_jetpa']))
-
-            self.model[key]['data']['err_comp_along_jetpa'] = [(pp if pp>bb/10 else bb/10) for pp,bb in zip(self.model[key]['data']['err_comp_along_jetpa'],self.model[key]['data']['beam_along_jetpa'])]
-
-            self.model[key]['data']['err_comp_along_major'] = derive_positional_error(self.model[key]['data']['beam_along_comp_major'],self.model[key]['data']['MAJOR AX'],self.cchead[key]['snr'],self.model[key]['snr'])
             i = 0
-            for pp,bb in zip(self.model[key]['data']['err_comp_along_major'],self.model[key]['data']['beam_along_comp_major']):
+            for pp,bb in zip(self.model[key]['data']['err_pos_comp_along_jetpa'],self.model[key]['data']['beam_along_jetpa']):
                 if pp<bb/10 :
                     #sys.stdout.write('comp error along major ax is smaller than beam/10. Setting error to beam/10.\n')
-                    self.model[key]['data']['err_comp_along_major'][i] = bb/10
+                    self.model[key]['data']['err_pos_comp_along_jetpa'][i] = bb/10
                 i += 1
 
-            self.model[key]['data']['err_comp_along_minor'] =  np.zeros(len(self.model[key]['data']['err_comp_along_major']))
+            self.model[key]['data']['err_RA'] = derive_positional_error(self.model[key]['data']['beam_along_x'],self.model[key]['data']['MAJOR AX'],self.cchead[key]['snr'],self.model[key]['snr'])
+            i = 0
+            for pp,bb in zip(self.model[key]['data']['err_RA'],self.model[key]['data']['beam_along_x']):
+                if pp<bb/10 :
+                    #sys.stdout.write('comp error along major ax is smaller than beam/10. Setting error to beam/10.\n')
+                    self.model[key]['data']['err_RA'][i] = bb/10
+                i += 1
+
+            self.model[key]['data']['err_DEC'] = derive_positional_error(self.model[key]['data']['beam_along_y'],self.model[key]['data']['MAJOR AX'],self.cchead[key]['snr'],self.model[key]['snr'])
+            i = 0
+            for pp,bb in zip(self.model[key]['data']['err_DEC'],self.model[key]['data']['beam_along_y']):
+                if pp<bb/10 :
+                    #sys.stdout.write('comp error along major ax is smaller than beam/10. Setting error to beam/10.\n')
+                    self.model[key]['data']['err_DEC'][i] = bb/10
+                i += 1
+
+            #self.model[key]['data']['err_comp_along_jetpa'] = [(pp if pp>bb/10 else bb/10) for pp,bb in zip(self.model[key]['data']['err_comp_along_jetpa'],self.model[key]['data']['beam_along_jetpa'])]
+
+            self.model[key]['data']['err_pos_comp_along_major'] = derive_positional_error(self.model[key]['data']['beam_along_comp_major'],self.model[key]['data']['MAJOR AX'],self.cchead[key]['snr'],self.model[key]['snr'])
+            i = 0
+            for pp,bb in zip(self.model[key]['data']['err_pos_comp_along_major'],self.model[key]['data']['beam_along_comp_major']):
+                if pp<bb/10 :
+                    #sys.stdout.write('comp error along major ax is smaller than beam/10. Setting error to beam/10.\n')
+                    self.model[key]['data']['err_pos_comp_along_major'][i] = bb/10
+                i += 1
+
+            self.model[key]['data']['err_pos_comp_along_minor'] =  np.zeros(len(self.model[key]['data']['err_pos_comp_along_major']))
             i = 0
             for _maj,_min in zip(self.model[key]['data']['MAJOR AX'], self.model[key]['data']['MINOR AX']):
                 if _maj == _min :
-                    self.model[key]['data']['err_comp_along_minor'][i] =  self.model[key]['data']['err_comp_along_major'][i]
+                    self.model[key]['data']['err_pos_comp_along_minor'][i] =  self.model[key]['data']['err_pos_comp_along_major'][i]
                 else:
                     sys.stdout.write("Calculate error for minor axes for elliptical components.\n")
-                    self.model[key]['data']['err_comp_along_minor'][i] = derive_positional_error(self.model[key]['data']['beam_along_comp_minor'][i],self.model[key]['data']['MAJOR AX'][i],self.cchead[key]['snr'],self.model[key]['snr'])
+                    self.model[key]['data']['err_pos_comp_along_minor'][i] = derive_positional_error(self.model[key]['data']['beam_along_comp_minor'][i],self.model[key]['data']['MAJOR AX'][i],self.cchead[key]['snr'],self.model[key]['snr'])
                 i += 1
 
-            self.model[key]['data']['err_comp_along_minor'] = [(pp if pp>bb/10 else bb/10) for pp,bb in zip(self.model[key]['data']['err_comp_along_minor'],self.model[key]['data']['beam_along_comp_minor'])]
+            self.model[key]['data']['err_pos_comp_along_minor'] = [(pp if pp>bb/10 else bb/10) for pp,bb in zip(self.model[key]['data']['err_pos_comp_along_minor'],self.model[key]['data']['beam_along_comp_minor'])]
+            # added to estimate uncertainties on the component width
+            self.model[key]['data']['err_major'] = derive_comp_width_error(self.model[key]['data']['MAJOR AX'],self.model[key]['snr'])
+            self.model[key]['data']['err_minor'] = derive_comp_width_error(self.model[key]['data']['MINOR AX'],self.model[key]['snr'])
+ #           #sys.stdout.write('{}\n'.format(self.model[key]['data']['MAJOR AX']))
+ #           #sys.stdout.write('{}\n'.format(self.model[key]['data']['err_major']))
+            i = 0
+            for pp,bb in zip(self.model[key]['data']['err_major'],self.model[key]['data']['beam_along_comp_major']):
+                if pp<bb/5 :
+                    #sys.stdout.write('comp error along major ax is smaller than beam/10. Setting error to beam/10.\n')
+                    self.model[key]['data']['err_major'][i] = bb/5
+                i += 1
 
+            i = 0
+            for pp,bb in zip(self.model[key]['data']['err_minor'],self.model[key]['data']['beam_along_comp_minor']):
+                if pp<bb/5 :
+                    #sys.stdout.write('comp error along major ax is smaller than beam/10. Setting error to beam/10.\n')
+                    self.model[key]['data']['err_minor'][i] = bb/5
+                i += 1
+  #         # sys.stdout.write('{}\n'.format(self.model[key]['data']['err_major']))
+#include tb here
+            if self.z:
+                MAJOR_AX = self.model[key]['data']['MAJOR AX']
+                for ii,major in enumerate(MAJOR_AX):
+                    if major < self.model[key]['data']['beam_along_comp_minor'][ii]/5.:
+                        sys.stdout.write('\nMAJOR_AX too small for comp {}\n'.format(self.model[key]['data']['id'][ii]))
+                        MAJOR_AX[ii] = self.model[key]['data']['beam_along_comp_minor'][ii]/5.
+                self.model[key]['data']['tb'] = derive_tb(self.model[key]['data']['FLUX'],self.model[key]['freq'],self.z,MAJOR_AX,self.model[key]['data']['ratio'])
+                #for ii,value in enumerate(self.model[key]['data']['tb']):
+                    #if value>1e14:
+                    #    self.model[key]['data']['tb'] [ii] = np.nan
+                self.model[key]['data']['logtb'] = np.log10(self.model[key]['data']['tb'])
+
+# Shifting the model according to value in the shiftFile
         if shift:
-            sys.stdout.write('shifting model data according to values in shiftFIle.\n')
+            sys.stdout.write('shifting model data according to values in shiftFile.\n')
             shiftFile= shift
             self.shift = Table.read(shiftFile, format='ascii')
             for i,shift in enumerate(self.shift):
@@ -264,6 +313,9 @@ class modelComp(object):
                 inc=self.cchead[key]['px_inc']*3.6e6
                 self.ccmap_shifted[key] = apply_shift(self.ccmap[key],[shift['DEC']/inc,-shift['RA']/inc])
                 self.cchead[key]['shiftDEC']=shift['DEC']
+            sys.stdout.write('{}\n'.format(self.model[key]['data']))
+            sys.stdout.write('{}\n'.format(self.model[key]['data_shifted']))
+
 
     def update_ids(self):
         ### This does not work if there is a mix of original numbering and changed numbers, giving a mixture of numered strings '1','2' etc and strings starting with a letter 'A1','B4' etc.
@@ -1305,6 +1357,91 @@ class modelComp(object):
                 fig.savefig(outF,bbox_inches='tight')
                 sys.stdout.write('Plot {} has been written to {}\n'.format(yax[jj],outF))
 #
+
+    def write_asci_table(self):
+        '''Write out an ascii table with all modelfit parameters.
+        '''
+        from astropy import units as u
+        import cdspyreadme
+        sys.stdout.write('Writing model component parameters to ascii-table.\n')
+        for i,key in enumerate(self.model):
+            if self.shift:
+                model_f = self.model[key].copy()['data_shifted']
+            else:
+                model_f = self.model[key].copy()['data']
+            model_f.sort('DIST',reverse=True)
+            if i == 0:
+                model = model_f.copy()
+            else:
+                for line in model_f:
+                    model.add_row(line)
+        model['FLUX']*=1e3
+        ff = ['s','.1f','.2f','2.2f','2.2f','2.2f','2.2f','2.2f','2.2f','2.2f','2.2f','2.2f','2.2f']
+#        ff = ['S','F.1','F.2','F2.2','F2.2','F2.2','F2.2','F2.2','F2.2','F2.2','F2.2','F2.2','F2.2']
+
+        kk = ['id','freq','FLUX','DELTAX','err_RA','DELTAY','err_DEC','MAJOR AX','err_major','ratio','DIST','err_pos_comp_along_jetpa','logtb']
+        kk_new =['ID','Frequency','Flux density','RA','RA Error','DEC','DEC Error','Major','Major Error','Ratio','Distance','Distance Error','log Tb']
+        model['freq'] *= u.GHz
+        model['FLUX'] *= u.mJy
+        model['DELTAX'] *= u.mas
+        model['DELTAY'] *= u.mas
+        model['err_RA'] *= u.mas
+        model['err_DEC'] *= u.mas
+        model['MAJOR AX'] *= u.mas
+        model['err_major'] *= u.mas
+        model['DIST'] *= u.mas
+        model['err_pos_comp_along_jetpa'] *= u.mas
+        model['logtb'] *= u.K
+
+        for j,K in enumerate(kk):
+            #model[K].format = ff[j]
+            model[K].name = kk_new[j]
+        for j,K in enumerate(kk_new[2:]):
+            model[K] = np.round(model[K],2)
+        formats=dict(zip(kk_new,ff))
+        print(formats)
+        print(model[kk_new])
+        #print(model['Flux density'][0].type())
+        freq = self.model[key]['freq']
+        file_name = 'TableA1.dat'
+        file_name2 = 'TableA1-2.dat'
+        tablemaker = cdspyreadme.CDSTablesMaker()
+        tablemaker.addTable(model[kk_new], name=file_name)
+        tablemaker.title ='Images and model components for VLBI data of NGC 1052 (Baczko+, 2024)'
+        tablemaker.author = 'Baczko A.-K.'
+        tablemaker.date = 2024
+
+        tablemaker.writeCDSTables()
+        tablemaker.makeReadMe()
+        with open("ReadMe2","w") as fd:
+            tablemaker.makeReadMe(out=fd)
+            sys.stdout.write('\n{} has been written.\n'.format(fd))
+            #tablemaker.writeCDSTables(out=file_name2)
+
+        model[kk_new].write(file_name2,format='ascii.ecsv', formats=formats, fill_values=[(ascii.masked, '  --  ')],overwrite=True)
+        #model[kk_new].write(file_name2,format='mrt', formats=formats, fill_values=[(ascii.masked, '  --  ')],overwrite=True)
+        sys.stdout.write('\n{} has been written.\n'.format(file_name))
+
+    def write_fits_table(self):
+        '''Write out a fits table of the modelfit paramters.
+        '''
+        file = 'Table'
+        for i,key in enumerate(self.model):
+            if self.shift:
+                model = self.model[key].copy()['data_shifted']
+            else:
+                model = self.model[key].copy()['data']
+            model.sort('DIST',reverse=True)
+            model['FLUX']*=1e3
+            freq = self.model[key]['freq']
+            file_name = file+'_%.0fGHz.dat'%freq
+            ff = ['%s','%1.1f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f']
+            kk = ['id','FLUX','DELTAX','err_RA','DELTAY','err_DEC','MAJOR AX','err_major','ratio','DIST','err_pos_comp_along_jetpa','logtb']
+            formats=dict(zip(kk,ff))
+            model[kk].write(file_name,overwrite=True)
+            sys.stdout.write('\n{} has been written.\n'.format(file_name))
+
+
     def write_tex_table(self):
         '''Write out a tex table with all modelfit parameters.
         '''
@@ -1324,45 +1461,39 @@ class modelComp(object):
 
             model.sort('DIST',reverse=True)
             model['FLUX']*=1e3
-            ff = ['%s','%1.0f','%2.2f','%2.2f','%2.2f','%2.1f','%2.2f','%2.2f','%2.2f']
-            kk = ['id','FLUX','DELTAX','DELTAY','MAJOR AX','ratio','DIST','err_comp_along_comppa','logtb']
+            ff = ['%s','%1.1f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f','%2.2f']
+            kk = ['id','FLUX','DELTAX','err_RA','DELTAY','err_DEC','MAJOR AX','err_major','ratio','DIST','err_pos_comp_along_jetpa','logtb']
             formats=dict(zip(kk,ff))
             with open('Allmodel.tex',mode='a') as f:
-                f.write('\\midrule\\multicolumn{9}{c}{%2.1f\\,GHz - Band}\\\\\\midrule\n'%self.model[key]['freq'])
-#                if i==0:
-                model.write(f,format='ascii.no_header', include_names=kk,delimiter='&', formats=formats,fill_values=[(ascii.masked, '  --  ')],overwrite=False)
+                f.write('\\midrule\\multicolumn{12}{c}{%2.1f\\,GHz - Band}\\\\\\midrule\n'%self.model[key]['freq'])
+                model[kk].write(f,format='ascii.no_header', include_names=kk, delimiter='&', formats=formats, fill_values=[(ascii.masked, '  --  ')],overwrite=False)
 
- #               else:
-  #                  dd.write(f,format='ascii.no_header', include_names=kk,delimiter='&', formats=formats,fill_values=[(ascii.masked, '  --  ')],overwrite=False)
-
-            #i+=1
 
         with open('Allmodel.tex',mode='r') as f:
             file_lines=[''.join([x.strip(),'\\\\', '\n']) for x in f.readlines()]
 
         freq_list = [str(self.model[key]['freq']) for key in self.keys]
         with open('Allmodel.tex',mode='w') as f:
-            f.write('\\begin{table}[!hbt]\n')
+            f.write('\\begin{table*}[!hbt]\n')
             f.write('\\centering\n')
             f.write('\\small\n')
             f.write('\\setlength{\extrarowheight}{1pt}\n')
             f.write('\\setlength{\\tabcolsep}{3pt}\n')
             f.write('\\caption{Parameters of Gaussian model fitting components for '+','.join(freq_list)+'\,GHz observation for '+self.model[self.keys[0]]['source']+'.\label{tab:vlbamodels}\n')
-            f.write('\\begin{adjustbox}{width=\linewidth}\n')
             f.write('\\begin{threeparttable}\n')
-            f.write('\\begin{tabular}{lSSSSSSSc}\\toprule\n')
-            f.write('{ID} & {Flux density} & {RA} & {DEC} & {Major \\tnote{1}} & {Ratio\\tnote{2}} & {Distance} & {Distance Error} & {$\log\,T_\mathrm{b}$} \\\\\n')
-            f.write(' & {$[$mJy$]$} & {$[$mas$]$} & {$[$mas$]$} & {$[$mas$]$} & & {$[$mas$]$} & {$[$mas$]$} & {$[$K$]$} \\\\\n')
-#            f.write('\\midrule\n')
+            f.write('\\begin{tabular}{lSSSSSSSSSSc}\\toprule\n')
+            f.write('{ID} & {Flux density} & {RA} & {RA Error} & {DEC} & {DEC Error} & {Major \\tnote{1}} & {Major Error \\tnote{2}} & {Ratio \\tnote{3}} & {Distance} & {Distance Error \\tnote{4}} & {$\log\,T_\mathrm{b}$} \\\\\n')
+            f.write(' & {$[$mJy$]$} & {$[$mas$]$} & {$[$mas$]$} & {$[$mas$]$} & {$[$mas$]$} & {$[$mas$]$} & {$[$mas$]$} & & {$[$mas$]$} & {$[$mas$]$} & {$[$K$]$} \\\\\n')
             f.writelines(file_lines)
             f.write('\\bottomrule\n')
             f.write('\\end{tabular}\n')
             f.write('\\begin{TableNotes}\n')
             f.write('\\footnotesize\n')
             f.write('\\item[1] FWHM major axis of restoring beam\n')
-            f.write('\\item[2] Ratio of minor to major axis\n')
+            f.write('\\item[2] Error on Major ax equal to 1/5th beam\n')
+            f.write('\\item[3] Ratio of minor to major axis\n')
+            f.write('\\item[4] Error on Position equal to 1/10th beam\n')
             f.write('\\end{TableNotes}\n')
-            f.write('\\end{threeparttable}\n')
-            f.write('\\end{adjustbox}\n')
-            f.write('\\end{table}\n')
+ #           f.write('\\end{adjustbox}\n')
+            f.write('\\end{table*}\n')
         sys.stdout.write('\nAllmodel.tex has been written.\n')
