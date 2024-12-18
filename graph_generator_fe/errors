@@ -1,0 +1,16 @@
+~/VCAT/graph_generator_fe/plot_functions.py in <module>
+     23 from plotSet import *
+     24 ###################################
+---> 25 plt.style.use('pubstyle')
+     26 
+     27 default_cmap = 'gist_earth'
+
+~/anaconda3/lib/python3.9/site-packages/matplotlib/style/core.py in use(style)
+    128                 _apply_style(rc)
+    129             except IOError as err:
+--> 130                 raise IOError(
+    131                     "{!r} not found in the style library and input is not a "
+    132                     "valid URL or path; see `style.available` for list of "
+
+OSError: 'pubstyle' not found in the style library and input is not a valid URL or path; see `style.available` for list of available styles
+

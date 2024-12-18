@@ -16,7 +16,7 @@ import pexpect
 from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
-
+from align_imagesEHTim_final import AlignMaps
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -153,6 +153,7 @@ class ImageData(object):
                  difmap_path=""):
 
         self.file_path = fits_file
+        self.fits_file = fits_file
         self.model_file_path = model
         self.lin_pol=lin_pol
         self.evpa=evpa
@@ -169,7 +170,9 @@ class ImageData(object):
             self.no_fits=False
         else:
             self.no_fits=True
-
+        
+        self.stokes_q_path=stokes_q
+        self.stokes_u_path=stokes_u
         stokes_q_path=stokes_q
         stokes_u_path=stokes_u
         #read stokes data from input files if defined
@@ -422,6 +425,14 @@ class ImageData(object):
             lin_pol_sqr[lin_pol_sqr < 0.0] = 0.0
             self.lin_pol = np.sqrt(lin_pol_sqr)
 
+    def align(self,image_data2,masked_shift=True,
+            mask=False,mask_args=False,beam_arg="max",
+            fig_size="aanda",plot_shifted=True,plot_spix=True,
+            plot_convolved=True,asize=6,sigma=3):
+
+        return AlignMaps([self.file_path,image_data2.file_path],
+                masked_shift,mask,mask_args,beam_arg,fig_size,
+                plot_shifted,plot_spix,plot_convolved,asize,sigma)
 
 class FitsImage(object):
     """Class that generates Matplotlib graph for a VLBI image.
