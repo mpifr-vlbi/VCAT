@@ -1,0 +1,328 @@
+from os import write
+import numpy as np
+import pandas as pd
+from astropy.io import fits
+from astropy.modeling import models, fitting
+import os
+from astropy.time import Time
+import sys
+import pexpect
+from datetime import datetime
+from vcat.alignment.align_imagesEHTim_final import AlignMaps
+from vcat.helpers import get_sigma_levs, getComponentInfo, write_mod_file,write_mod_file_from_casa, get_freq, get_date, total_flux_from_mod, PXPERBEAM, JyPerBeam2Jy, get_residual_map, get_noise_from_residual_map, get_model_chi_square_red, format_scientific
+
+class ImageData(object):
+    """ Class to handle VLBI Image data (single image with or without polarization)
+    Attributes:
+        fits_file: Path to a .fits file containing the data (Stokes-I (DIFMAP) or Full Polarization (CASA)).
+        uvf_file: Path to a .uvf file corresponding to the fits_file
+        freq: Frequency of the Image in GHz
+        stokes_i: Optional input of a 2d-array with Stokes-I values
+        model: Path to a .fits file including the 
+        lin_pol: Optional input of a 2d-array with lin-pol values
+        evpa: Optional input of a 2d-array with EVPA values
+        pol_from_stokes: Select whether to read in polarization from stokes_q/u or lin_pol/evpa
+        stokes_q: Path to a .fits file containing Stokes-Q data
+        stokes_u: Path to a .fits file containing Stokes-U data
+        model_save_dir: Path where to store created .mod files 
+        is_casa_model: If a model .fits from CASA was imported, set to True, otherwise set to False
+        difmap_path: Provide the path to your difmap executable
+    """
+
+    def __init__(self,
+                 fits_file="",
+                 uvf_file="",
+                 stokes_i=[],
+                 model="",
+                 lin_pol=[],
+                 evpa=[],
+                 pol_from_stokes=True,
+                 stokes_q="",
+                 stokes_u="",
+                 model_save_dir="tmp/mod_files_model/",
+                 is_casa_model=False,
+                 noise_method="Image RMS", #choose noise method
+                 correct_rician_bias=False,
+                 difmap_path=""):
+
+        self.file_path = fits_file
+        self.fits_file = fits_file
+        self.model_file_path = model
+        self.lin_pol=lin_pol
+        self.evpa=evpa
+        self.stokes_i=stokes_i
+        self.uvf_file=uvf_file
+        self.difmap_path=difmap_path
+        self.residual_map_path=""
+        self.noise_method=noise_method
+
+        # Read clean files in
+        if fits_file!="":
+            hdu_list=fits.open(fits_file)
+            self.hdu_list = hdu_list
+            self.no_fits=False
+        else:
+            self.no_fits=True
+        
+        self.stokes_q_path=stokes_q
+        self.stokes_u_path=stokes_u
+        stokes_q_path=stokes_q
+        stokes_u_path=stokes_u
+        #read stokes data from input files if defined
+        if stokes_q != "":
+            try:
+                stokes_q = fits.open(stokes_q)[0].data[0, 0, :, :]
+            except:
+                stokes_q=stokes_q
+        else:
+            stokes_q=[]
+
+        if stokes_u != "":
+            try:
+                stokes_u = fits.open(stokes_u)[0].data[0, 0, :, :]
+            except:
+                stokes_u = stokes_u
+        else:
+            stokes_u=[]
+
+        self.stokes_u=stokes_u
+        self.stokes_q=stokes_q
+
+        # Set name
+        self.name = hdu_list[0].header["OBJECT"]
+
+        self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
+
+        # Unit selection and adjustment
+        self.degpp = abs(hdu_list[0].header["CDELT1"])  # degree per pixel
+
+        if self.degpp > 0.01:
+            self.unit = 'deg'
+            self.scale = 1.
+        elif self.degpp > 6.94e-6:
+            self.unit = 'arcmin'
+            self.scale = 60.
+        elif self.degpp > 1.157e-7:
+            self.scale = 60. * 60.
+            self.unit = 'arcsec'
+        else:
+            self.scale = 60. * 60. * 1000.
+            self.unit = 'mas'
+
+        # Convert Pixel into unit
+        self.X = np.linspace(0, hdu_list[0].header["NAXIS1"], hdu_list[0].header["NAXIS1"],
+                        endpoint=False)  # NAXIS1: number of pixels at R.A.-axis
+        for j in range(len(self.X)):
+            self.X[j] = (self.X[j] - hdu_list[0].header["CRPIX1"]) * hdu_list[0].header[
+                "CDELT1"] * self.scale  # CRPIX1: reference pixel, CDELT1: deg/pixel
+        self.X[int(hdu_list[0].header["CRPIX1"])] = 0.0
+
+        self.Y = np.linspace(0, hdu_list[0].header["NAXIS2"], hdu_list[0].header["NAXIS2"],
+                        endpoint=False)  # NAXIS2: number of pixels at Dec.-axis
+        for j in range(len(self.Y)):
+            self.Y[j] = (self.Y[j] - hdu_list[0].header["CRPIX2"]) * hdu_list[0].header[
+                "CDELT2"] * self.scale  # CRPIX2: reference pixel, CDELT2: deg/pixel
+        self.Y[int(hdu_list[0].header["CRPIX2"])] = 0.0
+
+        self.extent = np.max(self.X), np.min(self.X), np.min(self.Y), np.max(self.Y)
+
+        if not self.no_fits:
+            self.image_data = hdu_list[0].data
+            self.Z = self.image_data[0, 0, :, :]
+
+        else:
+            try:
+                self.Z=self.stokes_i
+            except:
+                pass
+
+        #overwrite fits image data with stokes_i input if given
+        if not stokes_i==[]:
+            self.Z=stokes_i
+
+        #read in polarization input
+
+        # check if FITS file contains more than just Stokes I
+        only_stokes_i = False
+        if hdu_list[0].data.shape[0] == 1:
+            only_stokes_i = True
+        if (np.shape(self.Z) == np.shape(stokes_q) and np.shape(self.Z) == np.shape(stokes_u) and
+                        np.shape(stokes_q) == np.shape(stokes_u)):
+            only_stokes_i = True #in this case override the polarization data with the data that was input to Q and U
+
+        if only_stokes_i:
+            #DIFMAP Style
+            pols=1
+            # Check if linpol/evpa/stokes_i have same dimensions!
+            dim_wrong = True
+            if pol_from_stokes:
+                if (np.shape(self.Z) == np.shape(stokes_q) and np.shape(self.Z) == np.shape(stokes_u) and
+                        np.shape(stokes_q) == np.shape(stokes_u)):
+                    dim_wrong = False
+                    self.stokes_q=stokes_q
+                    self.stokes_u=stokes_u
+                else:
+                    self.lin_pol = np.zeros(np.shape(self.Z))
+                    self.evpa = np.zeros(np.shape(self.Z))
+            else:
+                if (np.shape(self.Z) == np.shape(lin_pol) and np.shape(self.Z) == np.shape(evpa) and
+                        np.shape(lin_pol) == np.shape(evpa)):
+                    dim_wrong = False
+                    self.lin_pol=lin_pol
+                    self.evpa=evpa
+                else:
+                    self.lin_pol=np.zeros(np.shape(self.Z))
+                    self.evpa=np.zeros(np.shape(self.Z))
+            self.image_data[0, 0, :, :] = self.Z
+        else:
+            #CASA STYLE
+            pols=3
+            dim_wrong=False
+            self.stokes_q=hdu_list[0].data[1,0,:,:]
+            self.stokes_u=hdu_list[0].data[2,0,:,:]
+            self.image_data[1, 0, :, :] = self.stokes_q
+            self.image_data[2, 0, :, :] = self.stokes_u
+
+        if pol_from_stokes and not dim_wrong:
+            self.lin_pol = np.sqrt(self.stokes_q ** 2 + self.stokes_u ** 2)
+            self.evpa = 0.5 * np.arctan2(self.stokes_u, self.stokes_q)
+            #shift to 0-180 (only positive)
+            self.evpa[np.where(self.evpa<0)] = self.evpa[np.where(self.evpa<0)]+np.pi
+
+
+        # Set beam parameters
+        try:
+            #DIFMAP style
+            self.beam_maj = hdu_list[0].header["BMAJ"] * self.scale
+            self.beam_min = hdu_list[0].header["BMIN"] * self.scale
+            self.beam_pa = hdu_list[0].header["BPA"]
+        except:
+            try:
+                #TODO check if this is actually working!
+                #CASA style
+                self.beam_maj, self.beam_min, self.beam_pa, na, nb = hdu_list[1].data[0]
+                self.beam_maj=self.beam_maj*1000 #convert to mas
+                self.beam_min=self.beam_min*1000 #convert to mas
+            except:
+                print("No input beam information!")
+                self.beam_maj = 0
+                self.beam_min = 0
+                self.beam_pa = 0
+
+        self.date = get_date(fits_file)
+
+        try:
+            self.difmap_noise = float(hdu_list[0].header["NOISE"])
+        except:
+            self.difmap_noise = 0
+        
+
+        try:
+            self.difmap_pol_noise = np.sqrt(float(fits.open(stokes_q_path)[0].header["NOISE"])**2+float(fits.open(stokes_u_path)[0].header["NOISE"])**2)
+        except:
+            self.difmap_pol_noise = 0
+    
+        #calculate image noise according to the method selected
+        unused, levs_i = get_sigma_levs(self.Z, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for stokes i
+        try:
+            unused, levs_pol = get_sigma_levs(self.lin_pol, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for polarization
+        except:
+            levs_pol=[0]
+
+        # calculate image noise
+        unused, levs_i_3sigma = get_sigma_levs(self.Z, 3,noise_method=self.noise_method,noise=self.difmap_noise)  # get noise for stokes i
+        try:
+            unused, levs_pol_3sigma = get_sigma_levs(self.lin_pol, 3,noise_method=self.noise_method,noise=self.difmap_noise)  # get noise for polarization
+        except:
+            levs_pol_3sigma = [0]
+
+        self.noise = levs_i[0]
+        self.pol_noise = levs_pol[0]
+
+        self.noise_3sigma  = levs_i_3sigma[0]
+        self.pol_noise_3sigma = levs_pol_3sigma[0]
+
+        #calculate integrated total flux in image
+        self.integrated_flux_image = JyPerBeam2Jy(np.sum(self.Z), self.beam_maj, self.beam_min, self.degpp * self.scale)
+
+        #calculate integrated pol flux in image
+        self.integrated_pol_flux_image = JyPerBeam2Jy(np.sum(self.lin_pol),self.beam_maj,self.beam_min,self.degpp*self.scale)
+
+        #calculate average EVPA (mask where lin pol < 3 sigma or stokes i < 3 sigma (same as in plot)
+        integrate_evpa = np.ma.masked_where((self.lin_pol < self.pol_noise_3sigma) | (self.Z < self.noise_3sigma),
+                                            self.evpa)
+        self.evpa_average = np.average(integrate_evpa)
+
+        if model!="" and not is_casa_model:
+            #TODO basic checks if file is valid
+            self.model=getComponentInfo(model)
+            #write .mod file from .fits input
+            os.makedirs(model_save_dir,exist_ok=True)
+            write_mod_file(self.model, model_save_dir + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
+        if is_casa_model:
+            #TODO basic checks if file is valid
+            os.makedirs(model_save_dir,exist_ok=True)
+            os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
+            os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
+            os.makedirs(model_save_dir + "mod_files_u", exist_ok=True)
+            write_mod_file_from_casa(self.file_path,channel="i", export=model_save_dir+"mod_files_clean/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            write_mod_file_from_casa(self.file_path,channel="q", export=model_save_dir+"mod_files_q/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            write_mod_file_from_casa(self.file_path,channel="u", export=model_save_dir+"mod_files_u/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+
+        else:
+            self.model=None
+        try:
+            os.makedirs("tmp/mod_files_clean", exist_ok=True)
+            os.makedirs("tmp/mod_files_q", exist_ok=True)
+            os.makedirs("tmp/mod_files_u", exist_ok=True)
+            #try to import model which is attached to the main .fits file
+            model_i = getComponentInfo(fits_file)
+            if self.model==None:
+                self.model = model_i
+            write_mod_file(model_i, "tmp/mod_files_clean/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
+            #load stokes q and u clean models
+            model_q=getComponentInfo(stokes_q_path)
+            write_mod_file(model_q, "tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
+            model_u=getComponentInfo(stokes_u_path)
+            write_mod_file(model_u, "tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
+        except:
+            pass
+
+        #calculate residual map if uvf and modelfile present
+        if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model:
+            self.residual_map_path = model_save_dir + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
+                                                                                                                 "_") + "GHz_residual.fits"
+            get_residual_map(self.uvf_file,model_save_dir+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
+                             difmap_path=self.difmap_path,
+                             save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp)
+
+        hdu_list.close()
+
+        #calculate cleaned flux density from mod files
+        #first stokes I
+        try:
+            self.integrated_flux_clean=total_flux_from_mod("tmp/mod_files_clean/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+        except:
+            self.integrated_flux_clean = 0
+        #and then polarization
+        try:
+            flux_q=total_flux_from_mod("tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_u=total_flux_from_mod("tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
+        except:
+            self.integrated_pol_flux_clean=0
+
+        #correct rician bias
+        if correct_rician_bias:
+            lin_pol_sqr = (self.lin_pol ** 2 - self.pol_noise ** 2)
+            lin_pol_sqr[lin_pol_sqr < 0.0] = 0.0
+            self.lin_pol = np.sqrt(lin_pol_sqr)
+
+    def align(self,image_data2,masked_shift=True,
+            mask=False,mask_args=False,beam_arg="max",
+            fig_size="aanda",plot_shifted=True,plot_spix=True,
+            plot_convolved=True,asize=6,sigma=3):
+
+        return AlignMaps([self.file_path,image_data2.file_path],
+                masked_shift,mask,mask_args,beam_arg,fig_size,
+                plot_shifted,plot_spix,plot_convolved,asize,sigma)
