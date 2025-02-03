@@ -307,9 +307,9 @@ class ImageData(object):
             self.integrated_flux_clean = 0
         #and then polarization
         try:
-            flux_q_squared=total_flux_from_mod("tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",squared=True)
-            flux_u_squared=total_flux_from_mod("tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",squared=True)
-            self.integrated_pol_flux_clean=np.sqrt(flux_u_squared+flux_q_squared)
+            flux_q_squared=total_flux_from_mod("tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",squared=False)
+            flux_u_squared=total_flux_from_mod("tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",squared=False)
+            self.integrated_pol_flux_clean=np.sqrt(flux_u_squared**2+flux_q_squared**2)
         except:
             self.integrated_pol_flux_clean=0
 
