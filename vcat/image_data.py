@@ -8,6 +8,7 @@ from astropy.time import Time
 import sys
 import pexpect
 from datetime import datetime
+from astropy.time import Time
 from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import get_sigma_levs, getComponentInfo, write_mod_file,write_mod_file_from_casa, get_freq, get_date, total_flux_from_mod, PXPERBEAM, JyPerBeam2Jy, get_residual_map, get_noise_from_residual_map, get_model_chi_square_red, format_scientific
 
@@ -41,7 +42,7 @@ class ImageData(object):
                  stokes_u="",
                  model_save_dir="tmp/mod_files_model/",
                  is_casa_model=False,
-                 noise_method="Image RMS", #choose noise method
+                 noise_method="Histogram Fit", #choose noise method
                  correct_rician_bias=False,
                  difmap_path=""):
 
@@ -210,7 +211,7 @@ class ImageData(object):
                 self.beam_pa = 0
 
         self.date = get_date(fits_file)
-
+        self.mjd = Time(self.date).mjd
         try:
             self.difmap_noise = float(hdu_list[0].header["NOISE"])
         except:
@@ -306,9 +307,9 @@ class ImageData(object):
             self.integrated_flux_clean = 0
         #and then polarization
         try:
-            flux_q=total_flux_from_mod("tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-            flux_u=total_flux_from_mod("tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-            self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
+            flux_q_squared=total_flux_from_mod("tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",squared=True)
+            flux_u_squared=total_flux_from_mod("tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",squared=True)
+            self.integrated_pol_flux_clean=np.sqrt(flux_u_squared+flux_q_squared)
         except:
             self.integrated_pol_flux_clean=0
 

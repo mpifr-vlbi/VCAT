@@ -16,6 +16,7 @@ import pexpect
 from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
+from helpers import get_sigma_levs
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -283,7 +284,7 @@ class FitsImage(object):
 
         if plot_beam:
             # Plot beam
-            beam = Ellipse([ell_x, ell_y], beam_maj, beam_min, -beam_pa + 90, fc='grey')
+            beam = Ellipse([ell_x, ell_y], beam_maj, beam_min,angle= -beam_pa + 90, fc='grey')
             self.ax.add_artist(beam)
 
         if title=="":
@@ -453,7 +454,7 @@ class FitsImage(object):
     def plotComponent(self,x,y,maj,min,pos,scale):
 
         # Plotting ellipses
-        comp = Ellipse([x * scale, y * scale], maj * scale, min * scale, -pos + 90,
+        comp = Ellipse([x * scale, y * scale], maj * scale, min * scale,angle= -pos + 90,
                        fill=False, zorder=2, color=self.component_color, lw=0.5)
         ellipse=self.ax.add_artist(comp)
 

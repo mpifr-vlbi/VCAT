@@ -9,6 +9,7 @@ import matplotlib.colors as colors
 from astropy.io import fits
 from astropy.modeling import models, fitting
 import os
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.time import Time
 import sys
 import pexpect
@@ -286,11 +287,10 @@ def get_date(filename):
     return date
 
 #needs a mod_file as input an returns the total flux
-def total_flux_from_mod(mod_file,squared=False):
+def total_flux_from_mod(mod_file):
     """needs a mod_file as input an returns the total flux
     Args:
         mod_file: Path to a .mod file
-        squared: If true, returns the sum of the squared fluxes (useful for polarization)
     Returns:
         The total flux in the .mod file (usually in mJy, depending on the .mod file)
     """
@@ -300,10 +300,7 @@ def total_flux_from_mod(mod_file,squared=False):
     for line in lines:
         if not line.startswith("!"):
             linepart=line.split()
-            if squared:
-                total_flux+=float(linepart[0])**2
-            else:
-                total_flux+=float(linepart[0])
+            total_flux+=float(linepart[0])
     return total_flux
                 
 def PXPERBEAM(b_maj,b_min,px_inc):
