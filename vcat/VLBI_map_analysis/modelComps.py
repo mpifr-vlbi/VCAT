@@ -20,7 +20,7 @@ from matplotlib.path import Path
 from matplotlib.patches import PathPatch
 
 plt.ion()
-plt.style.use('pubstyle')
+#plt.style.use('pubstyle')
 
 def trim_axs(axs, N):
   """little helper to massage the axs list to have correct length..."""
