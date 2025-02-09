@@ -1192,6 +1192,7 @@ class modelComp(object):
                 alphaE.append(pl_sd[i][1])
                 chi2PL.append(pl_ch2[i])
                 fit.append('PL')
+        
         namesSN=['Comp','num','numE','Sm','SmE','athin','athinE','athick','athickE','Chi2']
         SN = Table([CompSN,np.round(num,2),numE,np.round(Sm,2),SmE,np.round(athin,2),athinE,np.round(athick,2),athickE,chi2SN],names=namesSN)
         print(SN)

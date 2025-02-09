@@ -4,7 +4,7 @@ from astropy import constants as const
 from astropy import units as u
 import pandas as pd
 from sympy import Ellipse, Point, Line
-
+import vcat.VLBI_map_analysis.modules.fit_functions as ff
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
@@ -122,6 +122,8 @@ class ComponentCollection():
         self.fluxs = []
         self.tbs = []
         self.tbs_lower_limit= []
+        self.freqs = []
+        self.ids = []
 
         for comp in components:
             self.year.append(comp.year)
@@ -132,7 +134,8 @@ class ComponentCollection():
             self.fluxs.append(comp.flux)
             self.tbs.append(comp.tb)
             self.tbs_lower_limit.append(comp.tb_lower_limit)
-
+            self.freqs.append(comp.freq)
+            self.ids.append(comp.component_number)
     def length(self):
         return len(self.components)
 
@@ -186,6 +189,89 @@ class ComponentCollection():
         return {"name": self.name, "speed": float(speed), "speed_err": float(speed_err), "y0": y0, "y0_err": y0_err,
                 "beta_app": float(beta_app), "beta_app_err": float(beta_app_err), "d_crit": float(d_crit), "d_crit_err": float(d_crit_err),
                 "dist_0_est": dist_0_est, "t_0": t_0, "t_0_err": t_0_err, "red_chi_sqr": red_chi_sqr}
+    
+
+    def get_fluxes(self):
+        return [comp.flux for comp in self.components]
+
+    def fit_comp_spectrum(self,add_data=False,plot_areas=False,plot_all_components=False,comps=False,
+            exclude_comps=False,ccolor=False,out=True,fluxerr=False,fit_free_ssa=False,plot_fit_summary=False,
+            annotate_fit_results=True):
+        """
+        Inputs:
+            fluxerr: Fractional Errors (dictionary with {'error': [], 'freq':[]})
+        """
+        sys.stdout.write("Fit component spectrum\n")
+        
+        cflux = self.fluxs
+        if fluxerr:
+            cfluxerr = fluxerr['error']*cflux.copy()
+            cfreq = fluxerr['freq']
+            cfluxerr = fluxerr['error']
+        else:
+            cfluxerr = 0.15*cflux.copy() #default of 15% error
+            cfreq = self.freqs
+        
+        cid = self.ids
+
+        print("Fit Powerlaw to Comp" + str(cid[0]))
+        pl_x0 = np.array([np.mean(cflux),-1])
+        pl_p,pl_sd,pl_ch2,pl_out = ff.odr_fit(ff.powerlaw,[cfreq,cflux,cfluxerr],pl_x0,verbose=1)
+        
+        #fit Snu
+        print("Fit SSA to Comp " + str(cid[0]))
+        if fit_free_ssa:
+            sn_x0 = np.array([120,np.max(cflux),2.5,-3])
+            beta,sd_beta,chi2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
+        else:
+            sn_x0 = np.array([20,np.max(cflux),-1])
+            sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu_real,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)   
+
+        if np.logical_and(sn_ch2>pl_ch2,pl_out.info<5):
+           sys.stdout.write("Power law fits better\n")
+           CompPL = cid[0]
+           alpha = pl_p[1]
+           alphaE = pl_sd[1]
+           chi2PL = pl_ch2
+           fit = "PL"
+        elif np.logical_and(pl_ch2>sn_ch2,sn_out.info<5):
+            sys.stdout.write('ssa spectrum fits better\n')
+            CompSN = cid[0]
+            num = sn_p[0]
+            Sm = sn_p[1]
+            chi2SN = sn_ch2
+            SmE = sn_sd[1]
+            numE = sn_sd[0]
+            fit = "SN"
+            if fit_free_ssa:
+                athin = sn_p[3]
+                athinE = sn_sd[3]
+                athick = None
+                athickE = sn_sd[2]
+            else:
+                athin = sn_p[2]
+                athinE = sn_sd[2]
+                athick = 2.5
+                athickE = 0.0
+
+        else:
+            sys.stdout.write('NO FIT WORKED, use power law\n')
+            CompPL = cid[0]
+            alpha = pl_p[1]
+            alphaE = pl_sd[1]
+            chi2PL = pl_ch2
+            fit = "PL"
+
+        #return fit results
+        if fit=="PL":
+            return  {"fit":"PL","alpha":alpha,"alphaE":alphaE,"chi2":chi2PL}
+
+        if fit=="SN":
+            return {"fit":"SN","athin":athin,"athinE":athickE,
+                "athick":athick,"athickE":athickE,"num":num,"Sm":Sm,
+                "chi2":chi2SN,"SmE":SmE,"numE":numE}
+
+
 
 def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,flux,noise):
     # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
