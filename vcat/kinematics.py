@@ -247,7 +247,7 @@ class ComponentCollection():
             if fit_free_ssa:
                 athin = sn_p[3]
                 athinE = sn_sd[3]
-                athick = None
+                athick = sn_p[2]
                 athickE = sn_sd[2]
             else:
                 athin = sn_p[2]
@@ -265,12 +265,13 @@ class ComponentCollection():
 
         #return fit results
         if fit=="PL":
-            return  {"fit":"PL","alpha":alpha,"alphaE":alphaE,"chi2":chi2PL}
+            return  {"fit":"PL","alpha":alpha,"alphaE":alphaE,"chi2":chi2PL,"pl_p":pl_p,"pl_sd":pl_sd}
 
         if fit=="SN":
-            return {"fit":"SN","athin":athin,"athinE":athickE,
+            return {"fit":"SN","athin":athin,"athinE":athinE,
                 "athick":athick,"athickE":athickE,"num":num,"Sm":Sm,
-                "chi2":chi2SN,"SmE":SmE,"numE":numE}
+                "chi2":chi2SN,"SmE":SmE,"numE":numE,"fit_free_ssa":fit_free_ssa,
+                "sn_p":sn_p,"sn_sd":sn_sd}
 
 
 

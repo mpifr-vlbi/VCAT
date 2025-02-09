@@ -17,6 +17,8 @@ from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
 from helpers import get_sigma_levs
+import vcat.VLBI_map_analysis.modules.fit_functions as ff
+
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -24,7 +26,7 @@ mpl.rcParams['path.simplify_threshold'] = 1.0
 mpl.rcParams['agg.path.chunksize'] = 1000
 
 #define some matplotlib figure parameters
-mpl.rcParams['font.family'] = 'Quicksand'
+#mpl.rcParams['font.family'] = 'Quicksand'
 #mpl.rcParams['axes.spines.top'] = False
 #mpl.rcParams['axes.spines.right'] = False
 mpl.rcParams['axes.linewidth'] = 1.0
@@ -63,6 +65,13 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)
         self.ax.set_yscale("log")
+    
+    def plot_spectrum(self,component_collection,color):
+        if component_collection.length() > 0:
+            self.ax.scatter(np.array(component_collection.freqs)*1e-9,component_collection.fluxs,
+                    c=color,label=component_collection.name,marker=".")
+        self.ax.set_xlabel("Frequency [GHz]",fontsize=font_size_axis_title)
+        self.ax.set_ylabel("Flux Density [Jy]",fontsize=font_size_axis_title)
 
     def plot_chi_square(self,uvf_files,modelfit_files,difmap_path):
 
@@ -113,11 +122,81 @@ class KinematicPlot(object):
     def set_limits(self,x,y):
         self.ax.set_xlim(x)
         self.ax.set_ylim(y)
+    
+    def set_scale(self,x,y):
+        self.ax.set_xscale(x)
+        self.ax.set_yscale(y)
+
     def plot_linear_fit(self,x_min,x_max,slope,y0,color,label=""):
         def y(x):
             return slope*x+y0
         self.ax.plot([x_min,x_max],[y(x_min),y(x_max)],color,label=label)
 
+    def plot_spectral_fit(self,fit_result,xr=np.arange(1,300,0.01),annotate_fit_results=True):
+        """
+        Input:
+            fit_result: Dictionary with spectral fit results from "fit_comp_spectrum" of ComponentCollection object
+            xr: numpy-array with x-values to use for plot
+            annotate_fit_results: Boolean to choose whether to print fit functions and chi^2
+        """
+        props = dict(boxstyle='round',fc='w',alpha=0.5)
+        exponent = -2
+        ymin=float('1e{}'.format(exponent)) 
+
+
+        if fit_result["fit"]=="PL":
+            textstr = '\n'.join((
+                r'$\alpha={:.2f}\pm{:.2f}$'.format(fit_result["alpha"],fit_result["alphaE"])
+            ))
+            if annotate_fit_results:
+                self.ax.annotate(textstr, xy=(0.05,0.1),xycoords='axes fraction',fontsize=8,bbox=props)
+            self.ax.plot(xr,ff.powerlaw(fit_result["pl_p"],xr),'k',lw=0.5)
+            y1 = ff.powerlaw(fit_result["pl_p"]-fit_result["pl_sd"],xr)
+            y2 = ff.powerlaw(fit_result["pl_p"]+fit_result["pl_sd"],xr)
+            self.ax.fill_between(xr,y1,y2,alpha=0.3)
+
+        elif fit_results["fit"]=="SN":
+            if fit_results["fit_free_ssa"]:
+                textstr = '\n'.join((
+                    r'$\nu_m={:.2f}$'.format(fit_result["num"]),
+                    r'$S_m={:.2f}$'.format(fit_result["Sm"]),
+                    r'$\alpha_{{thin}}={:.2f}$'.format(fit_result["athin"]),
+                    r'$\alpha_{{thick}}={:.2f}$'.format(fit_result["athick"]),
+                    r'$\chi_\mathrm{{red}}^2={:.2f}$'.format(fit_result["chi2"])
+                ))
+            else:
+                textstr = '\n'.join((
+                    r'$\nu_m={:.2f}$'.format(fit_result["num"]),
+                    r'$S_m={:.2f}$'.format(fit_result["Sm"]),
+                    r'$\alpha_{{thin}}={:.2f}$'.format(fit_result["athin"]),
+                    r'$\chi_\mathrm{{red}}^2={:.2f}$'.format(fit_result["chi2"])
+                ))
+
+            if annotate_fit_results:
+                self.ax.annotate(textstr, xy=(0.05,0.1),xycoords='axes fraction',fontsize=8,bbox=props)
+                sn_low = fit_result["sn_p"]-fit_result["sn_sd"]
+                sn_up = fit_result["sn_p"]+fit_result["sn_sd"]
+            
+            for jj, SNL in enumerate(sn_low[:2]):
+                if SNL <0:
+                    sys.stdout.write("Uncertainties for SN fit large, limit peak flux and freq \n")
+                    if jj == 0:
+                        sn_low[jj] = 0.1
+                    if jj == 1:
+                        sn_low[jj] = ymin
+
+            if fit_result["fit_free_ssa"]:
+                self.ax.plot(xf,ff.Snu(fit_result["sn_p"],xr),'k',lw=0.5)
+                y1 = ff.Snu(sn_low,xr)
+                y2 = ff.Snu(sn_up,xr)
+            else:
+                self.ax.plot(xr,ff.Snu_real(sn_p[i],xr),'k',lw=0.5)
+                y1 = ff.Snu_real(sn_low,xr)
+                y2 = ff.Snu_real(sn_up,xr)
+
+            self.ax.fill_between(xr,y1,y2,alpha=0.2)
+
+        
 class FitsImage(object):
     """Class that generates Matplotlib graph for a VLBI image.
     

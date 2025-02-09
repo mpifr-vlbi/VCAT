@@ -296,7 +296,7 @@ class ImageData(object):
 
         for ind,comp in self.model.iterrows():
             component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
-                    comp["PA"],comp["Flux"],comp["Date"],comp["mjd"],comp["Year"])
+                    comp["PA"],comp["Flux"],comp["Date"],comp["mjd"],comp["Year"],freq=self.freq)
             self.components.append(component)
         
         #calculate residual map if uvf and modelfile present
