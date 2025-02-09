@@ -9,10 +9,12 @@ import sys
 import pexpect
 from datetime import datetime
 from astropy.time import Time
+from vcat.kinematics import Component
 from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import get_sigma_levs, getComponentInfo, write_mod_file,write_mod_file_from_casa, get_freq, get_date, total_flux_from_mod, PXPERBEAM, JyPerBeam2Jy, get_residual_map, get_noise_from_residual_map, get_model_chi_square_red, format_scientific
 
 class ImageData(object):
+
     """ Class to handle VLBI Image data (single image with or without polarization)
     Attributes:
         fits_file: Path to a .fits file containing the data (Stokes-I (DIFMAP) or Full Polarization (CASA)).
@@ -289,6 +291,14 @@ class ImageData(object):
         except:
             pass
 
+        #save modelfit (or clean) components as Component objects
+        self.components=[]
+
+        for ind,comp in self.model.iterrows():
+            component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
+                    comp["PA"],comp["Flux"],comp["Date"],comp["mjd"],comp["Year"])
+            self.components.append(component)
+        
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model:
             self.residual_map_path = model_save_dir + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
