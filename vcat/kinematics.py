@@ -5,6 +5,7 @@ from astropy import units as u
 import pandas as pd
 from sympy import Ellipse, Point, Line
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
+import sys
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
@@ -203,7 +204,7 @@ class ComponentCollection():
         """
         sys.stdout.write("Fit component spectrum\n")
         
-        cflux = self.fluxs
+        cflux = np.array(self.fluxs)
         if fluxerr:
             cfluxerr = fluxerr['error']*cflux.copy()
             cfreq = fluxerr['freq']
