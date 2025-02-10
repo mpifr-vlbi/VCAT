@@ -132,6 +132,29 @@ class KinematicPlot(object):
             return slope*x+y0
         self.ax.plot([x_min,x_max],[y(x_min),y(x_max)],color,label=label)
 
+    def plot_coreshift_fit(self,fit_result):
+
+        #read out fit_results
+        k_r = fit_result["k_r"]
+        r0 = fit_result["r0"]
+        ref_freq = fit_result["ref_freq"]
+        freqs = fit_result["freqs"]
+        coreshifts = fit_result["coreshifts"]
+        coreshift_err = fit_result["coreshift_err"]
+
+        #define core shift function (Lobanov 1998)
+        def delta_r(nu,k_r,r0,ref_freq):
+            return r0*((nu/ref_freq)**(-1/k_r)-1)
+
+        #do plot
+        plt.errorbar(freqs, coreshifts, yerr=coreshift_err,fmt=".",linetype=None,label='Data', color='red')
+        nu_fine = np.linspace(min(freqs), max(freqs), 100)
+        delta_r_fitted = delta_r(nu_fine, k_r, r0, ref_freq)
+        plt.plot(nu_fine, delta_r_fitted, label='Fitted Curve', color='blue')
+        plt.xlabel('Frequency [GHz]')
+        plt.ylabel(f'Distance to {"{:.1f}".format(ref_freq)}GHz core [$\mu$as]')
+        plt.legend()
+
     def plot_spectral_fit(self,fit_result,xr=np.arange(1,300,0.01),annotate_fit_results=True):
         """
         Input:

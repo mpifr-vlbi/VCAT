@@ -6,6 +6,8 @@ import pandas as pd
 from sympy import Ellipse, Point, Line
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
 import sys
+from scipy.optimize import curve_fit
+
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
@@ -129,7 +131,7 @@ class ComponentCollection():
         for comp in components:
             self.year.append(comp.year)
             self.dist.append(comp.distance_to_core * self.scale)
-            self.dist_err.append(comp.maj / 2 * self.scale)
+            self.dist_err.append(comp.maj*0.1 * self.scale) #TODO fix this!
             self.xs.append(comp.delta_x_est)
             self.ys.append(comp.delta_y_est)
             self.fluxs.append(comp.flux)
@@ -137,6 +139,7 @@ class ComponentCollection():
             self.tbs_lower_limit.append(comp.tb_lower_limit)
             self.freqs.append(comp.freq)
             self.ids.append(comp.component_number)
+
     def length(self):
         return len(self.components)
 
@@ -190,15 +193,45 @@ class ComponentCollection():
         return {"name": self.name, "speed": float(speed), "speed_err": float(speed_err), "y0": y0, "y0_err": y0_err,
                 "beta_app": float(beta_app), "beta_app_err": float(beta_app_err), "d_crit": float(d_crit), "d_crit_err": float(d_crit_err),
                 "dist_0_est": dist_0_est, "t_0": t_0, "t_0_err": t_0_err, "red_chi_sqr": red_chi_sqr}
-    
 
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
+
+    def get_coreshift(self):
+        max_i=0
+        max_freq=0
+        for i in range(len(self.freqs)):
+            if self.freqs[i]>max_freq:
+                max_i=i
+                max_freq=self.freqs[max_i]
+        max_freq=max_freq*1e-9
+        freqs = np.array(self.freqs)*1e-9
+        
+        #calculate core shifts:
+        coreshifts=[]
+        coreshift_err=[]
+        for i,comp in enumerate(self.components):
+            coreshifts.append((self.dist[max_i]-self.dist[i])*1e3)#in uas
+            coreshift_err.append(np.sqrt(self.dist_err[max_i]**2+self.dist_err[i]**2)*1e3)
+        
+        #define core shift function (Lobanov 1998)
+        def delta_r(nu,k_r,r0,ref_freq):
+            return r0*((nu/ref_freq)**(-1/k_r)-1)
+
+        params, covariance = curve_fit(lambda nu, k_r, r0: delta_r(nu,k_r,r0,max_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
+
+        k_r_fitted, r0_fitted = params
+
+        print(f"Fitted k_r: {k_r_fitted}")
+        print(f"Fitted r0: {r0_fitted}")
+
+        return {"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":max_freq,"freqs":freqs,"coreshifts":coreshifts,"coreshift_err":coreshift_err}        
 
     def fit_comp_spectrum(self,add_data=False,plot_areas=False,plot_all_components=False,comps=False,
             exclude_comps=False,ccolor=False,out=True,fluxerr=False,fit_free_ssa=False,plot_fit_summary=False,
             annotate_fit_results=True):
         """
+        This function only makes sense on a component collection with multiple components on the same date at different frequencies
         Inputs:
             fluxerr: Fractional Errors (dictionary with {'error': [], 'freq':[]})
         """
