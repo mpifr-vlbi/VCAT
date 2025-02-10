@@ -155,8 +155,8 @@ class KinematicPlot(object):
             y2 = ff.powerlaw(fit_result["pl_p"]+fit_result["pl_sd"],xr)
             self.ax.fill_between(xr,y1,y2,alpha=0.3)
 
-        elif fit_results["fit"]=="SN":
-            if fit_results["fit_free_ssa"]:
+        elif fit_result["fit"]=="SN":
+            if fit_result["fit_free_ssa"]:
                 textstr = '\n'.join((
                     r'$\nu_m={:.2f}$'.format(fit_result["num"]),
                     r'$S_m={:.2f}$'.format(fit_result["Sm"]),
@@ -190,7 +190,7 @@ class KinematicPlot(object):
                 y1 = ff.Snu(sn_low,xr)
                 y2 = ff.Snu(sn_up,xr)
             else:
-                self.ax.plot(xr,ff.Snu_real(sn_p[i],xr),'k',lw=0.5)
+                self.ax.plot(xr,ff.Snu_real(fit_result["sn_p"],xr),'k',lw=0.5)
                 y1 = ff.Snu_real(sn_low,xr)
                 y2 = ff.Snu_real(sn_up,xr)
 

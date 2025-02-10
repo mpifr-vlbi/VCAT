@@ -211,7 +211,7 @@ class ComponentCollection():
             cfluxerr = fluxerr['error']
         else:
             cfluxerr = 0.15*cflux.copy() #default of 15% error
-            cfreq = self.freqs
+            cfreq = np.array(self.freqs)*1e-9 #convert to GHz
         
         cid = self.ids
 
