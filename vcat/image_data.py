@@ -12,6 +12,7 @@ from astropy.time import Time
 from vcat.kinematics import Component
 from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import get_sigma_levs, getComponentInfo, write_mod_file,write_mod_file_from_casa, get_freq, get_date, total_flux_from_mod, PXPERBEAM, JyPerBeam2Jy, get_residual_map, get_noise_from_residual_map, get_model_chi_square_red, format_scientific
+from vcat.stacking_helpers import fold_with_beam
 
 class ImageData(object):
 
@@ -42,7 +43,7 @@ class ImageData(object):
                  pol_from_stokes=True,
                  stokes_q="",
                  stokes_u="",
-                 model_save_dir="tmp/mod_files_model/",
+                 model_save_dir="tmp/",
                  is_casa_model=False,
                  noise_method="Histogram Fit", #choose noise method
                  correct_rician_bias=False,
@@ -58,6 +59,9 @@ class ImageData(object):
         self.difmap_path=difmap_path
         self.residual_map_path=""
         self.noise_method=noise_method
+        self.is_casa_model=is_casa_model
+        self.model_save_dir=model_save_dir
+        self.correct_rician_bias=correct_rician_bias
 
         # Read clean files in
         if fits_file!="":
@@ -268,26 +272,31 @@ class ImageData(object):
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
             os.makedirs(model_save_dir + "mod_files_u", exist_ok=True)
-            write_mod_file_from_casa(self.file_path,channel="i", export=model_save_dir+"mod_files_clean/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-            write_mod_file_from_casa(self.file_path,channel="q", export=model_save_dir+"mod_files_q/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-            write_mod_file_from_casa(self.file_path,channel="u", export=model_save_dir+"mod_files_u/"+self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-
+            self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file_from_casa(self.file_path,channel="i", export=self.stokes_i_mod_file)    
+            self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file_from_casa(self.file_path,channel="q", export=self.stokes_q_mod_file)  
+            self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file_from_casa(self.file_path,channel="u", export=self.stokes_u_mod_file)
         else:
             self.model=None
         try:
-            os.makedirs("tmp/mod_files_clean", exist_ok=True)
-            os.makedirs("tmp/mod_files_q", exist_ok=True)
-            os.makedirs("tmp/mod_files_u", exist_ok=True)
+            os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
+            os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
+            os.makedirs(model_save_dir+"mod_files_u", exist_ok=True)
             #try to import model which is attached to the main .fits file
             model_i = getComponentInfo(fits_file)
             if self.model==None:
                 self.model = model_i
-            write_mod_file(model_i, "tmp/mod_files_clean/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
+            self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file(model_i, self.stokes_i_mod_file, freq=self.freq)
             #load stokes q and u clean models
-            model_q=getComponentInfo(stokes_q_path)
-            write_mod_file(model_q, "tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
-            model_u=getComponentInfo(stokes_u_path)
-            write_mod_file(model_u, "tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
+            self.model_q=getComponentInfo(stokes_q_path)
+            self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file(self.model_q, self.stokes_q_mod_file, freq=self.freq)
+            self.model_u=getComponentInfo(stokes_u_path)
+            self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file(self.model_u, self.stokes_u_mod_file, freq=self.freq)
         except:
             pass
 
@@ -312,13 +321,13 @@ class ImageData(object):
         #calculate cleaned flux density from mod files
         #first stokes I
         try:
-            self.integrated_flux_clean=total_flux_from_mod("tmp/mod_files_clean/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            self.integrated_flux_clean=total_flux_from_mod(self.model_save_dir+"mod_files_clean/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
         except:
             self.integrated_flux_clean = 0
         #and then polarization
         try:
-            flux_q=total_flux_from_mod("tmp/mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-            flux_u=total_flux_from_mod("tmp/mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_q=total_flux_from_mod(self.model_save_dir+"mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_u=total_flux_from_mod(self.model_save_dir+"mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
         except:
             self.integrated_pol_flux_clean=0
@@ -337,3 +346,70 @@ class ImageData(object):
         return AlignMaps([self.file_path,image_data2.file_path],
                 masked_shift,mask,mask_args,beam_arg,fig_size,
                 plot_shifted,plot_spix,plot_convolved,asize,sigma)
+
+    def restore(self,bmaj,bmin,posa,npix="",pixel_size="",weighting=[0,-1]):
+        """
+        This allows you to restore the ImageData object with a custom beam (needs DIFMAP)
+        Inputs:
+            bmaj: Beam major axis (in mas)
+            bmin: Beam minor axis (in mas)
+            posa: Beam position angle (in deg)
+        Returns:
+            New ImageData object
+        """
+
+        #TODO basic sanity check if uvf file is present and if polarization is there
+
+
+        if npix=="":
+            npix=len(self.X) #TODO check if we need to divide by two!
+        if pixel_size=="":
+            pixel_size=self.degpp*self.scale
+         
+        #restore Stokes I
+        new_stokes_i=self.stokes_i_mod_file.replace(".mod","_convolved")
+
+        fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
+                bmaj=bmaj, bmin=bmin, posa=posa,
+                channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i,
+                n_pixel=npix,pixel_size=pixel_size,
+                mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+        
+        #try to restore polarization as well if it is there
+        try:
+            new_stokes_q=self.stokes_q_mod_file.replace(".mod","_convolved")
+            new_stokes_u=self.stokes_u_mod_file.replace(".mod","_convolved")
+
+
+            fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
+                bmaj=bmaj, bmin=bmin, posa=posa,
+                channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q,
+                n_pixel=npix,pixel_size=pixel_size,
+                mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting) 
+       
+            fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
+                bmaj=bmaj, bmin=bmin, posa=posa,
+                channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u,
+                n_pixel=npix,pixel_size=pixel_size,
+                mod_files=[self.stokes_u_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+            
+        except:
+            new_stokes_q=""
+            new_stokes_u=""
+        
+        
+        return ImageData(fits_file=self.stokes_i_mod_file.replace(".mod","_convolved.fits"),
+                uvf_file=self.uvf_file,
+                stokes_q=self.stokes_q_mod_file.replace(".mod","_convolved.fits"),
+                stokes_u=self.stokes_u_mod_file.replace(".mod","_convolved.fits"),
+                noise_method=self.noise_method,
+                model_save_dir=self.model_save_dir,
+                model=self.model_file_path,
+                correct_rician_bias=self.correct_rician_bias,
+                difmap_path=self.difmap_path)
+      
+
+    def shift(self,shift_x,shift_y):
+        pass
+
+        #Implement here shift in DIFMAP!

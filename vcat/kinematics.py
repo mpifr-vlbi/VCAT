@@ -143,9 +143,28 @@ class ComponentCollection():
     def length(self):
         return len(self.components)
 
-    def get_speed(self):
+    def get_speed2d(self,cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
+        
+        #we use the one dimensional function for x and y separately
+        dist=self.dist
+
+        #do x_fit
+        self.dist=self.delta_x_est
+        x_fit=self.get_speed(cosmo=cosmo)
+
+        #do y_fit
+        self.dist=self.delta_y_est
+        y_fit=self.get_speed(cosmo=cosmo)
+
+        #reset dist
+        self.dist=dist
+
+        return x_fit, y_fit
+            
+
+        
+    def get_speed(self,cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
         if self.length() > 2:
-            cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
             def reduced_chi2(fit, x, y, yerr, N, n):
                 return 1. / (N - n) * np.sum(((y - fit) / yerr) ** 2.)
