@@ -1,8 +1,8 @@
-! Command file created by the difmap on Thu Feb 13 18:00:01 2025
+! Command file created by the difmap on Fri Feb 14 18:42:00 2025
 mapunits mas
 multi_model false
 get tmp/mod_files_clean/2022-03-24_15GHz_convolved
-mapsize 1024,0.05, 1024,0.05
+mapsize 2048,0.05, 2048,0.05
 select I, 1, 4
 uvtaper 0, 0
 uvrange 0, 0
@@ -24,6 +24,7 @@ string rflags; rflags=""
 string pflags; pflags=""
 string tflags; tflags=""
 selfflag true, 3, 4
+shift 30, 30
 scangap 3600
 float levs(1)
 levs(1:1) = 0

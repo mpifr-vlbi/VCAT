@@ -347,7 +347,7 @@ class ImageData(object):
                 masked_shift,mask,mask_args,beam_arg,fig_size,
                 plot_shifted,plot_spix,plot_convolved,asize,sigma)
 
-    def restore(self,bmaj,bmin,posa,npix="",pixel_size="",weighting=[0,-1]):
+    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1]):
         """
         This allows you to restore the ImageData object with a custom beam (needs DIFMAP)
         Inputs:
@@ -362,7 +362,7 @@ class ImageData(object):
 
 
         if npix=="":
-            npix=len(self.X) #TODO check if we need to divide by two!
+            npix=len(self.X)*2
         if pixel_size=="":
             pixel_size=self.degpp*self.scale
          
@@ -370,7 +370,7 @@ class ImageData(object):
         new_stokes_i=self.stokes_i_mod_file.replace(".mod","_convolved")
 
         fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
-                bmaj=bmaj, bmin=bmin, posa=posa,
+                bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                 channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i,
                 n_pixel=npix,pixel_size=pixel_size,
                 mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
@@ -382,13 +382,13 @@ class ImageData(object):
 
 
             fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
-                bmaj=bmaj, bmin=bmin, posa=posa,
+                bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                 channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q,
                 n_pixel=npix,pixel_size=pixel_size,
                 mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting) 
        
             fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
-                bmaj=bmaj, bmin=bmin, posa=posa,
+                bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
                 channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u,
                 n_pixel=npix,pixel_size=pixel_size,
                 mod_files=[self.stokes_u_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
@@ -409,7 +409,6 @@ class ImageData(object):
                 difmap_path=self.difmap_path)
       
 
-    def shift(self,shift_x,shift_y):
-        pass
-
-        #Implement here shift in DIFMAP!
+    def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1]):
+        #for shifting we can just use the restore option with shift parameters, not specifying a beam
+        return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting)

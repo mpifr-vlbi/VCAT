@@ -326,7 +326,6 @@ class ComponentCollection():
                 "sn_p":sn_p,"sn_sd":sn_sd}
 
 
-
 def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,flux,noise):
     # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
     #here we need to check if the component is resolved or not!

@@ -12,6 +12,7 @@ dataW=ImageData("../dataset_example/3C111_W_2014_05_08/3C111_W_2014_05_08.modelf
 dataX=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.modelfits")
 
 data=[dataC,dataQ,dataU,dataW,dataX]
+
 comp_list=[]
 for dat in data:
     print(dat.freq)
@@ -19,6 +20,7 @@ for dat in data:
     comp=dat.components[0]
     comp.component_number=1
     comp_list.append(comp)
+
 #Now we create a ComponentCollection for the same component across frequencies
 cc=ComponentCollection(comp_list)
 

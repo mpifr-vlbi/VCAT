@@ -551,8 +551,6 @@ class FitsImage(object):
             cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
             cbar.set_label(label)
 
-
-
     def plotComponent(self,x,y,maj,min,pos,scale):
 
         # Plotting ellipses
