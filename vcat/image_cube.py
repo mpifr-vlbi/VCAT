@@ -34,13 +34,13 @@ class ImageCube(object):
 
         #go through image data list and extract some info
         for image in image_data_list:
-            self.freqs.append(image.freqs)
+            self.freqs.append(image.freq)
             self.dates.append(image.date)
 
         self.freqs=np.sort(np.unique(self.freqs))
         self.dates=np.sort(np.unique(self.dates))
 
-        images=np.empty(len(self.dates),len(self.freqs))
+        images=np.empty((len(self.dates),len(self.freqs)),dtype=object)
 
         for i,date in enumerate(self.dates):
             for j, freq in enumerate(self.freqs):
