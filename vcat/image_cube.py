@@ -27,7 +27,7 @@ class ImageCube(object):
 
     def __init__(self,
                  image_data_list=[], #list of ImageData objects
-                 date_tolarance=1, #date tolarance to consider "simultaneous"
+                 date_tolerance=1, #date tolarance to consider "simultaneous" #TODO
                  ):
         self.freqs=[]
         self.dates=[]
@@ -40,15 +40,19 @@ class ImageCube(object):
         self.freqs=np.sort(np.unique(self.freqs))
         self.dates=np.sort(np.unique(self.dates))
 
-        images=np.empty((len(self.dates),len(self.freqs)),dtype=object)
+        self.images=np.empty((len(self.dates),len(self.freqs)),dtype=object)
 
         for i,date in enumerate(self.dates):
             for j, freq in enumerate(self.freqs):
                 for image in image_data_list:
                     if image.date==date and image.freq==freq:
-                        images[i,j]=image
+                        self.images[i,j]=image
 
+        self.shape=self.images.shape
 
+    #print out some basic details
+    def __str__(self):
+        return f"ImageCube with {self.shape[1]} frequencies and {self.shape[0]} epochs."
 
 
 

@@ -277,6 +277,8 @@ class FitsImage(object):
                  evpa_color="white", # set EVPA color for plot
                  title="", # plot title (default is date)
                  background_color="white", #background color
+                 ax=None, #define custom matplotlib axes to plot on
+                 fig=None, #define custom figure
                  rcparams={} # option to modify matplotlib look
                  ):
 
@@ -317,7 +319,15 @@ class FitsImage(object):
         if len(ylim) == 2:
             dec_min, dec_max = ylim
 
-        self.fig, self.ax = plt.subplots(1, 1)
+        if ax==None and fig==None:
+            self.fig, self.ax = plt.subplots(1, 1)
+        else:
+            if fig==None:
+                self.fig = plt.figure()
+            else:
+                self.fig = fig
+            self.ax = ax
+
 
         #set background color
         self.ax.set_facecolor(self.background_color)
@@ -634,3 +644,86 @@ class FitsImage(object):
                 self.fig.savefig(name, dpi=300, bbox_inches='tight', transparent=False)
             else:
                 self.fig.savefig(name+".png",dpi=300,bbox_inches="tight", transparent=False)
+
+class MultiFitsImage(object):
+
+    def __init__(self,
+                 image_cube,  # ImageData object
+                 swap_axis=False, #If True frequency will be plotted in x-direction and time in y #TODO
+                 stokes_i_sigma_cut=3,  # sigma_cut for stokes_i_contours
+                 plot_mode="stokes_i",  # possible modes "stokes_i", "lin_pol", "frac_pol"
+                 im_colormap=False,  # Choose whether to do colormap or not
+                 contour=True,  # Choose whether to do contour plot or not
+                 contour_color='grey',
+                 # input: array of color-strings; if None, the contour-colormap (contour_cmap) will be used
+                 contour_cmap=None,  # matplotlib colormap string
+                 contour_alpha=1,  # transparency
+                 contour_width=0.5,  # contour linewidth
+                 im_color='',  # string for matplotlib colormap
+                 plot_beam=True,  # choose whether to plot beam or not
+                 overplot_gauss=False,  # choose whether to plot modelfit components
+                 component_color="black",  # choose component color for Gauss component
+                 overplot_clean=False,  # choose whether to plot clean components
+                 xlim=[],  # xplot limits, e.g. [5,-5]
+                 ylim=[],  # yplot limits
+                 ###HERE STARTS POLARIZATION INPUT
+                 plot_evpa=False,  # decide whether to plot EVPA or not
+                 evpa_width=2,  # choose width of EVPA lines
+                 evpa_len=8,  # choose length of EVPA in pixels
+                 lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
+                 evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
+                 rotate_evpa=0,  # rotate EVPAs by a given angle in degrees (North through East)
+                 evpa_color="white",  # set EVPA color for plot
+                 titles=[],  # plot title (default is date)
+                 background_color="white",  # background color
+                 figsize="",#define figsize
+                 rcparams={}  # option to modify matplotlib look
+                 ):
+
+        super().__init__()
+
+        self.image_cube=image_cube
+        self.nrows, self.ncols = self.image_cube.shape
+        if figsize=="":
+            figsize=(3*self.ncols,3*self.nrows)
+        self.fig, self.axes = plt.subplots(self.nrows, self.ncols, figsize=figsize)
+
+        self.axes=np.atleast_2d(self.axes)
+
+        if np.shape(titles)!=self.image_cube.shape:
+            titles=np.full(self.image_cube.shape,"",dtype=object)
+
+        #create FitsImage for every image
+        self.plots=np.empty((self.nrows,self.ncols),dtype=object)
+        for i in range(self.nrows):
+            for j in range(self.ncols):
+                self.plots[i,j]=FitsImage(image_data=self.image_cube.images[i,j],
+                                          stokes_i_sigma_cut=stokes_i_sigma_cut,
+                                          plot_mode=plot_mode,
+                                          im_colormap=im_colormap,
+                                          contour=contour,
+                                          contour_color=contour_color,
+                                          contour_cmap=contour_cmap,
+                                          contour_alpha=contour_alpha,
+                                          contour_width=contour_width,
+                                          im_color=im_color,
+                                          plot_beam=plot_beam,
+                                          overplot_gauss=overplot_gauss,
+                                          component_color=component_color,
+                                          overplot_clean=overplot_clean,
+                                          xlim=xlim,
+                                          ylim=ylim,
+                                          plot_evpa=plot_evpa,
+                                          evpa_width=evpa_width,
+                                          evpa_len=evpa_len,
+                                          lin_pol_sigma_cut=lin_pol_sigma_cut,
+                                          evpa_distance=evpa_distance,
+                                          rotate_evpa=rotate_evpa,
+                                          evpa_color=evpa_color,
+                                          title=titles[i,j],
+                                          background_color=background_color,
+                                          ax=self.axes[i,j],
+                                          rcparams=rcparams)
+
+
+

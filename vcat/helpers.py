@@ -389,7 +389,7 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, x_width, y_wi
     x_min=np.argmin(abs(residual_map.X*scale-(center_x+x_width/2)))
     y_max=np.argmin(abs(residual_map.Y*scale-(center_y+y_width/2)))
 
-    return np.average(data[x_min:x_max,y_min:y_max]) #TODO check order of x/y here and if AVERAGE is the correct thing to do!!!
+    return np.std(data[x_min:x_max,y_min:y_max]) #TODO check order of x/y here and if AVERAGE is the correct thing to do!!!
 
 #returns the reduced chi-square of a modelfit
 def get_model_chi_square_red(uvf_file,mod_file,difmap_path):

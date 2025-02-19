@@ -13,6 +13,7 @@ from vcat.kinematics import Component
 from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import get_sigma_levs, getComponentInfo, write_mod_file,write_mod_file_from_casa, get_freq, get_date, total_flux_from_mod, PXPERBEAM, JyPerBeam2Jy, get_residual_map, get_noise_from_residual_map, get_model_chi_square_red, format_scientific
 from vcat.stacking_helpers import fold_with_beam
+import warnings
 
 class ImageData(object):
 
@@ -379,6 +380,9 @@ class ImageData(object):
         """
 
         #TODO basic sanity check if uvf file is present and if polarization is there
+        if self.uvf_file=="":
+            warnings.warn("Shift not possible, no .uvf file attached to ImageData!",UserWarning)
+            return self
 
         if npix=="":
             npix=len(self.X)*2
@@ -451,3 +455,26 @@ class ImageData(object):
     def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1]):
         #for shifting we can just use the restore option with shift parameters, not specifying a beam
         return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting)
+
+    def get_noise_from_shift(self,shift_factor=20):
+
+        if self.uvf_file == "":
+            warnings.warn("Shift not possible, no .uvf file attached to ImageData!", UserWarning)
+            return self.noise
+
+        size_x=len(self.X)*self.degpp*self.scale
+        size_y=len(self.Y)*self.degpp*self.scale
+
+        #shift data away to get rms
+        shifted_image=self.shift(size_x*shift_factor,size_y*shift_factor)
+
+        noise=np.std(shifted_image.Z)
+
+        return noise
+
+
+
+
+
+
+
