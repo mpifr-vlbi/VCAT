@@ -265,18 +265,20 @@ class ImageData(object):
             self.model=getComponentInfo(model)
             #write .mod file from .fits input
             os.makedirs(model_save_dir,exist_ok=True)
-            write_mod_file(self.model, model_save_dir + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod", freq=self.freq)
+            os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
+            self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file(self.model, self.model_mod_file, freq=self.freq)
         if is_casa_model:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
             os.makedirs(model_save_dir + "mod_files_u", exist_ok=True)
-            self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            self.stokes_i_mod_file=model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file_from_casa(self.file_path,channel="i", export=self.stokes_i_mod_file)    
-            self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
-            write_mod_file_from_casa(self.file_path,channel="q", export=self.stokes_q_mod_file)  
-            self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            write_mod_file_from_casa(self.file_path,channel="q", export=self.stokes_q_mod_file)
+            self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file_from_casa(self.file_path,channel="u", export=self.stokes_u_mod_file)
         else:
             self.model=None
@@ -288,14 +290,14 @@ class ImageData(object):
             model_i = getComponentInfo(fits_file)
             if self.model==None:
                 self.model = model_i
-            self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(model_i, self.stokes_i_mod_file, freq=self.freq)
             #load stokes q and u clean models
             self.model_q=getComponentInfo(stokes_q_path)
-            self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(self.model_q, self.stokes_q_mod_file, freq=self.freq)
             self.model_u=getComponentInfo(stokes_u_path)
-            self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+            self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(self.model_u, self.stokes_u_mod_file, freq=self.freq)
         except:
             pass
@@ -310,9 +312,9 @@ class ImageData(object):
         
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model:
-            self.residual_map_path = model_save_dir + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
+            self.residual_map_path = model_save_dir + "residual_maps/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
                                                                                                                  "_") + "GHz_residual.fits"
-            get_residual_map(self.uvf_file,model_save_dir+ self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
+            get_residual_map(self.uvf_file,model_save_dir+ "residual_maps/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
                              difmap_path=self.difmap_path,
                              save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp)
 
@@ -321,13 +323,13 @@ class ImageData(object):
         #calculate cleaned flux density from mod files
         #first stokes I
         try:
-            self.integrated_flux_clean=total_flux_from_mod(self.model_save_dir+"mod_files_clean/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            self.integrated_flux_clean=total_flux_from_mod(self.model_save_dir+"mod_files_clean/"  + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
         except:
             self.integrated_flux_clean = 0
         #and then polarization
         try:
-            flux_q=total_flux_from_mod(self.model_save_dir+"mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-            flux_u=total_flux_from_mod(self.model_save_dir+"mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_q=total_flux_from_mod(self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_u=total_flux_from_mod(self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
             self.frac_pol = image_data.integrated_pol_flux_clean / image_data.integrated_pol_flux_clean
         except:
@@ -391,6 +393,22 @@ class ImageData(object):
                 channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i,
                 n_pixel=npix,pixel_size=pixel_size,
                 mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+
+        new_stokes_i+=".fits"
+        #try to restore modelfit if it is ther
+
+        try:
+            new_mod_fits=self.model_mod_file.replace(".mod","_convolved")
+
+            fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
+                bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
+                channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_mod_fits,
+                n_pixel=npix, pixel_size=pixel_size,
+                mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+
+            new_mod_fits+=".fits"
+        except:
+            new_mod_fits=""
         
         #try to restore polarization as well if it is there
         try:
@@ -402,26 +420,30 @@ class ImageData(object):
                 bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                 channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q,
                 n_pixel=npix,pixel_size=pixel_size,
-                mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting) 
+                mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+
+            new_stokes_q+=".fits"
        
             fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                 bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
                 channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u,
                 n_pixel=npix,pixel_size=pixel_size,
                 mod_files=[self.stokes_u_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+
+            new_stokes_u+=".fits"
             
         except:
             new_stokes_q=""
             new_stokes_u=""
         
         
-        return ImageData(fits_file=self.stokes_i_mod_file.replace(".mod","_convolved.fits"),
+        return ImageData(fits_file=new_stokes_i,
                 uvf_file=self.uvf_file,
-                stokes_q=self.stokes_q_mod_file.replace(".mod","_convolved.fits"),
-                stokes_u=self.stokes_u_mod_file.replace(".mod","_convolved.fits"),
+                stokes_q=new_stokes_q,
+                stokes_u=new_stokes_u,
                 noise_method=self.noise_method,
                 model_save_dir=self.model_save_dir,
-                model=self.model_file_path,
+                model=new_mod_fits,
                 correct_rician_bias=self.correct_rician_bias,
                 difmap_path=self.difmap_path)
       

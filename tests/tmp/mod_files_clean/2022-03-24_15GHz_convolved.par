@@ -1,4 +1,4 @@
-! Command file created by the difmap on Fri Feb 14 18:42:00 2025
+! Command file created by the difmap on Wed Feb 19 14:16:56 2025
 mapunits mas
 multi_model false
 get tmp/mod_files_clean/2022-03-24_15GHz_convolved
