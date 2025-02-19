@@ -338,6 +338,12 @@ class ImageData(object):
             lin_pol_sqr[lin_pol_sqr < 0.0] = 0.0
             self.lin_pol = np.sqrt(lin_pol_sqr)
 
+    def __str__(self):
+        try:
+            return f"Image of the source {self.name} at frequency {":.1f".format(self.freq*1e-9)} GHz on {self.date} \n"
+        except:
+            return "No data loaded yet."
+
     def align(self,image_data2,masked_shift=True,
             mask=False,mask_args=False,beam_arg="max",
             fig_size="aanda",plot_shifted=True,plot_spix=True,
@@ -359,7 +365,6 @@ class ImageData(object):
         """
 
         #TODO basic sanity check if uvf file is present and if polarization is there
-
 
         if npix=="":
             npix=len(self.X)*2
