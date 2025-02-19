@@ -329,8 +329,10 @@ class ImageData(object):
             flux_q=total_flux_from_mod(self.model_save_dir+"mod_files_q/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             flux_u=total_flux_from_mod(self.model_save_dir+"mod_files_u/" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
+            self.frac_pol = image_data.integrated_pol_flux_clean / image_data.integrated_pol_flux_clean
         except:
             self.integrated_pol_flux_clean=0
+            self.frac_pol = 0
 
         #correct rician bias
         if correct_rician_bias:
@@ -338,9 +340,19 @@ class ImageData(object):
             lin_pol_sqr[lin_pol_sqr < 0.0] = 0.0
             self.lin_pol = np.sqrt(lin_pol_sqr)
 
+
+
+    #print function for ImageData
     def __str__(self):
         try:
-            return f"Image of the source {self.name} at frequency {":.1f".format(self.freq*1e-9)} GHz on {self.date} \n"
+            freq_ghz="{:.1f}".format(self.freq*1e-9)
+            line1= f"Image of the source {self.name} at frequency {freq_ghz} GHz on {self.date} \n"
+            line2= f"Total cleaned flux: {self.integrated_flux_clean*1000:.3f} mJy \n"
+            line3= f"Image Noise: {self.noise*1000:.3f} mJy using method '{self.noise_method}'\n"
+            line4= f"Pol Flux: {self.integrated_pol_flux_clean*1000:.3f} mJy ({self.frac_pol*100:.2f}%)\n"
+            line5= f"Average EVPA direction: {self.evpa_average/np.pi*180:.2f}"
+
+            return line1+line2+line3+line4+line5
         except:
             return "No data loaded yet."
 
