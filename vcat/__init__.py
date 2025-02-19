@@ -2,6 +2,7 @@
 
 from vcat.image_data import ImageData
 from vcat.graph_generator import FitsImage
+from vcat.image_cube import ImageCube
 import os
 import platform
 """ Organizing, analyzing and plotting of multifrequency VLBI data.
