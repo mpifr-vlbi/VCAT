@@ -27,7 +27,7 @@ class ImageCube(object):
 
     def __init__(self,
                  image_data_list=[], #list of ImageData objects
-                 date_tolerance=1, #date tolarance to consider "simultaneous" #TODO
+                 date_tolerance=1, #date tolerance to consider "simultaneous" #TODO
                  ):
         self.freqs=[]
         self.dates=[]

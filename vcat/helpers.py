@@ -15,6 +15,7 @@ import pexpect
 from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
+from numpy import linalg
 
 # takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list
@@ -448,3 +449,159 @@ def format_scientific(number):
     result = f"{mantissa} × 10{exp_str}"
 
     return result
+
+#gets common ellipse from point selection (needed for smallest common beam calculation), adapted from https://github.com/minillinim/ellipsoid/blob/master/ellipsoid.py
+def getMinVolEllipse(P=None, tolerance=0.1):
+        """ Find the minimum volume ellipsoid which holds all the points
+
+        Based on work by Nima Moshtagh
+        http://www.mathworks.com/matlabcentral/fileexchange/9542
+        and also by looking at:
+        http://cctbx.sourceforge.net/current/python/scitbx.math.minimum_covering_ellipsoid.html
+        Which is based on the first reference anyway!
+
+        Here, P is a numpy array of 2 dimensional points like this:
+        P = [[x,y], <-- one point per line
+             [x,y],
+             [x,y]]
+
+        Returns:
+        (center, radii, rotation)
+
+        """
+
+        (N, d) = np.shape(P)
+        d = float(d)
+
+        # Q will be our working array
+        Q = np.vstack([np.copy(P.T), np.ones(N)])
+        QT = Q.T
+
+        # initializations
+        err = 1.0 + tolerance
+        u = (1.0 / N) * np.ones(N)
+
+        # Khachiyan Algorithm
+        while err > tolerance:
+            V = np.dot(Q, np.dot(np.diag(u), QT))
+            M = np.diag(np.dot(QT , np.dot(linalg.inv(V), Q)))    # M the diagonal vector of an NxN matrix
+            j = np.argmax(M)
+            maximum = M[j]
+            step_size = (maximum - d - 1.0) / ((d + 1.0) * (maximum - 1.0))
+            new_u = (1.0 - step_size) * u
+            new_u[j] += step_size
+            err = np.linalg.norm(new_u - u)
+            u = new_u
+
+        # center of the ellipse
+        center = np.dot(P.T, u)
+
+        # the A matrix for the ellipse
+        A = linalg.inv(
+                       np.dot(P.T, np.dot(np.diag(u), P)) -
+                       np.array([[a * b for b in center] for a in center])
+                       ) / d
+        # Get the values we'd like to return
+        U, s, rotation = linalg.svd(A)
+        radii = 1.0/np.sqrt(s)
+
+        return (center, radii, rotation)
+
+def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_beams=False):
+    '''Derive the beam to be used for the maps to be aligned.
+    '''
+
+    if arg=='mean':
+        _maj = np.mean(majs)
+        _min = np.mean(mins)
+        _pos = np.mean(posas)
+        sys.stdout.write(' Will use mean beam.\n')
+    elif arg=='max':
+        if np.argmax(majs)==np.argmax(mins):
+            beam_ind=np.argmax(majs)
+            _maj = majs[beam_ind]
+            _min = mins[beam_ind]
+            _pos = posas[beam_ind]
+        else:
+            print('could not derive max beam, defaulting to common beam.\n')
+            return common_beam(majs,mins,posas,arg="common")
+        sys.stdout.write(' Will use max beam.\n')
+    elif arg=='median':
+        _maj = np.median(majs)
+        _min = np.median(mins)
+        _pos = np.median(posas)
+        sys.stdout.write(' Will use median beam.\n')
+    elif arg == 'circ':
+        _maj = np.median(majs)
+        _min = _maj
+        _pos = 0
+    elif arg == 'common':
+        if plot_beams:
+            fig = plt.figure()
+            ax = fig.add_subplot()
+
+        sample_points = np.empty(shape=(ppe * len(majs), 2))
+        for ind in range(len(majs)):
+            bmaj = majs[ind]
+            bmin = mins[ind]
+            posa = posas[ind]
+
+            if len(majs) == 1:
+                return bmaj, bmin, posa
+
+            # sample ellipse points
+            ellipse_angles = np.linspace(0, 2 * np.pi, ppe)
+            X = -bmin / 2 * np.sin(ellipse_angles)
+            Y = bmaj / 2 * np.cos(ellipse_angles)
+
+            # rotate them according to position angle
+            X_rot = -X * np.cos(posa) - Y * np.sin(posa)
+            Y_rot = X * np.sin(posa) + Y * np.cos(posa)
+
+            for i in range(ppe):
+                sample_points[ind * ppe + i] = np.array([X_rot[i], Y_rot[i]])
+            if plot_beams:
+                plt.plot(X_rot, Y_rot, c="k")
+
+        # find minimum ellipse
+        (center, radii, rotation) = getMinVolEllipse(sample_points, tolerance=tolerance)
+
+        # find out bmaj, bmin and posa
+        bmaj_ind = np.argmax(radii)
+
+        if bmaj_ind == 0:
+            bmaj = 2 * radii[0]
+            bmin = 2 * radii[1]
+            posa = -np.arcsin(rotation[1][0]) / np.pi * 180 - 90
+        else:
+            bmaj = 2 * radii[1]
+            bmin = 2 * radii[0]
+            posa = -np.arcsin(rotation[1][0]) / np.pi * 180
+
+        # make posa from -90 to +90
+        if posa > 90:
+            posa = posa - 180
+        elif posa < -90:
+            posa = posa + 180
+
+        # plot ellipsoid
+        if plot_beams:
+            from matplotlib import patches
+            ellipse = patches.Ellipse(center, bmin, bmaj, angle=posa, fill=False, zorder=2, linewidth=2, color="r")
+            ax.add_patch(ellipse)
+
+            ax.axis("equal")
+            plt.show()
+
+        _maj = bmaj
+        _min = bmin
+        _pos = posa
+    else:
+        raise Exception("Please use a valid arg value ('common', 'max', 'median', 'mean', 'circ')")
+
+
+    common_beam=[_maj,_min,_pos]
+    sys.stdout.write("{} beam calculated: {}\n".format(arg,common_beam))
+    return common_beam
+
+

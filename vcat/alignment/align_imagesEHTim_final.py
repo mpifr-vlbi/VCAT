@@ -29,6 +29,7 @@ from matplotlib.patches import Circle,Ellipse
 from skimage.draw import circle_perimeter,ellipse_perimeter
 from vcat.VLBI_map_analysis.modules.plot_functions import *
 import ehtim as eh
+from vcat.helpers import get_common_beam
 
 from vcat.VLBI_map_analysis.modules.jet_calculus import *
 
@@ -90,50 +91,6 @@ def align(img1,img2,inc1,inc2,mask1=False,mask2=False):
     else:
         return {'align':img2, 'shift':shift}
 
-# Plot the alignment
-def common_beam(beam1,beam2,arg):
-    '''Derive the beam to be used for the maps to be aligned.
-    '''
-    b1_maj = beam1[0]
-    b1_min = beam1[1]
-    b1_pos = beam1[2]
-    b2_maj = beam2[0]
-    b2_min = beam2[1]
-    b2_pos = beam2[2]
-
-    if arg=='mean':
-        _maj = np.mean([b1_maj,b2_maj])
-        _min = np.mean([b1_min,b2_min])
-        _pos = np.mean([b1_pos,b2_pos])
-        sys.stdout.write(' Will use mean beam.\n')
-    if arg=='max':
-        if np.logical_and(b1_maj>b2_maj ,b1_min>b2_min):
-            _maj = b1_maj
-            _min = b1_min
-            _pos = b1_pos
-        elif np.logical_and(b1_maj < b2_maj,b1_min<b2_min):
-            _maj = b2_maj
-            _min = b2_min
-            _pos = b2_pos
-        else:
-            print('could not derive max beam.\n')
-            return
-        sys.stdout.write(' Will use max beam.\n')
-    if arg=='median':
-        _maj = np.median([b1_maj,b2_maj])
-        _min = np.median([b1_min,b2_min])
-        _pos = np.median([b1_pos,b2_pos])
-        sys.stdout.write(' Will use median beam.\n')
-    if arg == 'circ':
-        _maj = np.median([b1_maj,b2_maj])
-        _min = _maj
-        _pos = 0
-    if arg == 'common':
-        print('Here comes an import of Flos script. For now use another argument.')
-
-    common_beam=[_maj,_min,_pos]
-    sys.stdout.write("{} beam calculated: {}\n".format(arg,common_beam))
-    return common_beam
 
 def masking(file1rb,file2rb,naxis=False,mask='ellipse',args=False,**kwargs):
     '''Define the masks that can be used for masking the images.
@@ -251,7 +208,7 @@ class AlignMaps(object):
                  masked_shift = True,
                  mask = False,
                  mask_args = False,
-                 beam_arg = 'max',
+                 beam_arg = 'common',
                  fig_size = 'aanda',
                  plot_shifted = True,
                  plot_spix = True,
@@ -319,7 +276,7 @@ class AlignMaps(object):
             _pos = _pos*180/np.pi
             self.common_beam = [_maj,_min,_pos]
         else:
-            self.common_beam = common_beam([self.maps_beam[0][0],self.maps_beam[0][1],self.maps_beam[0][2]],[self.maps_beam[1][0],self.maps_beam[1][1],self.maps_beam[1][2]],beam_arg)
+            self.common_beam = get_common_beam([self.maps_beam[0][0],self.maps_beam[1][0]],[self.maps_beam[0][1],self.maps_beam[1][1]],[self.maps_beam[0][2],self.maps_beam[1][2]],arg=beam_arg)
         sys.stdout.write('Will use common beam of ({} , {} ) mas at PA {} degree.\n'.format(self.common_beam[0]*r2m,self.common_beam[1]*r2m,self.common_beam[2]*180/np.pi))#/np.pi))
 
         #derive common parameter for the common map
@@ -327,6 +284,7 @@ class AlignMaps(object):
         self.common_ps = self.maps_ps.min()
         self.common_fov = min([min(x,y) for x,y in zip(self.fovx,self.fovy)])
         self.common_naxis = int(self.common_fov/self.common_ps)
+        self.common_ppb = PXPERBEAM(self.common_beam[0],self.common_beam[1],self.common_ps)
         self.common_ppb = PXPERBEAM(self.common_beam[0],self.common_beam[1],self.common_ps)
 
         self.noise1_r = noise1/ppb[0]*self.common_ppb

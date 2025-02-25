@@ -360,7 +360,7 @@ class ImageData(object):
             return "No data loaded yet."
 
     def align(self,image_data2,masked_shift=True,
-            mask=False,mask_args=False,beam_arg="max",
+            mask=False,mask_args=False,beam_arg="common",
             fig_size="aanda",plot_shifted=True,plot_spix=True,
             plot_convolved=True,asize=6,sigma=3):
 

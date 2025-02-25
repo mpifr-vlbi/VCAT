@@ -279,6 +279,8 @@ class FitsImage(object):
                  background_color="white", #background color
                  ax=None, #define custom matplotlib axes to plot on
                  fig=None, #define custom figure
+                 font_size_axis_title=font_size_axis_title, #set fontsize for axis title
+                 font_size_axis_tick=font_size_axis_tick, #set fontsize for axis ticks
                  rcparams={} # option to modify matplotlib look
                  ):
 
@@ -403,6 +405,10 @@ class FitsImage(object):
             self.ax.set_title(date + " " + "{:.0f}".format(self.freq/1e9)+" GHz", fontsize=font_size_axis_title)
         else:
             self.ax.set_title(title, fontsize=font_size_axis_title)
+
+        #set x/y tick size
+        self.ax.tick_params(axis="y",labelsize=font_size_axis_tick)
+        self.ax.tick_params(axis="x",labelsize=font_size_axis_tick)
 
         # Read modelfit files in
         if (overplot_gauss == True) or (overplot_clean == True):
@@ -674,9 +680,11 @@ class MultiFitsImage(object):
                  evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
                  rotate_evpa=0,  # rotate EVPAs by a given angle in degrees (North through East)
                  evpa_color="white",  # set EVPA color for plot
-                 titles=[],  # plot title (default is date)
+                 titles=[],  # plot title (default is no title, can be "all" to print date and frequency or 2d array with titles)
                  background_color="white",  # background color
-                 figsize="",#define figsize
+                 figsize="", #define figsize
+                 font_size_axis_title=8, #set fontsize for axis title
+                 font_size_axis_tick=6, #set fontsize for axis ticks
                  rcparams={}  # option to modify matplotlib look
                  ):
 
@@ -687,43 +695,57 @@ class MultiFitsImage(object):
         if figsize=="":
             figsize=(3*self.ncols,3*self.nrows)
         self.fig, self.axes = plt.subplots(self.nrows, self.ncols, figsize=figsize)
-
         self.axes=np.atleast_2d(self.axes)
 
+        if self.axes.shape[0]==self.ncols and self.axes.shape[1]==self.nrows:
+            if not self.ncols==self.nrows:
+                self.axes=self.axes.T
+
         if np.shape(titles)!=self.image_cube.shape:
-            titles=np.full(self.image_cube.shape,"",dtype=object)
+            if titles=="all":
+                titles=np.full(self.image_cube.shape,"",dtype=object)
+            else:
+                titles=np.full(self.image_cube.shape," ",dtype=object)
 
         #create FitsImage for every image
         self.plots=np.empty((self.nrows,self.ncols),dtype=object)
+        print(self.nrows, self.ncols)
+
         for i in range(self.nrows):
             for j in range(self.ncols):
-                self.plots[i,j]=FitsImage(image_data=self.image_cube.images[i,j],
-                                          stokes_i_sigma_cut=stokes_i_sigma_cut,
-                                          plot_mode=plot_mode,
-                                          im_colormap=im_colormap,
-                                          contour=contour,
-                                          contour_color=contour_color,
-                                          contour_cmap=contour_cmap,
-                                          contour_alpha=contour_alpha,
-                                          contour_width=contour_width,
-                                          im_color=im_color,
-                                          plot_beam=plot_beam,
-                                          overplot_gauss=overplot_gauss,
-                                          component_color=component_color,
-                                          overplot_clean=overplot_clean,
-                                          xlim=xlim,
-                                          ylim=ylim,
-                                          plot_evpa=plot_evpa,
-                                          evpa_width=evpa_width,
-                                          evpa_len=evpa_len,
-                                          lin_pol_sigma_cut=lin_pol_sigma_cut,
-                                          evpa_distance=evpa_distance,
-                                          rotate_evpa=rotate_evpa,
-                                          evpa_color=evpa_color,
-                                          title=titles[i,j],
-                                          background_color=background_color,
-                                          ax=self.axes[i,j],
-                                          rcparams=rcparams)
+                if self.image_cube.images[i,j]==None:
+                    #image missing TODO do something here
+                    pass
+                else:
+                    self.plots[i,j]=FitsImage(image_data=self.image_cube.images[i,j],
+                                        stokes_i_sigma_cut=stokes_i_sigma_cut,
+                                        plot_mode=plot_mode,
+                                        im_colormap=im_colormap,
+                                        contour=contour,
+                                        contour_color=contour_color,
+                                        contour_cmap=contour_cmap,
+                                        contour_alpha=contour_alpha,
+                                        contour_width=contour_width,
+                                        im_color=im_color,
+                                        plot_beam=plot_beam,
+                                        overplot_gauss=overplot_gauss,
+                                        component_color=component_color,
+                                        overplot_clean=overplot_clean,
+                                        xlim=xlim,
+                                        ylim=ylim,
+                                        plot_evpa=plot_evpa,
+                                        evpa_width=evpa_width,
+                                        evpa_len=evpa_len,
+                                        lin_pol_sigma_cut=lin_pol_sigma_cut,
+                                        evpa_distance=evpa_distance,
+                                        rotate_evpa=rotate_evpa,
+                                        evpa_color=evpa_color,
+                                        title=titles[i,j],
+                                        background_color=background_color,
+                                        ax=self.axes[i,j],
+                                        font_size_axis_title=font_size_axis_title,
+                                        font_size_axis_tick=font_size_axis_tick,
+                                        rcparams=rcparams)
 
 
 
