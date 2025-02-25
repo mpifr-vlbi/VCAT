@@ -14,6 +14,7 @@ from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import get_sigma_levs, getComponentInfo, write_mod_file,write_mod_file_from_casa, get_freq, get_date, total_flux_from_mod, PXPERBEAM, JyPerBeam2Jy, get_residual_map, get_noise_from_residual_map, get_model_chi_square_red, format_scientific
 from vcat.stacking_helpers import fold_with_beam
 import warnings
+from scipy.ndimage import fourier_shift
 
 class ImageData(object):
 
@@ -79,7 +80,9 @@ class ImageData(object):
         #read stokes data from input files if defined
         if stokes_q != "":
             try:
-                stokes_q = fits.open(stokes_q)[0].data[0, 0, :, :]
+                q_fits=fits.open(stokes_q)
+                stokes_q = q_fits[0].data[0, 0, :, :]
+                q_fits.close()
             except:
                 stokes_q=stokes_q
         else:
@@ -87,7 +90,9 @@ class ImageData(object):
 
         if stokes_u != "":
             try:
-                stokes_u = fits.open(stokes_u)[0].data[0, 0, :, :]
+                u_fits=fits.open(stokes_u)
+                stokes_u = u_fits[0].data[0, 0, :, :]
+                u_fits.close()
             except:
                 stokes_u = stokes_u
         else:
@@ -151,14 +156,14 @@ class ImageData(object):
         #read in polarization input
 
         # check if FITS file contains more than just Stokes I
-        only_stokes_i = False
+        self.only_stokes_i = False
         if hdu_list[0].data.shape[0] == 1:
-            only_stokes_i = True
+            self.only_stokes_i = True
         if (np.shape(self.Z) == np.shape(stokes_q) and np.shape(self.Z) == np.shape(stokes_u) and
                         np.shape(stokes_q) == np.shape(stokes_u)):
-            only_stokes_i = True #in this case override the polarization data with the data that was input to Q and U
+            self.only_stokes_i = True #in this case override the polarization data with the data that was input to Q and U
 
-        if only_stokes_i:
+        if self.only_stokes_i:
             #DIFMAP Style
             pols=1
             # Check if linpol/evpa/stokes_i have same dimensions!
@@ -226,7 +231,11 @@ class ImageData(object):
         
 
         try:
-            self.difmap_pol_noise = np.sqrt(float(fits.open(stokes_q_path)[0].header["NOISE"])**2+float(fits.open(stokes_u_path)[0].header["NOISE"])**2)
+            q_fits=fits.open(stokes_q_path)
+            u_fits=fits.open(stokes_q_path)
+            self.difmap_pol_noise = np.sqrt(float(q_fits[0].header["NOISE"])**2+float(u_fits[0].header["NOISE"])**2)
+            q_fits.close()
+            u_fits.close()
         except:
             self.difmap_pol_noise = 0
     
@@ -381,8 +390,8 @@ class ImageData(object):
 
         #TODO basic sanity check if uvf file is present and if polarization is there
         if self.uvf_file=="":
-            warnings.warn("Shift not possible, no .uvf file attached to ImageData!",UserWarning)
-            return self
+            raise Exception("Operation not possible, no .uvf file attached to ImageData!")
+
 
         if npix=="":
             npix=len(self.X)*2
@@ -454,7 +463,84 @@ class ImageData(object):
 
     def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1]):
         #for shifting we can just use the restore option with shift parameters, not specifying a beam
-        return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting)
+        if self.uvf_file!="":
+            #if a uvf file is there, this will shift everything automatically using difmap
+            return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting)
+        else:
+            print("No .uvf file attached, will do simple shift of image only")
+
+            #calculate shift to pixel increments:
+            shift_x=-int(shift_x/self.scale/self.degpp)
+            shift_y=int(shift_y/self.scale/self.degpp)
+
+            #shift image directly
+            input_ = np.fft.fft2(self.Z)  # before it was np.fft.fftn(img)
+            offset_image = fourier_shift(input_, shift=[shift_y,shift_x])
+            imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+            new_image_i = imgalign.real
+
+            # try polarization
+            try:
+                input_ = np.fft.fft2(self.stokes_q)  # before it was np.fft.fftn(img)
+                offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                new_image_q = imgalign.real
+
+                input_ = np.fft.fft2(self.stokes_u)  # before it was np.fft.fftn(img)
+                offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                new_image_u = imgalign.real
+
+            except:
+                new_image_q = ""
+                new_image_u = ""
+                new_stokes_u_fits=""
+                new_stokes_q_fits=""
+
+            if self.only_stokes_i:
+                #this means DIFMAP style fits image
+                with fits.open(self.fits_file) as f:
+                    f[0].data[0, 0, :, :]=new_image_i
+                    new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                    f[1].header['XTENSION'] = 'BINTABLE'
+                    f.writeto(new_stokes_i_fits,overwrite=True)
+
+
+                if len(self.stokes_q)>0:
+
+                    with fits.open(self.stokes_q_path) as f:
+                        f[0].data[0, 0, :, :] = new_image_q
+                        new_stokes_q_fits = self.stokes_q_path.replace(".fits", "_convolved.fits")
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        f.writeto(new_stokes_q_fits,overwrite=True)
+
+
+                if len(self.stokes_u)>0:
+                    with fits.open(self.stokes_u_path) as f:
+                        f[0].data[0, 0, :, :] = new_image_u
+                        new_stokes_u_fits = self.stokes_u_path.replace(".fits", "_convolved.fits")
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        f.writeto(new_stokes_u_fits,overwrite=True)
+
+            else:
+                #CASA style
+                f=fits.open(self.fits_file)
+                f[0].data[0,0,:,:]=new_image_i
+                f[0].data[1,0,:,:]=new_image_q
+                f[0].data[2,0,:,:]=new_image_u
+                new_stokes_i_fits = self.fits_file.replace(".fits","_convolved.fits")
+                f.writeto(new_stokes_i_fits,overwrite=True,output_verify='ignore')
+            #TODO, also shift model!
+
+            return ImageData(fits_file=new_stokes_i_fits,
+                uvf_file=self.uvf_file,
+                stokes_q=new_stokes_q_fits,
+                stokes_u=new_stokes_u_fits,
+                noise_method=self.noise_method,
+                model_save_dir=self.model_save_dir,
+                model=self.model_file_path, #TODO ALSO SHIFT MODEL!!! probably best in fits header....
+                correct_rician_bias=self.correct_rician_bias,
+                difmap_path=self.difmap_path)
 
     def get_noise_from_shift(self,shift_factor=20):
 

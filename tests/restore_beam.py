@@ -14,15 +14,17 @@ FitsImage(data,plot_mode="lin_pol",plot_evpa=True)
 plt.show()
 print(data.integrated_pol_flux_clean)
 
+"""
 #Test convolution
 data_convolved=data.restore(2,2,180)
 FitsImage(data_convolved,plot_mode="lin_pol",plot_evpa=True)
 print(data_convolved.integrated_pol_flux_clean)
 plt.show()
+"""
 
 #Test shift
-data_shifted=data.shift(30,30)
+data_shifted=data.shift(0,5)
 FitsImage(data_shifted,plot_mode="lin_pol",plot_evpa=True)
-print(data_convolved.integrated_pol_flux_clean)
+#print(data_convolved.integrated_pol_flux_clean)
 plt.show()
 

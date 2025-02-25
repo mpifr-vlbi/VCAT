@@ -40,7 +40,6 @@ if not os.path.isdir(plotDir):
 
 def apply_shift(img,shift):
     """A function to apply a shift to an image.
-
     Args:
         img: the image
         shift: the shifts in y, and x-direction
