@@ -1,4 +1,4 @@
-! Command file created by the difmap on Wed Feb 26 00:25:55 2025
+! Command file created by the difmap on Wed Feb 26 21:14:03 2025
 mapunits mas
 multi_model false
 get tmp/mod_files_model/0215+015_2022-03-24_15GHz_convolved
@@ -24,6 +24,7 @@ string rflags; rflags=""
 string pflags; pflags=""
 string tflags; tflags=""
 selfflag true, 3, 4
+shift 10, 5
 scangap 3600
 float levs(1)
 levs(1:1) = 0

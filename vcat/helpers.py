@@ -16,6 +16,8 @@ from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
 from numpy import linalg
+import scipy.ndimage
+import scipy.signal
 
 # takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list
@@ -603,5 +605,25 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
     common_beam=[_maj,_min,_pos]
     sys.stdout.write("{} beam calculated: {}\n".format(arg,common_beam))
     return common_beam
+
+
+def elliptical_gaussian_kernel(size_x, size_y, sigma_x, sigma_y, theta):
+    """Generate an elliptical Gaussian kernel with rotation."""
+    y, x = np.meshgrid(np.linspace(-size_y//2, size_y//2, size_y), np.linspace(-size_x//2, size_x//2, size_x))
+
+    # Rotation matrix
+    theta = np.deg2rad(theta)
+    x_rot = x * np.cos(theta) - y * np.sin(theta)
+    y_rot = x * np.sin(theta) + y * np.cos(theta)
+
+    # Elliptical Gaussian formula
+    g = np.exp(-(x_rot ** 2 / (2 * sigma_x ** 2) + y_rot ** 2 / (2 * sigma_y ** 2)))
+    return g / np.sum(g)  # Normalize the kernel
+
+def convolve_with_elliptical_gaussian(image, sigma_x, sigma_y, theta):
+    """Convolves a 2D image with an elliptical Gaussian kernel."""
+    kernel = elliptical_gaussian_kernel(image.shape[1], image.shape[0], sigma_x, sigma_y, theta)
+    convolved = scipy.signal.fftconvolve(image, kernel, mode='same')
+    return convolved
 
 

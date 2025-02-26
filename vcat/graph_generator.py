@@ -16,7 +16,7 @@ import pexpect
 from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
-from helpers import get_sigma_levs
+from helpers import get_sigma_levs, getComponentInfo
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
 
 

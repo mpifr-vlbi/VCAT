@@ -216,7 +216,7 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
         
         return output_stacked
 
-#this funciton takes file paths to fits files (e.g. from DIFMAP) and creates a stacked fits file from them
+#this functioon takes file paths to fits files (e.g. from DIFMAP) and creates a stacked fits file from them
 #by first calculation linear polarization P and EVPA and stacking P and EVPA and NOT Q,U. If weighted is set to true,
 #the EVPA stack is weighted with the linear Polarization. The "align" option centers all polarizations on the Stokes I peak before stacking
 

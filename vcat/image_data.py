@@ -11,7 +11,7 @@ from datetime import datetime
 from astropy.time import Time
 from vcat.kinematics import Component
 from vcat.alignment.align_imagesEHTim_final import AlignMaps
-from vcat.helpers import get_sigma_levs, getComponentInfo, write_mod_file,write_mod_file_from_casa, get_freq, get_date, total_flux_from_mod, PXPERBEAM, JyPerBeam2Jy, get_residual_map, get_noise_from_residual_map, get_model_chi_square_red, format_scientific
+from vcat.helpers import *
 from vcat.stacking_helpers import fold_with_beam
 import warnings
 from scipy.ndimage import fourier_shift
@@ -377,7 +377,7 @@ class ImageData(object):
                 masked_shift,mask,mask_args,beam_arg,fig_size,
                 plot_shifted,plot_spix,plot_convolved,asize,sigma)
 
-    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1]):
+    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         """
         This allows you to restore the ImageData object with a custom beam (needs DIFMAP)
         Inputs:
@@ -389,95 +389,27 @@ class ImageData(object):
         """
 
         #TODO basic sanity check if uvf file is present and if polarization is there
-        if self.uvf_file=="":
-            raise Exception("Operation not possible, no .uvf file attached to ImageData!")
+        if self.uvf_file=="" or useDIFMAP==False:
+            #this means there is no valid .uvf file or we don't want to use DIFMAP
 
-
-        if npix=="":
-            npix=len(self.X)*2
-        if pixel_size=="":
-            pixel_size=self.degpp*self.scale
-         
-        #restore Stokes I
-        new_stokes_i=self.stokes_i_mod_file.replace(".mod","_convolved")
-
-        fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
-                bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
-                channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i,
-                n_pixel=npix,pixel_size=pixel_size,
-                mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
-
-        new_stokes_i+=".fits"
-        #try to restore modelfit if it is ther
-
-        try:
-            new_mod_fits=self.model_mod_file.replace(".mod","_convolved")
-
-            fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
-                bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
-                channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_mod_fits,
-                n_pixel=npix, pixel_size=pixel_size,
-                mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
-
-            new_mod_fits+=".fits"
-        except:
-            new_mod_fits=""
-        
-        #try to restore polarization as well if it is there
-        try:
-            new_stokes_q=self.stokes_q_mod_file.replace(".mod","_convolved")
-            new_stokes_u=self.stokes_u_mod_file.replace(".mod","_convolved")
-
-
-            fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
-                bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
-                channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q,
-                n_pixel=npix,pixel_size=pixel_size,
-                mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
-
-            new_stokes_q+=".fits"
-       
-            fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
-                bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
-                channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u,
-                n_pixel=npix,pixel_size=pixel_size,
-                mod_files=[self.stokes_u_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
-
-            new_stokes_u+=".fits"
-            
-        except:
-            new_stokes_q=""
-            new_stokes_u=""
-        
-        
-        return ImageData(fits_file=new_stokes_i,
-                uvf_file=self.uvf_file,
-                stokes_q=new_stokes_q,
-                stokes_u=new_stokes_u,
-                noise_method=self.noise_method,
-                model_save_dir=self.model_save_dir,
-                model=new_mod_fits,
-                correct_rician_bias=self.correct_rician_bias,
-                difmap_path=self.difmap_path)
-      
-
-    def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1]):
-        #for shifting we can just use the restore option with shift parameters, not specifying a beam
-        if self.uvf_file!="":
-            #if a uvf file is there, this will shift everything automatically using difmap
-            return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting)
-        else:
             print("No .uvf file attached, will do simple shift of image only")
 
-            #calculate shift to pixel increments:
-            shift_x=-int(shift_x/self.scale/self.degpp)
-            shift_y=int(shift_y/self.scale/self.degpp)
+            # shift in degree
+            shift_x_deg = shift_x / self.scale
+            shift_y_deg = shift_y / self.scale
 
-            #shift image directly
+            # calculate shift to pixel increments:
+            shift_x = -int(shift_x / self.scale / self.degpp)
+            shift_y = int(shift_y / self.scale / self.degpp)
+
+            # shift image directly
             input_ = np.fft.fft2(self.Z)  # before it was np.fft.fftn(img)
-            offset_image = fourier_shift(input_, shift=[shift_y,shift_x])
+            offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
             imgalign = np.fft.ifft2(offset_image)  # again before ifftn
             new_image_i = imgalign.real
+            if not (bmaj == -1 and bmin == -1 and posa == -1):
+                new_image_i = convolve_with_elliptical_gaussian(new_image_i, bmaj / self.scale / self.degpp/2,
+                                                             bmin / self.scale / self.degpp/2, posa)
 
             # try polarization
             try:
@@ -485,62 +417,178 @@ class ImageData(object):
                 offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
                 imgalign = np.fft.ifft2(offset_image)  # again before ifftn
                 new_image_q = imgalign.real
+                if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                    new_image_q = convolve_with_elliptical_gaussian(new_image_q,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
 
                 input_ = np.fft.fft2(self.stokes_u)  # before it was np.fft.fftn(img)
                 offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
                 imgalign = np.fft.ifft2(offset_image)  # again before ifftn
                 new_image_u = imgalign.real
+                if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                    new_image_u= convolve_with_elliptical_gaussian(new_image_u,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
+
 
             except:
                 new_image_q = ""
                 new_image_u = ""
-                new_stokes_u_fits=""
-                new_stokes_q_fits=""
+                new_stokes_u_fits = ""
+                new_stokes_q_fits = ""
+
+            # if model loaded try shifting model image as well
+            try:
+                input_ = np.fft.fft2(
+                    fits.open(self.model_file_path)[0].data[0, 0, :, :])  # before it was np.fft.fftn(img)
+                offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                new_image_model = imgalign.real
+                if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                    new_image_model = convolve_with_elliptical_gaussian(new_image_model,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
+
+                with fits.open(self.model_file_path) as f:
+                    f[0].data[0, 0, :, :] = new_image_model
+                    new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                    f[1].header['XTENSION'] = 'BINTABLE'
+                    f[1].data["DELTAX"] += shift_x_deg
+                    f[1].data["DELTAY"] += shift_y_deg
+                    if not (bmaj == -1 and bmin == -1 and posa == -1):
+                        f[0].header["BMAJ"] = bmaj / self.scale
+                        f[0].header["BMIN"] = bmin / self.scale
+                        f[0].header["BPA"] = posa
+                    f.writeto(new_model_fits, overwrite=True)
+            except:
+                new_image_model = ""
+                new_model_fits = ""
 
             if self.only_stokes_i:
-                #this means DIFMAP style fits image
+                # this means DIFMAP style fits image
                 with fits.open(self.fits_file) as f:
-                    f[0].data[0, 0, :, :]=new_image_i
+                    f[0].data[0, 0, :, :] = new_image_i
                     new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
                     f[1].header['XTENSION'] = 'BINTABLE'
-                    f.writeto(new_stokes_i_fits,overwrite=True)
+                    f[1].data["DELTAX"] += shift_x_deg
+                    f[1].data["DELTAY"] += shift_y_deg
+                    if not (bmaj == -1 and bmin == -1 and posa == -1):
+                        f[0].header["BMAJ"] = bmaj / self.scale
+                        f[0].header["BMIN"] = bmin / self.scale
+                        f[0].header["BPA"] = posa
+                    f.writeto(new_stokes_i_fits, overwrite=True)
 
-
-                if len(self.stokes_q)>0:
-
+                if len(self.stokes_q) > 0:
                     with fits.open(self.stokes_q_path) as f:
                         f[0].data[0, 0, :, :] = new_image_q
                         new_stokes_q_fits = self.stokes_q_path.replace(".fits", "_convolved.fits")
                         f[1].header['XTENSION'] = 'BINTABLE'
-                        f.writeto(new_stokes_q_fits,overwrite=True)
+                        f[1].data["DELTAX"] += shift_x_deg
+                        f[1].data["DELTAY"] += shift_y_deg
+                        if not (bmaj == -1 and bmin == -1 and posa == -1):
+                            f[0].header["BMAJ"] = bmaj / self.scale
+                            f[0].header["BMIN"] = bmin / self.scale
+                            f[0].header["BPA"] = posa
+                        f.writeto(new_stokes_q_fits, overwrite=True)
 
-
-                if len(self.stokes_u)>0:
+                if len(self.stokes_u) > 0:
                     with fits.open(self.stokes_u_path) as f:
                         f[0].data[0, 0, :, :] = new_image_u
                         new_stokes_u_fits = self.stokes_u_path.replace(".fits", "_convolved.fits")
                         f[1].header['XTENSION'] = 'BINTABLE'
-                        f.writeto(new_stokes_u_fits,overwrite=True)
+                        f[1].data["DELTAX"] += shift_x_deg
+                        f[1].data["DELTAY"] += shift_y_deg
+                        if not (bmaj == -1 and bmin == -1 and posa == -1):
+                            f[0].header["BMAJ"] = bmaj / self.scale
+                            f[0].header["BMIN"] = bmin / self.scale
+                            f[0].header["BPA"] = posa
+                        f.writeto(new_stokes_u_fits, overwrite=True)
 
             else:
-                #CASA style
-                f=fits.open(self.fits_file)
-                f[0].data[0,0,:,:]=new_image_i
-                f[0].data[1,0,:,:]=new_image_q
-                f[0].data[2,0,:,:]=new_image_u
-                new_stokes_i_fits = self.fits_file.replace(".fits","_convolved.fits")
-                f.writeto(new_stokes_i_fits,overwrite=True,output_verify='ignore')
-            #TODO, also shift model!
+                # CASA style
+                f = fits.open(self.fits_file)
+                f[0].data[0, 0, :, :] = new_image_i
+                f[0].data[1, 0, :, :] = new_image_q
+                f[0].data[2, 0, :, :] = new_image_u
+                if not (bmaj == -1 and bmin == -1 and posa == -1):
+                    f[0].header["BMAJ"] = bmaj / self.scale
+                    f[0].header["BMIN"] = bmin / self.scale
+                    f[0].header["BPA"] = posa
+                new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
 
-            return ImageData(fits_file=new_stokes_i_fits,
-                uvf_file=self.uvf_file,
-                stokes_q=new_stokes_q_fits,
-                stokes_u=new_stokes_u_fits,
-                noise_method=self.noise_method,
-                model_save_dir=self.model_save_dir,
-                model=self.model_file_path, #TODO ALSO SHIFT MODEL!!! probably best in fits header....
-                correct_rician_bias=self.correct_rician_bias,
-                difmap_path=self.difmap_path)
+        else:
+            #This means we have a valid .uvf file and will use DIFMAP
+            if npix=="":
+                npix=len(self.X)*2
+            if pixel_size=="":
+                pixel_size=self.degpp*self.scale
+
+            #restore Stokes I
+            new_stokes_i_fits=self.stokes_i_mod_file.replace(".mod","_convolved")
+
+            fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
+                    bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
+                    channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
+                    n_pixel=npix,pixel_size=pixel_size,
+                    mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+
+            new_stokes_i_fits+=".fits"
+            #try to restore modelfit if it is ther
+
+            try:
+                new_model_fits=self.model_mod_file.replace(".mod","_convolved")
+
+                fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
+                    bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
+                    channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
+                    n_pixel=npix, pixel_size=pixel_size,
+                    mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+
+                new_model_fits+=".fits"
+            except:
+                new_model_fits=""
+
+            #try to restore polarization as well if it is there
+            try:
+                new_stokes_q_fits=self.stokes_q_mod_file.replace(".mod","_convolved")
+                new_stokes_u_fits=self.stokes_u_mod_file.replace(".mod","_convolved")
+
+
+                fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
+                    bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
+                    channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
+                    n_pixel=npix,pixel_size=pixel_size,
+                    mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+
+                new_stokes_q_fits+=".fits"
+
+                fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
+                    bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
+                    channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
+                    n_pixel=npix,pixel_size=pixel_size,
+                    mod_files=[self.stokes_u_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+
+                new_stokes_u_fits+=".fits"
+
+            except:
+                new_stokes_q_fits=""
+                new_stokes_u_fits=""
+
+
+        return ImageData(fits_file=new_stokes_i_fits,
+                         uvf_file=self.uvf_file,
+                         stokes_q=new_stokes_q_fits,
+                         stokes_u=new_stokes_u_fits,
+                         noise_method=self.noise_method,
+                         model_save_dir=self.model_save_dir,
+                         model=new_model_fits,
+                         correct_rician_bias=self.correct_rician_bias,
+                         difmap_path=self.difmap_path)
+      
+
+    def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
+        #for shifting we can just use the restore option with shift parameters, not specifying a beam
+        try:
+            #if a uvf file is there, this will shift everything automatically using difmap
+            return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting,useDIFMAP=useDIFMAP)
+        except:
+            raise Exception("No shift possible, invalid files!")
 
     def get_noise_from_shift(self,shift_factor=20):
 
