@@ -265,6 +265,7 @@ class FitsImage(object):
                  overplot_gauss=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
                  overplot_clean=False, #choose whether to plot clean components
+                 plot_mask=False, #choose whether to plot mask
                  xlim=[], #xplot limits, e.g. [5,-5]
                  ylim=[], #yplot limits
                  ###HERE STARTS POLARIZATION INPUT
@@ -410,6 +411,10 @@ class FitsImage(object):
         self.ax.tick_params(axis="y",labelsize=font_size_axis_tick)
         self.ax.tick_params(axis="x",labelsize=font_size_axis_tick)
 
+        if plot_mask:
+            self.plotColormap(self.clean_image.mask,"gray_r",np.zeros(100),[0.00],extent,label="Mask")
+
+
         # Read modelfit files in
         if (overplot_gauss == True) or (overplot_clean == True):
             model_df = getComponentInfo(self.model_image_file)
@@ -475,7 +480,8 @@ class FitsImage(object):
                      levs, #sigma levs output
                      levs1, #sigma levs output
                      extent, #plot lims x_min,x_max,y_min,y_max
-                     label="Flux Density [Jy/beam]" #label for colorbar
+                     label="Flux Density [Jy/beam]", #label for colorbar
+                     do_colorbar=True
                      ):
 
         #OPTIONS for fractional polarization plot
@@ -505,11 +511,13 @@ class FitsImage(object):
                     if vmax >= float(tickval):
                         ticks = np.append(ticks, float(tickval))
                         ticklabels.append(tickval)
-                divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=ticks)
-                cbar.set_label(label)
-                cbar.ax.set_yticklabels(ticklabels)
+
+                if do_colorbar:
+                    divider = make_axes_locatable(self.ax)
+                    cax = divider.append_axes("right", size="5%", pad=0.05)
+                    cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=ticks)
+                    cbar.set_label(label)
+                    cbar.ax.set_yticklabels(ticklabels)
             elif vmax <=0.2:
                 ticks = np.array([0.0, 0.025, 0.05, 0.75, 0.1, 0.125, 0.15, 0.175, 0.2])
                 ticklabels = ["0.000", "0.025", "0.050", "0.075", "0.100", "0.125", "0.150", "0.175", "0.200"]
@@ -519,17 +527,20 @@ class FitsImage(object):
                     if vmax >= float(tickval):
                         final_ticks = np.append(final_ticks, float(tickval))
                         final_labels.append(tickval)
-                divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=final_ticks)
-                cbar.set_label(label)
-                cbar.ax.set_yticklabels(final_labels)
+                if do_colorbar:
+                    divider = make_axes_locatable(self.ax)
+                    cax = divider.append_axes("right", size="5%", pad=0.05)
+                    cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=final_ticks)
+                    cbar.set_label(label)
+                    cbar.ax.set_yticklabels(final_labels)
             else:
-                divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-                cbar.set_label(label)
-            cbar.ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+                if do_colorbar:
+                    divider = make_axes_locatable(self.ax)
+                    cax = divider.append_axes("right", size="5%", pad=0.05)
+                    cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                    cbar.set_label(label)
+            if do_colorbar:
+                cbar.ax.yaxis.set_minor_formatter(ticker.NullFormatter())
         elif label=="Linear Polarized Intensity [Jy/beam]":
             if im_color =="":
                 im_color = "cubehelix_r"
@@ -549,10 +560,16 @@ class FitsImage(object):
                                origin='lower',
                                cmap=im_color,
                                vmax=vmax, vmin=vmin,extent=extent)
-            divider = make_axes_locatable(self.ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-            cbar.set_label(label)
+
+            if do_colorbar:
+                divider = make_axes_locatable(self.ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar.set_label(label)
+        elif label=="Mask":
+            if im_color=="":
+                im_color="inferno"
+            col = self.ax.imshow(Z, cmap=im_color, vmin=0, vmax=1, interpolation='none', alpha=Z.astype(float), extent=extent, origin="lower", zorder=10)
 
         else:
             if im_color=="":
@@ -561,11 +578,11 @@ class FitsImage(object):
                                                                         vmax=0.5 * np.max(Z), base=10.), extent=extent,
                                 origin='lower')
 
-
-            divider = make_axes_locatable(self.ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-            cbar.set_label(label)
+            if do_colorbar:
+                divider = make_axes_locatable(self.ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar.set_label(label)
 
     def plotComponent(self,x,y,maj,min,pos,scale):
 
@@ -670,6 +687,7 @@ class MultiFitsImage(object):
                  overplot_gauss=False,  # choose whether to plot modelfit components
                  component_color="black",  # choose component color for Gauss component
                  overplot_clean=False,  # choose whether to plot clean components
+                 plot_mask=False, #decide whether to plot masks or not
                  xlim=[],  # xplot limits, e.g. [5,-5]
                  ylim=[],  # yplot limits
                  ###HERE STARTS POLARIZATION INPUT
@@ -687,6 +705,7 @@ class MultiFitsImage(object):
                  font_size_axis_tick=6, #set fontsize for axis ticks
                  rcparams={}  # option to modify matplotlib look
                  ):
+        #TODO for all input parameters make them possible as arrays to choose for every image or just one parameter to use for all images
 
         super().__init__()
 
@@ -731,6 +750,7 @@ class MultiFitsImage(object):
                                         overplot_gauss=overplot_gauss,
                                         component_color=component_color,
                                         overplot_clean=overplot_clean,
+                                        plot_mask=plot_mask,
                                         xlim=xlim,
                                         ylim=ylim,
                                         plot_evpa=plot_evpa,

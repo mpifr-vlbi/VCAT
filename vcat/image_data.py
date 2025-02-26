@@ -14,7 +14,7 @@ from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import *
 from vcat.stacking_helpers import fold_with_beam
 import warnings
-from scipy.ndimage import fourier_shift
+from scipy.ndimage import fourier_shift, shift
 
 class ImageData(object):
 
@@ -43,6 +43,7 @@ class ImageData(object):
                  lin_pol=[],
                  evpa=[],
                  pol_from_stokes=True,
+                 mask="",
                  stokes_q="",
                  stokes_u="",
                  model_save_dir="tmp/",
@@ -64,6 +65,7 @@ class ImageData(object):
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
+
 
         # Read clean files in
         if fits_file!="":
@@ -352,7 +354,15 @@ class ImageData(object):
             lin_pol_sqr[lin_pol_sqr < 0.0] = 0.0
             self.lin_pol = np.sqrt(lin_pol_sqr)
 
-
+        # initialize mask
+        if len(mask)==0:
+            self.mask = np.zeros_like(self.Z, dtype=bool)
+        else:
+            if np.shape(mask) != np.shape(self.Z):
+                warnings.warn("Mask input format invalid, Mask reset to no mask.",UserWarning)
+                self.mask = np.zeros_like(self.Z, dtype=bool)
+            else:
+                self.mask=mask
 
     #print function for ImageData
     def __str__(self):
@@ -401,6 +411,12 @@ class ImageData(object):
             # calculate shift to pixel increments:
             shift_x = -int(shift_x / self.scale / self.degpp)
             shift_y = int(shift_y / self.scale / self.degpp)
+
+            #shift the image mask
+            input_ = np.fft.fft2(self.mask)  # before it was np.fft.fftn(img)
+            offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+            imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+            new_mask = np.real(imgalign) > 0.5
 
             # shift image directly
             input_ = np.fft.fft2(self.Z)  # before it was np.fft.fftn(img)
@@ -459,15 +475,18 @@ class ImageData(object):
                 new_image_model = ""
                 new_model_fits = ""
 
+            #write outputs to the fitsfiles
             if self.only_stokes_i:
                 # this means DIFMAP style fits image
                 with fits.open(self.fits_file) as f:
                     f[0].data[0, 0, :, :] = new_image_i
                     new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
                     f[1].header['XTENSION'] = 'BINTABLE'
+                    #shift model/clean components
                     f[1].data["DELTAX"] += shift_x_deg
                     f[1].data["DELTAY"] += shift_y_deg
                     if not (bmaj == -1 and bmin == -1 and posa == -1):
+                        #Overwrite beam parameters in header
                         f[0].header["BMAJ"] = bmaj / self.scale
                         f[0].header["BMIN"] = bmin / self.scale
                         f[0].header["BPA"] = posa
@@ -478,9 +497,11 @@ class ImageData(object):
                         f[0].data[0, 0, :, :] = new_image_q
                         new_stokes_q_fits = self.stokes_q_path.replace(".fits", "_convolved.fits")
                         f[1].header['XTENSION'] = 'BINTABLE'
+                        # shift model/clean components
                         f[1].data["DELTAX"] += shift_x_deg
                         f[1].data["DELTAY"] += shift_y_deg
                         if not (bmaj == -1 and bmin == -1 and posa == -1):
+                            # Overwrite beam parameters in header
                             f[0].header["BMAJ"] = bmaj / self.scale
                             f[0].header["BMIN"] = bmin / self.scale
                             f[0].header["BPA"] = posa
@@ -491,9 +512,11 @@ class ImageData(object):
                         f[0].data[0, 0, :, :] = new_image_u
                         new_stokes_u_fits = self.stokes_u_path.replace(".fits", "_convolved.fits")
                         f[1].header['XTENSION'] = 'BINTABLE'
+                        # shift model/clean components
                         f[1].data["DELTAX"] += shift_x_deg
                         f[1].data["DELTAY"] += shift_y_deg
                         if not (bmaj == -1 and bmin == -1 and posa == -1):
+                            # Overwrite beam parameters in header
                             f[0].header["BMAJ"] = bmaj / self.scale
                             f[0].header["BMIN"] = bmin / self.scale
                             f[0].header["BPA"] = posa
@@ -506,6 +529,7 @@ class ImageData(object):
                 f[0].data[1, 0, :, :] = new_image_q
                 f[0].data[2, 0, :, :] = new_image_u
                 if not (bmaj == -1 and bmin == -1 and posa == -1):
+                    # Overwrite beam parameters in header
                     f[0].header["BMAJ"] = bmaj / self.scale
                     f[0].header["BMIN"] = bmin / self.scale
                     f[0].header["BPA"] = posa
@@ -513,7 +537,19 @@ class ImageData(object):
                 f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
 
         else:
-            #This means we have a valid .uvf file and will use DIFMAP
+            #This means we have a valid .uvf file and we will use DIFMAP for shifting and restoring
+            # calculate shift to pixel increments:
+            shift_x_pix = -int(shift_x / self.scale / self.degpp)
+            shift_y_pix = int(shift_y / self.scale / self.degpp)
+
+            #first let's shift the mask
+            shifted_mask = shift(self.mask, shift=[shift_y_pix,shift_x_pix], mode='constant',
+                                 cval=0)  # New areas will be filled with 0 (False)
+            # Create a new mask initialized with False
+            new_mask = np.zeros_like(self.mask, dtype=bool)
+            # Fill the valid areas of the new mask with the shifted values
+            new_mask[shifted_mask > 0] = True
+
             if npix=="":
                 npix=len(self.X)*2
             if pixel_size=="":
@@ -575,6 +611,7 @@ class ImageData(object):
                          uvf_file=self.uvf_file,
                          stokes_q=new_stokes_q_fits,
                          stokes_u=new_stokes_u_fits,
+                         mask=new_mask,
                          noise_method=self.noise_method,
                          model_save_dir=self.model_save_dir,
                          model=new_model_fits,
@@ -585,10 +622,10 @@ class ImageData(object):
     def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         #for shifting we can just use the restore option with shift parameters, not specifying a beam
         try:
-            #if a uvf file is there, this will shift everything automatically using difmap
+            #We can just call the restore() function without doing the restore steps
             return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting,useDIFMAP=useDIFMAP)
         except:
-            raise Exception("No shift possible, invalid files!")
+            raise Exception("No shift possible, something went wrong!")
 
     def get_noise_from_shift(self,shift_factor=20):
 

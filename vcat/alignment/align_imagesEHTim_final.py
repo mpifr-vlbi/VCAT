@@ -54,6 +54,8 @@ def apply_shift(img,shift):
 
     return img2
 
+#=> migrated directly to ImageData now!
+
 def align(img1,img2,inc1,inc2,mask1=False,mask2=False):
     '''Align two images using 2D-crosscorelation.
 
