@@ -15,6 +15,7 @@ from vcat.helpers import *
 from vcat.stacking_helpers import fold_with_beam
 import warnings
 from scipy.ndimage import fourier_shift, shift
+from skimage.draw import disk, ellipse
 
 class ImageData(object):
 
@@ -543,12 +544,11 @@ class ImageData(object):
             shift_y_pix = int(shift_y / self.scale / self.degpp)
 
             #first let's shift the mask
-            shifted_mask = shift(self.mask, shift=[shift_y_pix,shift_x_pix], mode='constant',
-                                 cval=0)  # New areas will be filled with 0 (False)
-            # Create a new mask initialized with False
-            new_mask = np.zeros_like(self.mask, dtype=bool)
-            # Fill the valid areas of the new mask with the shifted values
-            new_mask[shifted_mask > 0] = True
+            # shift the image mask
+            input_ = np.fft.fft2(self.mask)  # before it was np.fft.fftn(img)
+            offset_image = fourier_shift(input_, shift=[shift_y_pix, shift_x_pix])
+            imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+            new_mask = np.real(imgalign) > 0.5
 
             if npix=="":
                 npix=len(self.X)*2
@@ -626,6 +626,87 @@ class ImageData(object):
             return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting,useDIFMAP=useDIFMAP)
         except:
             raise Exception("No shift possible, something went wrong!")
+
+    def masking(self, mask_type='ellipse', args=False):
+        '''Mask image data object that can be used for masking the images.
+
+        Args:
+            mask_type: 'npix_x','cut_left','cut_right','radius','ellipse','flux_cut'
+            args: the arguments for the mask
+                'npix_x': args=[npix_x,npixy]
+                'cut_left': args = cut_left
+                'cut_right': args = cut_right
+                'radius': args = radius
+                'ellipse': args = [e_maj,e_min,e_pa]
+                'flux_cut: args = flux cut
+
+        Returns:
+            masks for both images
+        '''
+
+        # cut out inner, optically thick part of the image
+        if mask_type == 'npix_x':
+            npix_x = args[0]
+            npix_y = args[1]
+            px_min_x = int(len(self.X) / 2 - npix_x/2)
+            px_max_x = int(len(self.X) / 2 + npix_x/2)
+            px_min_y = int(len(self.Y) / 2 - npix_y/2)
+            px_max_y = int(len(self.Y) / 2 + npix_y/2)
+
+            px_range_x = np.arange(px_min_x, px_max_x + 1, 1)
+            px_range_y = np.arange(px_min_y, px_max_y + 1, 1)
+
+            index = np.meshgrid(px_range_y, px_range_x)
+            self.mask[tuple(index)] = True
+
+        if mask_type == 'cut_left':
+            cut_left = args
+            px_max = int(len(self.X) / 2. + cut_left)
+            px_range_x = np.arange(0, px_max, 1)
+            self.mask[:, px_range_x] = True
+
+        if mask_type == 'cut_right':
+            cut_right = args
+            px_max = int(len(self.X) / 2 - cut_right)
+            px_range_x = np.arange(px_max, len(self.X), 1)
+            self.mask[:, px_range_x] = True
+
+        if mask_type == 'radius':
+            radius = args
+            rr, cc = disk((int(len(self.X) / 2), int(len(self.Y) / 2)), radius)
+            self.mask[rr, cc] = True
+
+        if mask_type == 'ellipse':
+            e_maj = args['e_args'][0]
+            e_min = args['e_args'][1]
+            e_pa = args['e_args'][2]
+            e_xoffset = args['e_xoffset']
+            e_yoffset = args['e_yoffset']
+            try:
+                x, y = int(len(self.X) / 2) + e_xoffset, int(len(self.Y) / 2) +e_yoffset
+            except:
+                try:
+                    x, y = int(len(self.X) / 2)+e_xoffset, int(len(self.Y) / 2)
+                except:
+                    try:
+                        x, y = int(len(self.X) / 2) , int(len(self.Y) / 2) + e_yoffset
+                    except:
+                        x, y = int(len(self.X) / 2) , int(len(self.Y) / 2)
+
+            if e_pa == False:
+                e_pa = 0
+            else:
+                e_pa = e_pa
+            rr, cc = ellipse(y, x, e_maj, e_min, rotation=e_pa * np.pi / 180)
+            self.mask[rr, cc] = True
+
+        if mask_type == 'flux_cut':
+            flux_cut = args
+            self.mask[self.Z>flux_cut*np.max(self.Z)] = True
+
+        if mask_type == 'reset':
+            self.mask=np.zeros_like(self.Z)
+
 
     def get_noise_from_shift(self,shift_factor=20):
 
