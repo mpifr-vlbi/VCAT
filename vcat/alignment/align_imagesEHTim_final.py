@@ -30,102 +30,12 @@ from skimage.draw import circle_perimeter,ellipse_perimeter
 from vcat.VLBI_map_analysis.modules.plot_functions import *
 import ehtim as eh
 from vcat.helpers import get_common_beam
-
 from vcat.VLBI_map_analysis.modules.jet_calculus import *
 
 workDir     = os.getcwd()+'/'
 plotDir = workDir+'plots/'
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
-
-
-def masking(file1rb,file2rb,naxis=False,mask='ellipse',args=False,**kwargs):
-    '''Define the masks that can be used for masking the images.
-
-    Args:
-        file1: Image1
-        file2: Image2
-        mask: 'npix_x','cut_left','cut_right','radius','ellipse','flux_cut'
-        args: the arguments for the mask
-            'npix_x': args=[npix_x,npixy]
-            'cut_left': args = cut_left
-            'cut_right': args = cut_right
-            'radius': args = radius
-            'ellipse': args = [e_maj,e_min,e_pa]
-            'flux_cut: args = flux cut
-
-    Returns:
-        masks for both images
-    '''
-    mask1 = np.zeros_like(file1rb, dtype=bool)
-    mask2 = np.zeros_like(file2rb, dtype=bool)
-    if not naxis:
-        naxis = len(file1rb)
-    # cut out inner, optically thick part of the image
-    if mask=='npix_x':
-        npix_x = args[0] 
-        npix_y = args[1]
-        px_min_x = int(naxis/2-npix_x)
-        px_max_x = int(naxis/2+npix_x)
-        px_min_y = int(naxis/2-npix_y)
-        px_max_y = int(naxis/2+npix_y)
-
-        px_range_x = np.arange(px_min_x,px_max_x+1,1)
-        px_range_y = np.arange(px_min_y,px_max_y+1,1)
-
-        index=np.meshgrid(px_range_y,px_range_x)
-        mask1[tuple(index)] = True
-        mask2[tuple(index)] = True
-
-    if mask=='cut_left':
-        cut_left = args
-        px_max = int(naxis/2.+cut_left)
-        px_range_x = np.arange(0,px_max,1)
-        mask1
-        mask1[:,px_range_x] = True
-        mask2[:,px_range_x] = True
-
-    if mask=='cut_right':
-        cut_right = args
-        px_max = int(naxis/2-cut_right)
-        px_range_x = np.arange(px_max,naxis,1)
-        mask1[:,px_range_x] = True
-        mask2[:,px_range_x] = True
-
-    if mask=='radius':
-        radius = args
-        rr,cc = circle(int(len(file1rb)/2),int(len(file1rb)/2),radius)
-        mask1[rr,cc] = True
-        mask2[rr,cc] = True
-
-    if mask=='ellipse':
-        e_maj = args['e_args'][0]
-        e_min = args['e_args'][1]
-        e_pa  = args['e_args'][2]
-        e_xoffset = args['e_xoffset']
-        #e_xoffset = kwargs.get('e_xoffset',False)
-        if e_xoffset!=False:
-            x,y = int(len(file1rb)/2)+e_xoffset,int(len(file1rb)/2)
-        else:
-            x,y = int(len(file1rb)/2),int(len(file1rb)/2)
-        if e_pa==False:
-            e_pa = 0
-        else:
-            e_pa = e_pa
-#        else:
-#            #e_pa = self.maps_beam[0][2]
-#            e_pa = 0
-        rr,cc =ellipse(y,x,e_maj,e_min,rotation=e_pa*np.pi/180)
-        mask1[rr,cc] = True
-        mask2[rr,cc] = True
-
-    if mask=='flux_cut':
-        flux_cut = args
-        mask1[file1>flux_cut*ma.amax(file1rb)] = True
-        mask2[file2>flux_cut*ma.amax(file2rb)] = True
-
-    return  (mask1,mask2)
-
 
 
 class AlignMaps(object):

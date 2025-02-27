@@ -330,6 +330,19 @@ def PXPERBEAM(b_maj,b_min,px_inc):
     return PXPERBEAM
 #
 
+def Jy2JyPerBeam(jpp,b_maj,b_min,px_inc):
+    """Converts Jy/px to Jy/beam
+        Args:
+            jpp: Jansky per pixel
+            b_maj: Major Axis
+            b_min: Minor Axis
+            px_inc: pixel size
+        Returns:
+            Jansky per pixel value
+        """
+
+    return jpp*PXPERBEAM(b_maj,b_min,px_inc)
+
 def JyPerBeam2Jy(jpb,b_maj,b_min,px_inc):
     """Converts Jy/beam to Jy
     Args:

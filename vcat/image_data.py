@@ -17,10 +17,11 @@ import warnings
 from scipy.ndimage import fourier_shift, shift
 from skimage.draw import disk, ellipse
 from skimage.registration import phase_cross_correlation
+from scipy.interpolate import RegularGridInterpolator
 
 class ImageData(object):
 
-    """ Class to handle VLBI Image data (single image with or without polarization)
+    """ Class to handle VLBI Image data (single image with or without polarization at one frequency)
     Attributes:
         fits_file: Path to a .fits file containing the data (Stokes-I (DIFMAP) or Full Polarization (CASA)).
         uvf_file: Path to a .uvf file corresponding to the fits_file
@@ -359,6 +360,9 @@ class ImageData(object):
         # initialize mask
         if len(mask)==0:
             self.mask = np.zeros_like(self.Z, dtype=bool)
+            #test masking
+            self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
+            self.masking(mask_type="cut_left",args=-200)
         else:
             if np.shape(mask) != np.shape(self.Z):
                 warnings.warn("Mask input format invalid, Mask reset to no mask.",UserWarning)
@@ -380,9 +384,169 @@ class ImageData(object):
         except:
             return "No data loaded yet."
 
-    def regrid(self):
-        #TODO regrid images
-        pass
+    def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=True):
+        """
+        This method regrids the image in full polarization
+        Args:
+            npix: Number of pixels in ONE direction
+            pixel_size: Size of pixel in image scale units (usually mas)
+            weighting: DIFMAP style weighting
+            useDIFMAP: Choose whether to regrid using DIFMAP or not
+            mask_outside: Choose whether new image ares created through regridding will be masked automatically (bool)
+
+        Returns:
+            ImageData object with regridded images
+
+        """
+
+        n2 = len(self.X)
+        n1 = len(self.Y)
+        # Original grid (centered)
+        x_old = (np.arange(n2) - (n2 - 1) / 2) * self.degpp * self.scale
+        y_old = (np.arange(n1) - (n1 - 1) / 2) * self.degpp * self.scale
+
+        # New grid (centered)
+        x_new = (np.arange(npix) - (npix - 1) / 2) * pixel_size
+        y_new = (np.arange(npix) - (npix - 1) / 2) * pixel_size
+
+        # Generate new grid coordinates
+        X_new, Y_new = np.meshgrid(x_new, y_new)
+        points = np.array([Y_new.ravel(), X_new.ravel()]).T
+
+        # define interpolator
+        def interpolator(image,fill_value=0):
+            interpolator = RegularGridInterpolator((y_old, x_old), image, method='linear', bounds_error=False,
+                                                   fill_value=fill_value)
+            return interpolator
+
+
+        # regrid mask
+        if mask_outside==True:
+            fill_value=1
+        else:
+            fill_value=0
+        new_mask = interpolator(self.mask, fill_value)(points).reshape(npix, npix)  # flags new points automatically
+        new_mask[new_mask < 0.5] = False
+        new_mask[new_mask >= 0.5] = True
+
+        if self.uvf_file=="" or useDIFMAP==False:
+
+            # Interpolate values at new grid points
+            new_image_i = interpolator(self.Z)(points).reshape(npix, npix)
+
+            #try polarization
+            try:
+                new_image_q = interpolator(self.stokes_q)(points).reshape(npix, npix)
+                new_image_u = interpolator(self.stokes_u)(points).reshape(npix, npix)
+            except:
+                warnings.warn("Unable to regrid polarization, probably no polarization loaded", UserWarning)
+
+            # write outputs to the fitsfiles
+            if self.only_stokes_i:
+                # this means DIFMAP style fits image
+                with fits.open(self.fits_file) as f:
+                    #overwrite image data
+                    f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
+                    f[0].data[0, 0, :, :] = new_image_i
+                    new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                    f[1].header['XTENSION'] = 'BINTABLE'
+                    #modify header parameters to new npix and pixelsize
+                    f[0].header["NAXIS1"]=npix
+                    f[0].header["NAXIS2"]=npix
+                    f[0].header["CDELT1"]=-pixel_size/self.scale
+                    f[0].header["CDELT2"]=pixel_size/self.scale
+                    f[0].header["CRPIX1"]=int(f[0].header["CRPIX1"]/len(self.X)*npix)
+                    f[0].header["CRPIX2"]=int(f[0].header["CRPIX2"]/len(self.X)*npix)
+                    f.writeto(new_stokes_i_fits, overwrite=True)
+
+                if len(self.stokes_q) > 0:
+                    with fits.open(self.stokes_q_path) as f:
+                        # overwrite image data
+                        f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
+                        f[0].data[0, 0, :, :] = new_image_q
+                        new_stokes_q_fits = self.stokes_q_path.replace(".fits", "_convolved.fits")
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        # modify header parameters to new npix and pixelsize
+                        f[0].header["NAXIS1"] = npix
+                        f[0].header["NAXIS2"] = npix
+                        f[0].header["CDELT1"] = -pixel_size / self.scale
+                        f[0].header["CDELT2"] = pixel_size / self.scale
+                        f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
+                        f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
+                        f.writeto(new_stokes_q_fits, overwrite=True)
+
+                if len(self.stokes_u) > 0:
+                    with fits.open(self.stokes_u_path) as f:
+                        # overwrite image data
+                        f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
+                        f[0].data[0, 0, :, :] = new_image_u
+                        new_stokes_u_fits = self.stokes_u_path.replace(".fits", "_convolved.fits")
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        # modify header parameters to new npix and pixelsize
+                        f[0].header["NAXIS1"] = npix
+                        f[0].header["NAXIS2"] = npix
+                        f[0].header["CDELT1"] = -pixel_size / self.scale
+                        f[0].header["CDELT2"] = pixel_size / self.scale
+                        f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
+                        f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
+                        f.writeto(new_stokes_u_fits, overwrite=True)
+
+            else:
+                # CASA style
+                f = fits.open(self.fits_file)
+                # overwrite image data
+                f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
+                f[0].data[0, 0, :, :] = new_image_i
+                f[0].data[1, 0, :, :] = new_image_q
+                f[0].data[2, 0, :, :] = new_image_u
+                f[0].header["NAXIS1"] = npix
+                f[0].header["NAXIS2"] = npix
+                f[0].header["CDELT1"] = -pixel_size / self.scale
+                f[0].header["CDELT2"] = pixel_size / self.scale
+                f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
+                f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
+                new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
+                new_stokes_q_fits=""
+                new_stokes_u_fits=""
+
+            #if model loaded try regridding as well
+            try:
+                with fits.open(self.model_file_path) as f:
+                    new_image_model = interpolator(f[0].data[0, 0, :, :])(points).reshape(npix,npix)
+                    f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
+                    f[0].data[0, 0, :, :] = new_image_model
+                    new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                    f[1].header['XTENSION'] = 'BINTABLE'
+                    f[0].header["NAXIS1"] = npix
+                    f[0].header["NAXIS2"] = npix
+                    f[0].header["CDELT1"] = -pixel_size / self.scale
+                    f[0].header["CDELT2"] = pixel_size / self.scale
+                    f[0].header["CRPIX1"]=int(f[0].header["CRPIX1"]/len(self.X)*npix)
+                    f[0].header["CRPIX2"]=int(f[0].header["CRPIX2"]/len(self.X)*npix)
+                    f.writeto(new_model_fits, overwrite=True)
+            except:
+                warnings.warn("Model not regridded, probably no model loaded.",UserWarning)
+                new_model_fits=""
+
+            newImageData=ImageData(fits_file=new_stokes_i_fits,
+                         uvf_file=self.uvf_file,
+                         stokes_q=new_stokes_q_fits,
+                         stokes_u=new_stokes_u_fits,
+                         mask=new_mask,
+                         noise_method=self.noise_method,
+                         model_save_dir=self.model_save_dir,
+                         model=new_model_fits,
+                         correct_rician_bias=self.correct_rician_bias,
+                         difmap_path=self.difmap_path)
+        else:
+            #Using DIFMAP
+            self.mask=new_mask
+            newImageData=self.restore(self,-1,-1,-1,npix=npix*2,pixel_size=pixel_size,weighting=weighting,useDIFMAP=True)
+
+        return newImageData
+
+        #TODO also regrid mask!!!
 
     def align(self,image_data2,masked_shift=True,method="cross_correlation"):
 
@@ -407,10 +571,9 @@ class ImageData(object):
         return self.shift(-shift[1]*self.scale*self.degpp,shift[0]*self.scale*self.degpp)
 
 
-
     def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         """
-        This allows you to restore the ImageData object with a custom beam (needs DIFMAP)
+        This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
             bmaj: Beam major axis (in mas)
             bmin: Beam minor axis (in mas)
@@ -445,9 +608,12 @@ class ImageData(object):
             imgalign = np.fft.ifft2(offset_image)  # again before ifftn
             new_image_i = imgalign.real
             if not (bmaj == -1 and bmin == -1 and posa == -1):
+                #convert to jansky per pixel
+                new_image_i = JyPerBeam2Jy(new_image_i,self.beam_maj,self.beam_min,self.degpp*self.scale)
                 new_image_i = convolve_with_elliptical_gaussian(new_image_i, bmaj / self.scale / self.degpp/2,
                                                              bmin / self.scale / self.degpp/2, posa)
-
+                #convert to jansky per (new) beam
+                new_image_i = Jy2JyPerBeam(new_image_i,bmaj,bmin,self.degpp*self.scale)
             # try polarization
             try:
                 input_ = np.fft.fft2(self.stokes_q)  # before it was np.fft.fftn(img)
@@ -455,14 +621,20 @@ class ImageData(object):
                 imgalign = np.fft.ifft2(offset_image)  # again before ifftn
                 new_image_q = imgalign.real
                 if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                    new_image_q = JyPerBeam2Jy(new_image_q, self.beam_maj, self.beam_min, self.degpp * self.scale)
                     new_image_q = convolve_with_elliptical_gaussian(new_image_q,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
+                    # convert to jansky per (new) beam
+                    new_image_q = Jy2JyPerBeam(new_image_q, bmaj, bmin, self.degpp * self.scale)
 
                 input_ = np.fft.fft2(self.stokes_u)  # before it was np.fft.fftn(img)
                 offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
                 imgalign = np.fft.ifft2(offset_image)  # again before ifftn
                 new_image_u = imgalign.real
                 if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                    new_image_u = JyPerBeam2Jy(new_image_u, self.beam_maj, self.beam_min, self.degpp * self.scale)
                     new_image_u= convolve_with_elliptical_gaussian(new_image_u,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
+                    # convert to jansky per (new) beam
+                    new_image_u = Jy2JyPerBeam(new_image_u, bmaj, bmin, self.degpp * self.scale)
 
 
             except:
@@ -479,7 +651,10 @@ class ImageData(object):
                 imgalign = np.fft.ifft2(offset_image)  # again before ifftn
                 new_image_model = imgalign.real
                 if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                    new_image_model = JyPerBeam2Jy(new_image_model, self.beam_maj, self.beam_min, self.degpp * self.scale)
                     new_image_model = convolve_with_elliptical_gaussian(new_image_model,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
+                    # convert to jansky per (new) beam
+                    new_image_model = Jy2JyPerBeam(new_image_model, bmaj, bmin, self.degpp * self.scale)
 
                 with fits.open(self.model_file_path) as f:
                     f[0].data[0, 0, :, :] = new_image_model
@@ -556,6 +731,9 @@ class ImageData(object):
                     f[0].header["BPA"] = posa
                 new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
                 f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
+
+                new_stokes_u_fits=""
+                new_stokes_u_fits=""
 
         else:
             #This means we have a valid .uvf file and we will use DIFMAP for shifting and restoring

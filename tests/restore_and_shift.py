@@ -16,10 +16,21 @@ print(data.integrated_pol_flux_clean)
 
 
 #Test convolution
+print("Convolution without DIFMAP, only blurring with Gaussian")
 data_convolved=data.restore(10,2,-10,useDIFMAP=False)
 FitsImage(data_convolved,plot_mode="lin_pol",plot_evpa=True,plot_mask=True)
-print(data_convolved.integrated_pol_flux_clean)
+print(data_convolved.integrated_flux_image)
 plt.show()
+
+#Test convolution with DIFMAP
+print("Convolution with DIFMAP")
+data_convolved=data.restore(10,2,-10,useDIFMAP=True)
+FitsImage(data_convolved,plot_mode="lin_pol",plot_evpa=True,plot_mask=True)
+print(data_convolved.integrated_pol_flux_clean)
+print(data_convolved.integrated_flux_image)
+plt.show()
+
+
 
 
 #Test shift
