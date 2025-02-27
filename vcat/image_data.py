@@ -16,6 +16,7 @@ from vcat.stacking_helpers import fold_with_beam
 import warnings
 from scipy.ndimage import fourier_shift, shift
 from skimage.draw import disk, ellipse
+from skimage.registration import phase_cross_correlation
 
 class ImageData(object):
 
@@ -379,14 +380,33 @@ class ImageData(object):
         except:
             return "No data loaded yet."
 
-    def align(self,image_data2,masked_shift=True,
-            mask=False,mask_args=False,beam_arg="common",
-            fig_size="aanda",plot_shifted=True,plot_spix=True,
-            plot_convolved=True,asize=6,sigma=3):
+    def regrid(self):
+        #TODO regrid images
+        pass
 
-        return AlignMaps([self.file_path,image_data2.file_path],
-                masked_shift,mask,mask_args,beam_arg,fig_size,
-                plot_shifted,plot_spix,plot_convolved,asize,sigma)
+    def align(self,image_data2,masked_shift=True,method="cross_correlation"):
+
+        if method=="cross_correlation":
+            if (np.all(image_data2.mask==False) and np.all(self.mask==False)) or masked_shift==False:
+                shift,error,diffphase = phase_cross_correlation((image_data2.Z),(self.Z),upsample_factor=100)
+                print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] *self.scale*self.degpp, shift[0] *self.scale*self.degpp))
+                #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
+            else:
+                shift, _, _ = phase_cross_correlation((image_data2.Z),(self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=self.mask)
+                print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*self.scale*self.degpp, shift[0]*self.scale*self.degpp))
+                #print('register images new shift (y,x): {} px'.format(-shift))
+        elif method=="brightest":
+            #align images on brightest pixel
+            #TODO
+            pass
+        else:
+            warning.warn("Please use valid align method ('cross_correlation','brightest').",UserWarning)
+
+
+        #shift shifted image
+        return self.shift(-shift[1]*self.scale*self.degpp,shift[0]*self.scale*self.degpp)
+
+
 
     def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         """
@@ -617,7 +637,7 @@ class ImageData(object):
                          model=new_model_fits,
                          correct_rician_bias=self.correct_rician_bias,
                          difmap_path=self.difmap_path)
-      
+
 
     def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         #for shifting we can just use the restore option with shift parameters, not specifying a beam
@@ -637,7 +657,7 @@ class ImageData(object):
                 'cut_left': args = cut_left
                 'cut_right': args = cut_right
                 'radius': args = radius
-                'ellipse': args = [e_maj,e_min,e_pa]
+                'ellipse': args = {'e_args': [e_maj,e_min,e_pa], 'e_xoffset': xoff, 'e_yoffset': yoff}
                 'flux_cut: args = flux cut
 
         Returns:

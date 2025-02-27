@@ -7,6 +7,12 @@ data=ImageData("../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.fits",
 
 print(data.noise)
 
+
+data=ImageData("../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.fits",
+        uvf_file="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.uvf",noise_method="box")
+
+print(data.noise)
+
 #testing noise from phase center shifting
 for shift in np.linspace(0,100,101):
     print(data.get_noise_from_shift(shift_factor=shift))

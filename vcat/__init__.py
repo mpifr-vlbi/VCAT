@@ -34,3 +34,4 @@ print("\033[F\033[K", end="")  # Clears the second line
 print("\033[F\033[K", end="")  # Clears the first line
 
 print("\rThank you for using VCAT. Have fun with VLBI!", end="\n")
+print("\rIf you are using this package please cite VCAT Team et al. 2025 ....")

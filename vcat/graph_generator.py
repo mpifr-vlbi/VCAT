@@ -649,9 +649,8 @@ class FitsImage(object):
                 lines.append(((X0, Y0), (X1, Y1)))
         lines = tuple(lines)
 
-
         # plot the evpas
-        evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width)
+        evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width,zorder=5)
         self.ax.add_collection(evpa_lines)
 
     def export(self,name):

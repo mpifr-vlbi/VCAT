@@ -38,60 +38,6 @@ plotDir = workDir+'plots/'
 if not os.path.isdir(plotDir):
     os.makedirs(plotDir)
 
-def apply_shift(img,shift):
-    """A function to apply a shift to an image.
-    Args:
-        img: the image
-        shift: the shifts in y, and x-direction
-
-    Returns:
-        img
-    """
-    input_ = np.fft.fft2(img) #before it was np.fft.fftn(img)
-    offset_image = fourier_shift(input_, shift=shift)
-    imgalign = np.fft.ifft2(offset_image) #again before ifftn
-    img2 = imgalign.real
-
-    return img2
-
-#=> migrated directly to ImageData now!
-
-def align(img1,img2,inc1,inc2,mask1=False,mask2=False):
-    '''Align two images using 2D-crosscorelation.
-
-    Args:
-        img1: image 1 to align
-        img2: image 2 to align
-        inc1: pixel increment of img1
-        inc2: pixel increment of img2
-        mask1: mask image 1
-        mask2: mask image 2
-
-    Returns:
-    '''
-    if mask1 is False:
-        shift,error,diffphase = phase_cross_correlation((img1),(img2),upsample_factor=100)
-    else:
-        shift, _, _ = phase_cross_correlation((img1),(img2),upsample_factor=100,reference_mask=mask1,moving_mask=mask2)
-
-    if mask1 is False:
-        print ('register images new shift (y,x): [{} : {}] mas'.format(-shift[0]*inc1,-shift[1]*inc2))
-        print ('register images new shift (y,x): {} px +- {}'.format(-shift,error))
-
-    else:
-        print ('register images new shift (y,x): [{} : {}] mas'.format(-shift[0]*inc1,-shift[1]*inc2))
-        print ('register images new shift (y,x): {} px'.format(-shift))
-
-
-    #shift img2 to found position
-    img2 = apply_shift(img2,shift)
-
-    #return aligned image and the computed shift
-    if mask1 is False:
-        return {'align':img2, 'shift':shift, 'error':error, 'diffphase': diffphase}
-    else:
-        return {'align':img2, 'shift':shift}
-
 
 def masking(file1rb,file2rb,naxis=False,mask='ellipse',args=False,**kwargs):
     '''Define the masks that can be used for masking the images.
@@ -293,6 +239,7 @@ class AlignMaps(object):
 
         self.noise1 = noise1
         self.noise2 = noise2
+
     # regrid and blur the clean maps
     # I actually have no idea why this logic was checked... need to test and find out
     # check for same fov and pixel size
