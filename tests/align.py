@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 #Import Data
 data=ImageData("../dataset_example/0215_pol/Ku/0215+015.icn.fits",
-        model="../dataset_example/0215_pol/Ku/0215+015.icn.fits",
         stokes_q="../dataset_example/0215_pol/Ku/0215+015.qcn.fits",
         stokes_u="../dataset_example/0215_pol/Ku/0215+015.ucn.fits",   
         uvf_file="../dataset_example/0215_pol/Ku/0215+015.uvf",
@@ -12,7 +11,6 @@ data=ImageData("../dataset_example/0215_pol/Ku/0215+015.icn.fits",
 
 #Import copy of the same data (note: must be seperate fits files!!!)
 data2=ImageData("../dataset_example/0215_pol/K/0215+015.icn.fits",
-        model="../dataset_example/0215_pol/K/0215+015.icn.fits",
         stokes_q="../dataset_example/0215_pol/K/0215+015.qcn.fits",
         stokes_u="../dataset_example/0215_pol/K/0215+015.ucn.fits",   
         uvf_file="../dataset_example/0215_pol/K/0215+015.uvf",
@@ -30,8 +28,16 @@ print("Plotting Shifted Image")
 FitsImage(data_shifted,plot_mode="stokes_i",plot_evpa=True)
 plt.show()
 
-print("Aligning shifted image with image before")
+print("Aligning shifted image with image before using cross-correlation")
 data_aligned=data_shifted.align(data,auto_regrid=True)
+FitsImage(data_aligned,plot_mode="stokes_i")
+plt.show()
 
+print("Plotting Shifted Image")
+FitsImage(data_shifted,plot_mode="stokes_i",plot_evpa=True)
+plt.show()
+
+print("Aligning shifted image with image before using brightest pixel")
+data_aligned=data_shifted.align(data,auto_regrid=True,method="brightest")
 FitsImage(data_aligned,plot_mode="stokes_i")
 plt.show()

@@ -516,19 +516,22 @@ class ImageData(object):
 
             #if model loaded try regridding as well
             try:
-                with fits.open(self.model_file_path) as f:
-                    new_image_model = interpolator(f[0].data[0, 0, :, :])(points).reshape(npix,npix)
-                    f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
-                    f[0].data[0, 0, :, :] = new_image_model
-                    new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
-                    f[1].header['XTENSION'] = 'BINTABLE'
-                    f[0].header["NAXIS1"] = npix
-                    f[0].header["NAXIS2"] = npix
-                    f[0].header["CDELT1"] = -pixel_size / self.scale
-                    f[0].header["CDELT2"] = pixel_size / self.scale
-                    f[0].header["CRPIX1"]=int(f[0].header["CRPIX1"]/len(self.X)*npix)
-                    f[0].header["CRPIX2"]=int(f[0].header["CRPIX2"]/len(self.X)*npix)
-                    f.writeto(new_model_fits, overwrite=True)
+                if not self.model_file_path == self.fits_file:
+                    with fits.open(self.model_file_path) as f:
+                        new_image_model = interpolator(f[0].data[0, 0, :, :])(points).reshape(npix,npix)
+                        f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
+                        f[0].data[0, 0, :, :] = new_image_model
+                        new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        f[0].header["NAXIS1"] = npix
+                        f[0].header["NAXIS2"] = npix
+                        f[0].header["CDELT1"] = -pixel_size / self.scale
+                        f[0].header["CDELT2"] = pixel_size / self.scale
+                        f[0].header["CRPIX1"]=int(f[0].header["CRPIX1"]/len(self.X)*npix)
+                        f[0].header["CRPIX2"]=int(f[0].header["CRPIX2"]/len(self.X)*npix)
+                        f.writeto(new_model_fits, overwrite=True)
+                else:
+                    new_model_fits=new_stokes_i_fits
             except:
                 warnings.warn("Model not regridded, probably no model loaded.",UserWarning)
                 new_model_fits=""
@@ -573,7 +576,6 @@ class ImageData(object):
                 common_beam=get_common_beam([self.beam_maj,image_data2.beam_maj],
                                             [self.beam_min,image_data2.beam_min],
                                             [self.beam_pa,image_data2.beam_pa],arg="common")
-                #TODO check the common beam, something fishy might be happening with the regridding
 
                 #regrid images
                 image_self = self
@@ -584,7 +586,6 @@ class ImageData(object):
                 # same for image 2
                 image_data2 = image_data2.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
                 image_data2 = image_data2.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
-
 
             else:
                 warnings.warn("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
@@ -604,8 +605,13 @@ class ImageData(object):
                 #print('register images new shift (y,x): {} px'.format(-shift))
         elif method=="brightest":
             #align images on brightest pixel
-            #TODO
-            pass
+            #find brightest pixel of reference image and image
+            x_ind,y_ind = np.unravel_index(np.argmax(image_data2.Z), image_data2.Z.shape)
+            x_,y_ = np.unravel_index(np.argmax(image_self.Z), image_self.Z.shape)
+
+            shift=[y_-y_ind,x_-x_ind]
+            print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
+                                                                 shift[0] * image_self.scale * image_self.degpp))
         else:
             warning.warn("Please use valid align method ('cross_correlation','brightest').",UserWarning)
 
@@ -614,7 +620,7 @@ class ImageData(object):
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
 
-    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
+    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=False):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
@@ -624,7 +630,6 @@ class ImageData(object):
         Returns:
             New ImageData object
         """
-
         #TODO basic sanity check if uvf file is present and if polarization is there
         if self.uvf_file=="" or useDIFMAP==False:
             #this means there is no valid .uvf file or we don't want to use DIFMAP
@@ -686,34 +691,6 @@ class ImageData(object):
                 new_stokes_u_fits = ""
                 new_stokes_q_fits = ""
 
-            # if model loaded try shifting model image as well
-            try:
-                input_ = np.fft.fft2(
-                    fits.open(self.model_file_path)[0].data[0, 0, :, :])  # before it was np.fft.fftn(img)
-                offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
-                imgalign = np.fft.ifft2(offset_image)  # again before ifftn
-                new_image_model = imgalign.real
-                if not (bmaj==-1 and bmin ==-1 and posa==-1):
-                    new_image_model = JyPerBeam2Jy(new_image_model, self.beam_maj, self.beam_min, self.degpp * self.scale)
-                    new_image_model = convolve_with_elliptical_gaussian(new_image_model,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
-                    # convert to jansky per (new) beam
-                    new_image_model = Jy2JyPerBeam(new_image_model, bmaj, bmin, self.degpp * self.scale)
-
-                with fits.open(self.model_file_path) as f:
-                    f[0].data[0, 0, :, :] = new_image_model
-                    new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
-                    f[1].header['XTENSION'] = 'BINTABLE'
-                    f[1].data["DELTAX"] += shift_x_deg
-                    f[1].data["DELTAY"] += shift_y_deg
-                    if not (bmaj == -1 and bmin == -1 and posa == -1):
-                        f[0].header["BMAJ"] = bmaj / self.scale
-                        f[0].header["BMIN"] = bmin / self.scale
-                        f[0].header["BPA"] = posa
-                    f.writeto(new_model_fits, overwrite=True)
-            except:
-                new_image_model = ""
-                new_model_fits = ""
-
             #write outputs to the fitsfiles
             if self.only_stokes_i:
                 # this means DIFMAP style fits image
@@ -761,6 +738,7 @@ class ImageData(object):
                             f[0].header["BPA"] = posa
                         f.writeto(new_stokes_u_fits, overwrite=True)
 
+
             else:
                 # CASA style
                 f = fits.open(self.fits_file)
@@ -777,6 +755,42 @@ class ImageData(object):
 
                 new_stokes_q_fits=""
                 new_stokes_u_fits=""
+
+            # if model loaded try shifting model image as well
+            try:
+                if not self.model_file_path == self.fits_file:
+                    input_ = np.fft.fft2(
+                        fits.open(self.model_file_path)[0].data[0, 0, :,
+                        :])  # before it was np.fft.fftn(img)
+                    offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                    imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                    new_image_model = imgalign.real
+                    if not (bmaj == -1 and bmin == -1 and posa == -1):
+                        new_image_model = JyPerBeam2Jy(new_image_model, self.beam_maj, self.beam_min,
+                                                       self.degpp * self.scale)
+                        new_image_model = convolve_with_elliptical_gaussian(new_image_model,
+                                                                            bmaj / self.scale / self.degpp / 2,
+                                                                            bmin / self.scale / self.degpp / 2,
+                                                                            posa)
+                        # convert to jansky per (new) beam
+                        new_image_model = Jy2JyPerBeam(new_image_model, bmaj, bmin, self.degpp * self.scale)
+
+                    with fits.open(self.model_file_path) as f:
+                        f[0].data[0, 0, :, :] = new_image_model
+                        new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        f[1].data["DELTAX"] += shift_x_deg
+                        f[1].data["DELTAY"] += shift_y_deg
+                        if not (bmaj == -1 and bmin == -1 and posa == -1):
+                            f[0].header["BMAJ"] = bmaj / self.scale
+                            f[0].header["BMIN"] = bmin / self.scale
+                            f[0].header["BPA"] = posa
+                        f.writeto(new_model_fits, overwrite=True)
+                else:
+                    new_model_fits = new_stokes_i_fits
+            except:
+                new_image_model = ""
+                new_model_fits = ""
 
         else:
             #This means we have a valid .uvf file and we will use DIFMAP for shifting and restoring
@@ -806,18 +820,21 @@ class ImageData(object):
                     mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
 
             new_stokes_i_fits+=".fits"
-            #try to restore modelfit if it is ther
 
+            #try to restore modelfit if it is there
             try:
-                new_model_fits=self.model_mod_file.replace(".mod","_convolved")
+                if not self.model_file_path==self.fits_file:
+                    new_model_fits=self.model_mod_file.replace(".mod","_convolved")
 
-                fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
-                    bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
-                    channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
-                    n_pixel=npix, pixel_size=pixel_size,
-                    mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                    fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
+                        bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
+                        channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
+                        n_pixel=npix, pixel_size=pixel_size,
+                        mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
 
-                new_model_fits+=".fits"
+                    new_model_fits+=".fits"
+                else:
+                    new_model_fits=new_stokes_i_fits
             except:
                 new_model_fits=""
 
