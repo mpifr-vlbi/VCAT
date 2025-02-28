@@ -1,0 +1,71 @@
+! Started logfile: difmap.log on Fri Feb 28 02:39:12 2025
+![@/usr/local/difmap/uvf_difmap_2.5g/difmap.boot]
+! Obeying initialization file: /usr/local/difmap/uvf_difmap_2.5g/difmap.boot
+device /xw
+! Attempting to open device: '/xw'
+pgscr 2,1,0,1
+float x_cmp
+float y_cmp
+float fl_cmp
+![Exited script file: /usr/local/difmap/uvf_difmap_2.5g/difmap.boot]
+obs ../dataset_example/0215_pol/K/0215+015.uvf
+! Reading UV FITS file: ../dataset_example/0215_pol/K/0215+015.uvf
+! AN table 1: 875 integrations on 45 of 45 possible baselines.
+! Apparent sampling: 0.816127 visibilities/baseline/integration-bin.
+! Found source: 0215+015
+! 
+! There are 4 IFs, and a total of 4 channels:
+! 
+!  IF  Channel    Frequency  Freq offset  Number of   Overall IF
+!       origin    at origin  per channel   channels    bandwidth
+!  ------------------------------------------------------------- (Hz)
+!  01        1   2.3576e+10     1.28e+08          1     1.28e+08
+!  02        2   2.3704e+10     1.28e+08          1     1.28e+08
+!  03        3   2.3832e+10     1.28e+08          1     1.28e+08
+!  04        4    2.396e+10     1.28e+08          1     1.28e+08
+! 
+! Polarization(s): RR LL RL LR
+! 
+! Read 1 lines of history.
+! 
+! Reading 514160 visibilities.
+uvw 0,-1
+! Uniform weighting is not currently selected.
+! Gridding weights will be scaled by errors raised to the power -1.
+! Radial weighting is not currently selected.
+select i
+! Selecting polarization: I,  channels: 1..4
+! Reading IF 1 channels: 1..1
+! Reading IF 2 channels: 2..2
+! Reading IF 3 channels: 3..3
+! Reading IF 4 channels: 4..4
+rmod tmp/mod_files_clean/0215+015_2022-03-24_24GHz.mod
+! A total of 97 model components were read from file tmp/mod_files_clean/0215+015_2022-03-24_24GHz.mod
+selfcal
+! Performing phase self-cal
+! Adding 97 model components to the UV plane model.
+! The established model now contains 97 components and 1.83431 Jy
+! 
+! Correcting IF 1.
+!  A total of 2215 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 2.
+!  A total of 1535 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 3.
+!  A total of 1653 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 4.
+!  A total of 1577 telescope corrections were flagged in sub-array 1.
+! 
+! Fit before self-cal, rms=0.052068Jy  sigma=1.687209
+! Fit after  self-cal, rms=0.051355Jy  sigma=1.662889
+maps 2048,0.02000000004727464
+! Map grid = 2048x2048 pixels with 0.0200x0.0200 milli-arcsec cellsize.
+restore 1.573636527882274,0.6501265112592569,-14.582519654797117
+! Inverting map and beam 
+! Estimated beam: bmin=0.4933 mas, bmaj=0.9778 mas, bpa=2.503 degrees
+! Estimated noise=0.0551853 mJy/beam.
+! Restoring with beam: 0.6501 x 1.574 at -14.58 degrees (North through East)
+! Clean map  min=-0.010324  max=1.8118 Jy/beam
+! Log file difmap.log closed on Fri Feb 28 02:39:13 2025

@@ -54,14 +54,18 @@ class Component():
         self.ratio = self.min / self.maj if self.maj > 0 else 0
 
         self.size=self.maj*scale
-
+        skip_tb=False
         is_circular=False
         if noise==0:
             self.res_lim_min=0
             self.res_lim_maj=0
         else:
+            if self.maj==0 and self.min==0:
+                skip_tb=True
+                self.res_lim_maj=0
+                self.res_lim_min=0
             #check for circular components:
-            if self.maj == self.min:
+            elif self.maj == self.min:
                 self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,flux,noise)
                 self.res_lim_min=self.res_lim_maj
                 is_circular=True
@@ -85,7 +89,10 @@ class Component():
         maj_for_tb=np.max(np.array([self.res_lim_maj,self.maj]))
         min_for_tb=np.max(np.array([self.res_lim_min,self.min]))
 
-        self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb / min_for_tb   #Kovalev et al. 2005
+        if skip_tb:
+            self.tb = 0
+        else:
+            self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb / min_for_tb   #Kovalev et al. 2005
         self.scale = scale
 
     def set_distance_to_core(self, core_x, core_y):
@@ -329,7 +336,7 @@ class ComponentCollection():
 def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,flux,noise):
     # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
     #here we need to check if the component is resolved or not!
-    factor=np.sqrt(4*np.log(2)/np.pi*np.log(flux/noise/(flux/noise-1))) #following Kovalev et al. 2005
+    factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(flux/noise)/(abs(flux/noise)-1))) #following Kovalev et al. 2005
 
     #rotate the beam to the x-axis
     new_pos=beam_pos-comp_pos

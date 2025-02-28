@@ -20,6 +20,7 @@ from scipy.ndimage import fourier_shift, shift
 from skimage.draw import disk, ellipse
 from skimage.registration import phase_cross_correlation
 from scipy.interpolate import RegularGridInterpolator
+import copy
 
 class ImageData(object):
 
@@ -324,7 +325,7 @@ class ImageData(object):
 
         for ind,comp in self.model.iterrows():
             component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
-                    comp["PA"],comp["Flux"],comp["Date"],comp["mjd"],comp["Year"],freq=self.freq)
+                    comp["PA"],comp["Flux"],comp["Date"],comp["mjd"],comp["Year"],freq=self.freq,noise=self.noise)
             self.components.append(component)
         
         #calculate residual map if uvf and modelfile present
@@ -385,6 +386,9 @@ class ImageData(object):
             return line1+line2+line3+line4+line5
         except:
             return "No data loaded yet."
+
+    def copy(self):
+        return copy.copy(self)
 
     def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
         """
@@ -578,7 +582,7 @@ class ImageData(object):
                                             [self.beam_pa,image_data2.beam_pa],arg="common")
 
                 #regrid images
-                image_self = self
+                image_self = self.copy()
                 image_self = image_self.regrid(npix,pixel_size,useDIFMAP=useDIFMAP)
                 # convolve with common beam
                 image_self = image_self.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
@@ -592,7 +596,7 @@ class ImageData(object):
                 return self
 
         else:
-            image_self=self
+            image_self=self.copy()
 
         if method=="cross_correlation":
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
@@ -603,6 +607,7 @@ class ImageData(object):
                 shift, _, _ = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
                 print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp))
                 #print('register images new shift (y,x): {} px'.format(-shift))
+
         elif method=="brightest":
             #align images on brightest pixel
             #find brightest pixel of reference image and image
@@ -630,6 +635,13 @@ class ImageData(object):
         Returns:
             New ImageData object
         """
+        if bmaj==-1:
+            bmaj=self.beam_maj
+        if bmin==-1:
+            bmin=self.beam_min
+        if posa==-1:
+            posa=self.beam_pa
+
         #TODO basic sanity check if uvf file is present and if polarization is there
         if self.uvf_file=="" or useDIFMAP==False:
             #this means there is no valid .uvf file or we don't want to use DIFMAP
