@@ -449,6 +449,7 @@ class ImageData(object):
             except:
                 warnings.warn("Unable to regrid polarization, probably no polarization loaded", UserWarning)
 
+
             # write outputs to the fitsfiles
             if self.only_stokes_i:
                 # this means DIFMAP style fits image
@@ -482,6 +483,9 @@ class ImageData(object):
                         f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
                         f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
                         f.writeto(new_stokes_q_fits, overwrite=True)
+                else:
+                    new_stokes_q_fits=""
+
 
                 if len(self.stokes_u) > 0:
                     with fits.open(self.stokes_u_path) as f:
@@ -498,6 +502,8 @@ class ImageData(object):
                         f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
                         f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
                         f.writeto(new_stokes_u_fits, overwrite=True)
+                else:
+                    new_stokes_u_fits = ""
 
             else:
                 # CASA style
@@ -539,6 +545,7 @@ class ImageData(object):
             except:
                 warnings.warn("Model not regridded, probably no model loaded.",UserWarning)
                 new_model_fits=""
+
 
             newImageData=ImageData(fits_file=new_stokes_i_fits,
                          uvf_file=self.uvf_file,
