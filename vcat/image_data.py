@@ -9,6 +9,8 @@ import sys
 import pexpect
 from datetime import datetime
 from astropy.time import Time
+
+from vcat.graph_generator import FitsImage
 from vcat.kinematics import Component
 from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import *
@@ -361,8 +363,8 @@ class ImageData(object):
         if len(mask)==0:
             self.mask = np.zeros_like(self.Z, dtype=bool)
             #test masking
-            self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
-            self.masking(mask_type="cut_left",args=-200)
+            #self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
+            #self.masking(mask_type="cut_left",args=-200)
         else:
             if np.shape(mask) != np.shape(self.Z):
                 warnings.warn("Mask input format invalid, Mask reset to no mask.",UserWarning)
@@ -384,7 +386,7 @@ class ImageData(object):
         except:
             return "No data loaded yet."
 
-    def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=True):
+    def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
         """
         This method regrids the image in full polarization
         Args:
@@ -425,6 +427,8 @@ class ImageData(object):
             fill_value=1
         else:
             fill_value=0
+
+
         new_mask = interpolator(self.mask, fill_value)(points).reshape(npix, npix)  # flags new points automatically
         new_mask[new_mask < 0.5] = False
         new_mask[new_mask >= 0.5] = True
@@ -542,22 +546,61 @@ class ImageData(object):
         else:
             #Using DIFMAP
             self.mask=new_mask
-            newImageData=self.restore(self,-1,-1,-1,npix=npix*2,pixel_size=pixel_size,weighting=weighting,useDIFMAP=True)
+            newImageData=self.restore(-1,-1,-1,npix=npix*2,pixel_size=pixel_size,weighting=weighting,useDIFMAP=True)
 
         return newImageData
 
-        #TODO also regrid mask!!!
+    def plot(self,plot_mode="stokes_i",plot_mask=False,show=True):
+        #TODO Include all parameters from FitsImage here
+        FitsImage(self,plot_mode="stokes_i",plot_mask=plot_mask)
+        if show:
+            plt.show()
 
-    def align(self,image_data2,masked_shift=True,method="cross_correlation"):
+
+    def align(self,image_data2,masked_shift=True,method="cross_correlation",auto_mask='', auto_regrid=False,useDIFMAP=True):
+
+        if (self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp:
+            if auto_regrid:
+                # if this is selected will automatically convolve with common beam and regrid
+                print("Automatically regridding image to minimum pixelsize, smallest FOV and common beam")
+
+                #determin common image parameters
+                pixel_size=np.min([self.degpp*self.scale,image_data2.degpp*image_data2.scale])
+                min_fov=np.min([self.degpp*len(self.X)*self.scale,image_data2.degpp*len(image_data2.X)*self.scale])
+                npix=int(min_fov/pixel_size)
+
+                #get common beam
+                common_beam=get_common_beam([self.beam_maj,image_data2.beam_maj],
+                                            [self.beam_min,image_data2.beam_min],
+                                            [self.beam_pa,image_data2.beam_pa],arg="common")
+                #TODO check the common beam, something fishy might be happening with the regridding
+
+                #regrid images
+                image_self = self
+                image_self = image_self.regrid(npix,pixel_size,useDIFMAP=useDIFMAP)
+                # convolve with common beam
+                image_self = image_self.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
+
+                # same for image 2
+                image_data2 = image_data2.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
+                image_data2 = image_data2.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
+
+
+            else:
+                warnings.warn("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
+                return self
+
+        else:
+            image_self=self
 
         if method=="cross_correlation":
-            if (np.all(image_data2.mask==False) and np.all(self.mask==False)) or masked_shift==False:
-                shift,error,diffphase = phase_cross_correlation((image_data2.Z),(self.Z),upsample_factor=100)
-                print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] *self.scale*self.degpp, shift[0] *self.scale*self.degpp))
+            if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
+                shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
+                print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp))
                 #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
-                shift, _, _ = phase_cross_correlation((image_data2.Z),(self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=self.mask)
-                print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*self.scale*self.degpp, shift[0]*self.scale*self.degpp))
+                shift, _, _ = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
+                print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp))
                 #print('register images new shift (y,x): {} px'.format(-shift))
         elif method=="brightest":
             #align images on brightest pixel
@@ -568,7 +611,7 @@ class ImageData(object):
 
 
         #shift shifted image
-        return self.shift(-shift[1]*self.scale*self.degpp,shift[0]*self.scale*self.degpp)
+        return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
 
     def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
@@ -732,7 +775,7 @@ class ImageData(object):
                 new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
                 f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
 
-                new_stokes_u_fits=""
+                new_stokes_q_fits=""
                 new_stokes_u_fits=""
 
         else:
@@ -803,7 +846,6 @@ class ImageData(object):
             except:
                 new_stokes_q_fits=""
                 new_stokes_u_fits=""
-
 
         return ImageData(fits_file=new_stokes_i_fits,
                          uvf_file=self.uvf_file,

@@ -375,7 +375,6 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
             os.environ['PATH'] = os.environ['PATH'] + ':{0}'.format(difmap_path) 
             
         # Initialize difmap call
-        print(difmap_path)
         child = pexpect.spawn(difmap_path+"difmap", encoding='utf-8', echo=False)
         child.expect_exact("0>",None, 2)
 
@@ -399,4 +398,4 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         
         os.system("rm -rf difmap.log*")
         
-        print("Convolution complete!")
+        #print("Convolution complete!")

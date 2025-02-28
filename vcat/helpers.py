@@ -565,7 +565,7 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
         for ind in range(len(majs)):
             bmaj = majs[ind]
             bmin = mins[ind]
-            posa = posas[ind]
+            posa = posas[ind]/180*np.pi
 
             if len(majs) == 1:
                 return bmaj, bmin, posa
