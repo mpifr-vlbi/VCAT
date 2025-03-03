@@ -384,6 +384,7 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
 
         for ind, fits_file in enumerate(fits_files):
             send_difmap_command("obs " + uvf_files[ind])
+            print("obs "+uvf_files[ind])
             send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  #use custom weighting
             if abs(shift_x)>0 or abs(shift_y)>9:
                 send_difmap_command(f"shift {shift_x},{shift_y}")
@@ -395,6 +396,7 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
             if not (bmaj==-1 and bmin ==-1 and posa==-1):
                 send_difmap_command("restore " + str(bmaj) + "," + str(bmin) + "," + str(posa))
             send_difmap_command("save " + outname)
+            print(outname)
         
         os.system("rm -rf difmap.log*")
         

@@ -450,14 +450,14 @@ class ImageData(object):
                 warnings.warn("Unable to regrid polarization, probably no polarization loaded", UserWarning)
 
 
-            # write outputs to the fitsfiles
+            # write outputs to the fits files
             if self.only_stokes_i:
                 # this means DIFMAP style fits image
                 with fits.open(self.fits_file) as f:
                     #overwrite image data
                     f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                     f[0].data[0, 0, :, :] = new_image_i
-                    new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                    new_stokes_i_fits = self.model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                     f[1].header['XTENSION'] = 'BINTABLE'
                     #modify header parameters to new npix and pixelsize
                     f[0].header["NAXIS1"]=npix
@@ -473,7 +473,7 @@ class ImageData(object):
                         # overwrite image data
                         f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                         f[0].data[0, 0, :, :] = new_image_q
-                        new_stokes_q_fits = self.stokes_q_path.replace(".fits", "_convolved.fits")
+                        new_stokes_q_fits = self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                         f[1].header['XTENSION'] = 'BINTABLE'
                         # modify header parameters to new npix and pixelsize
                         f[0].header["NAXIS1"] = npix
@@ -492,9 +492,10 @@ class ImageData(object):
                         # overwrite image data
                         f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                         f[0].data[0, 0, :, :] = new_image_u
-                        new_stokes_u_fits = self.stokes_u_path.replace(".fits", "_convolved.fits")
+                        new_stokes_u_fits = self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                         f[1].header['XTENSION'] = 'BINTABLE'
-                        # modify header parameters to new npix and pixelsize
+                        # modify header parameters to new npix and
+                        # pixelsize
                         f[0].header["NAXIS1"] = npix
                         f[0].header["NAXIS2"] = npix
                         f[0].header["CDELT1"] = -pixel_size / self.scale
@@ -519,7 +520,7 @@ class ImageData(object):
                 f[0].header["CDELT2"] = pixel_size / self.scale
                 f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
                 f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
-                new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                new_stokes_i_fits = self.model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                 f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
                 new_stokes_q_fits=""
                 new_stokes_u_fits=""
@@ -527,19 +528,22 @@ class ImageData(object):
             #if model loaded try regridding as well
             try:
                 if not self.model_file_path == self.fits_file:
-                    with fits.open(self.model_file_path) as f:
-                        new_image_model = interpolator(f[0].data[0, 0, :, :])(points).reshape(npix,npix)
-                        f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
-                        f[0].data[0, 0, :, :] = new_image_model
-                        new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
-                        f[1].header['XTENSION'] = 'BINTABLE'
-                        f[0].header["NAXIS1"] = npix
-                        f[0].header["NAXIS2"] = npix
-                        f[0].header["CDELT1"] = -pixel_size / self.scale
-                        f[0].header["CDELT2"] = pixel_size / self.scale
-                        f[0].header["CRPIX1"]=int(f[0].header["CRPIX1"]/len(self.X)*npix)
-                        f[0].header["CRPIX2"]=int(f[0].header["CRPIX2"]/len(self.X)*npix)
-                        f.writeto(new_model_fits, overwrite=True)
+                    if not self.model_file_path=="":
+                        with fits.open(self.model_file_path) as f:
+                            new_image_model = interpolator(f[0].data[0, 0, :, :])(points).reshape(npix,npix)
+                            f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
+                            f[0].data[0, 0, :, :] = new_image_model
+                            new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                            f[1].header['XTENSION'] = 'BINTABLE'
+                            f[0].header["NAXIS1"] = npix
+                            f[0].header["NAXIS2"] = npix
+                            f[0].header["CDELT1"] = -pixel_size / self.scale
+                            f[0].header["CDELT2"] = pixel_size / self.scale
+                            f[0].header["CRPIX1"]=int(f[0].header["CRPIX1"]/len(self.X)*npix)
+                            f[0].header["CRPIX2"]=int(f[0].header["CRPIX2"]/len(self.X)*npix)
+                            f.writeto(new_model_fits, overwrite=True)
+                    else:
+                        new_model_fits=""
                 else:
                     new_model_fits=new_stokes_i_fits
             except:
@@ -590,13 +594,15 @@ class ImageData(object):
 
                 #regrid images
                 image_self = self.copy()
-                image_self = image_self.regrid(npix,pixel_size,useDIFMAP=useDIFMAP)
                 # convolve with common beam
                 image_self = image_self.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
+                image_self = image_self.regrid(npix,pixel_size,useDIFMAP=useDIFMAP)
+
 
                 # same for image 2
-                image_data2 = image_data2.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
                 image_data2 = image_data2.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
+                image_data2 = image_data2.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
+
 
             else:
                 warnings.warn("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
@@ -607,7 +613,9 @@ class ImageData(object):
 
         if method=="cross_correlation":
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
+
                 shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
+                print(-shift[1],shift[0])
                 print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp))
                 #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
@@ -703,7 +711,6 @@ class ImageData(object):
                     # convert to jansky per (new) beam
                     new_image_u = Jy2JyPerBeam(new_image_u, bmaj, bmin, self.degpp * self.scale)
 
-
             except:
                 new_image_q = ""
                 new_image_u = ""
@@ -715,7 +722,7 @@ class ImageData(object):
                 # this means DIFMAP style fits image
                 with fits.open(self.fits_file) as f:
                     f[0].data[0, 0, :, :] = new_image_i
-                    new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                    new_stokes_i_fits = self.model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                     f[1].header['XTENSION'] = 'BINTABLE'
                     #shift model/clean components
                     f[1].data["DELTAX"] += shift_x_deg
@@ -730,7 +737,7 @@ class ImageData(object):
                 if len(self.stokes_q) > 0:
                     with fits.open(self.stokes_q_path) as f:
                         f[0].data[0, 0, :, :] = new_image_q
-                        new_stokes_q_fits = self.stokes_q_path.replace(".fits", "_convolved.fits")
+                        new_stokes_q_fits = self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                         f[1].header['XTENSION'] = 'BINTABLE'
                         # shift model/clean components
                         f[1].data["DELTAX"] += shift_x_deg
@@ -745,7 +752,7 @@ class ImageData(object):
                 if len(self.stokes_u) > 0:
                     with fits.open(self.stokes_u_path) as f:
                         f[0].data[0, 0, :, :] = new_image_u
-                        new_stokes_u_fits = self.stokes_u_path.replace(".fits", "_convolved.fits")
+                        new_stokes_u_fits = self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                         f[1].header['XTENSION'] = 'BINTABLE'
                         # shift model/clean components
                         f[1].data["DELTAX"] += shift_x_deg
@@ -769,8 +776,9 @@ class ImageData(object):
                     f[0].header["BMAJ"] = bmaj / self.scale
                     f[0].header["BMIN"] = bmin / self.scale
                     f[0].header["BPA"] = posa
-                new_stokes_i_fits = self.fits_file.replace(".fits", "_convolved.fits")
+                new_stokes_i_fits = self.model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                 f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
+                f.close()
 
                 new_stokes_q_fits=""
                 new_stokes_u_fits=""
@@ -779,8 +787,7 @@ class ImageData(object):
             try:
                 if not self.model_file_path == self.fits_file:
                     input_ = np.fft.fft2(
-                        fits.open(self.model_file_path)[0].data[0, 0, :,
-                        :])  # before it was np.fft.fftn(img)
+                        fits.open(self.model_file_path)[0].data[0, 0, :, :])  # before it was np.fft.fftn(img)
                     offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
                     imgalign = np.fft.ifft2(offset_image)  # again before ifftn
                     new_image_model = imgalign.real
@@ -811,6 +818,8 @@ class ImageData(object):
                 new_image_model = ""
                 new_model_fits = ""
 
+            new_uvf_file=self.uvf_file
+
         else:
             #This means we have a valid .uvf file and we will use DIFMAP for shifting and restoring
             # calculate shift to pixel increments:
@@ -830,7 +839,7 @@ class ImageData(object):
                 pixel_size=self.degpp*self.scale
 
             #restore Stokes I
-            new_stokes_i_fits=self.stokes_i_mod_file.replace(".mod","_convolved")
+            new_stokes_i_fits=self.stokes_i_mod_file.replace(".mod","")
 
             fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
@@ -859,8 +868,8 @@ class ImageData(object):
 
             #try to restore polarization as well if it is there
             try:
-                new_stokes_q_fits=self.stokes_q_mod_file.replace(".mod","_convolved")
-                new_stokes_u_fits=self.stokes_u_mod_file.replace(".mod","_convolved")
+                new_stokes_q_fits=self.stokes_q_mod_file.replace(".mod","")
+                new_stokes_u_fits=self.stokes_u_mod_file.replace(".mod","")
 
 
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
@@ -883,8 +892,10 @@ class ImageData(object):
                 new_stokes_q_fits=""
                 new_stokes_u_fits=""
 
+            new_uvf_file=new_stokes_i_fits.replace(".fits",".uvf")
+
         return ImageData(fits_file=new_stokes_i_fits,
-                         uvf_file=self.uvf_file,
+                         uvf_file=new_uvf_file,
                          stokes_q=new_stokes_q_fits,
                          stokes_u=new_stokes_u_fits,
                          mask=new_mask,

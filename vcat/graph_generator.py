@@ -296,7 +296,6 @@ class FitsImage(object):
         self.plot_mode=plot_mode
         self.name = self.clean_image.name
         self.freq = self.clean_image.freq
-        image_data = self.clean_image.image_data
         X = self.clean_image.X
         Y = self.clean_image.Y
         Z = self.clean_image.Z
