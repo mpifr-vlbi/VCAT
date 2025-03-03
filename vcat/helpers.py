@@ -530,6 +530,16 @@ def getMinVolEllipse(P=None, tolerance=0.1):
 
 def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_beams=False):
     '''Derive the beam to be used for the maps to be aligned.
+    Args:
+        majs: List of Major Axis Values
+        mins: List of Minor Axis Values
+        posas: List of Position Angles (in degrees)
+        arg: Type of algorithm to use ("mean", "max", "median", "circ", "common")
+        ppe: Points per Ellipse for "common" algorithm
+        tolerance: Tolerance parameter for "common" algorithm
+        plot_beams: Boolean to choose if a diagnostic plot of all beams and the common beam should be displayed
+    Returns:
+        [maj, min, pos] List with new major and minor axis and position angle
     '''
 
     if arg=='mean':

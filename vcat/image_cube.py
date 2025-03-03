@@ -5,6 +5,7 @@ import os
 from astropy.time import Time
 import sys
 from vcat import ImageData
+from vcat.helpers import get_common_beam
 
 class ImageCube(object):
 
@@ -41,10 +42,14 @@ class ImageCube(object):
             self.mjds.append(image.mjd)
         self.freqs=np.sort(np.unique(self.freqs))
         self.dates=np.sort(np.unique(self.dates))
+        self.mjds=np.sort(np.unique(self.mjds))
 
         self.images=np.empty((len(self.dates),len(self.freqs)),dtype=object)
         self.images_freq = np.empty((len(self.dates), len(self.freqs)), dtype=float)
         self.images_mjd = np.empty((len(self.dates), len(self.freqs)), dtype=float)
+        self.images_majs = np.empty((len(self.dates), len(self.freqs)), dtype=float)
+        self.images_mins = np.empty((len(self.dates), len(self.freqs)), dtype=float)
+        self.images_pas = np.empty((len(self.dates), len(self.freqs)), dtype=float)
 
         for i,date in enumerate(self.dates):
             for j, freq in enumerate(self.freqs):
@@ -53,6 +58,9 @@ class ImageCube(object):
                         self.images[i,j]=image
                         self.images_mjd[i,j]=image.mjd
                         self.images_freq[i,j]=image.freq
+                        self.images_majs[i,j]=image.beam_maj
+                        self.images_mins[i,j]=image.beam_min
+                        self.images_pas[i,j]=image.beam_pa
 
         self.shape=self.images.shape
 
@@ -64,16 +72,72 @@ class ImageCube(object):
         #TODO stack all images from the same frequency at different epochs
         pass
 
-    def get_common_beam(self):
-        #TODO get common beam of selection of images (or all)
-        pass
+    def get_common_beam(self,mode="all",arg="common",ppe=100,tolerance=0.0001,plot_beams=False):
+        """
+        This function calculates the common beam from a selection of ImageData Objects within the ImageCube.
+        Args:
+            mode: Select mode ("all" -> one beam for all, "freq" -> gets common beam per frequency across epochs,
+            "epoch" -> gets common beam per epoch across all frequencies)
+            arg: Type of algorithm to use ("mean", "max", "median", "circ", "common")
+            ppe: Points per Ellipse for "common" algorithm
+            tolerance: Tolerance parameter for "common" algorithm
+            plot_beams: Boolean to choose if a diagnostic plot of all beams and the common beam should be displayed
+        Returns:
+            [maj, min, pos] List with new major and minor axis and position angle
+        """
+        if mode=="all":
+            cube=self.slice(epoch_lim=epoch_lim,freq_lim=freq_lim)
+            return get_common_beam(cube.images_majs.flatten(), cube.images_mins.flatten(), cube.images_pas.flatten(), arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
+        elif mode=="freq":
+            beams=[]
+            for freq in self.freqs:
+                cube=self.slice(freq_lim=[freq*1e-9-1,freq*1e-9+1])
+                print(cube)
+                beam=get_common_beam(cube.images_majs.flatten(), cube.images_mins.flatten(), cube.images_pas.flatten(), arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
+                beams.append(beam)
+            return beams
+        elif mode=="epoch":
+            beams=[]
+            for epoch in self.mjds:
+                cube=self.slice(epoch_lim=[epoch-1,epoch+1])
+                beam=get_common_beam(cube.images_majs.flatten(), cube.images_mins.flatten(), cube.images_pas.flatten(), arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
+                beams.append(beam)
+            return beams
+        else:
+            raise Exception("Please specify valid mode ('all','freq','epoch')")
 
-    def restore(self,beam_maj,beam_min,beam_posa):
+
+    def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True):
+        """
+        This function allows to restore the ImageCube with a custom beam
+        Args:
+            beam_maj: Beam major axis to use
+            beam_min: Beam minor axis to use
+            beam_posa: Beam position angle to use (in degrees)
+            arg: Type of algorithm to use for common beam calculation ("mean", "max", "median", "circ", "common")
+            mode: Select restore mode ("all" -> applies beam to all, "freq" -> restores common beam per frequency,
+            "epoch" -> restores common beam per epoch)
+
+        Returns:
+
+        """
         #TODO restore all images with a beam (or a selection)
+
+        if mode=="all":
+            pass
+        elif mode=="freq":
+            pass
+        elif mode=="epoch":
+            pass
+
         pass
 
     def shift(self, shift_x, shift_y):
         #TODO shift all images or a selection
+        pass
+
+    def align(self,image_data):
+        #TODO Align selected maps to ImageData object
         pass
 
     def slice(self,epoch_lim="",freq_lim=""):
@@ -127,6 +191,7 @@ class ImageCube(object):
 
 
         return ImageCube(image_data_list=images[inds])
+
 
     def concatenate(self,ImageCube2):
         images=np.append(self.images.flatten(),ImageCube2.images.flatten())
@@ -210,10 +275,6 @@ class ImageCube(object):
 
     def get_rm_map(self):
         #TODO get RM map
-        pass
-
-    def align(self,image_data):
-        #TODO Align selected maps to ImageData object
         pass
 
 

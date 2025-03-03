@@ -10,7 +10,7 @@ images=[dataC,dataQ]
 
 im_cube=ImageCube(images)
 
-print(im_cube)
+print(im_cube.get_common_beam(mode="freq"))
 
 im_cube=im_cube.removeEpoch(epoch="2022-02-01")
 
