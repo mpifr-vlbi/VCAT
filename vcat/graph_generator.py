@@ -261,6 +261,7 @@ class FitsImage(object):
                  contour_alpha = 1,  # transparency
                  contour_width = 0.5,  # contour linewidth
                  im_color='', # string for matplotlib colormap
+                 do_colorbar=False, #choose whether to display colorbar
                  plot_beam=True, #choose whether to plot beam or not
                  overplot_gauss=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
@@ -312,6 +313,7 @@ class FitsImage(object):
         self.evpa_color=evpa_color
         self.background_color=background_color
         self.noise_method=self.clean_image.noise_method
+        self.do_colorbar=do_colorbar
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
@@ -351,7 +353,7 @@ class FitsImage(object):
 
         # Image colormap
         if self.im_colormap == True and plot_mode=="stokes_i":
-            self.plotColormap(Z,im_color,levs,levs1,extent)
+            self.plotColormap(Z,im_color,levs,levs1,extent,do_colorbar=self.do_colorbar)
             contour_color="white"
 
 
@@ -361,7 +363,7 @@ class FitsImage(object):
 
             if plot_mode=="lin_pol":
                 self.plotColormap(self.clean_image.lin_pol,im_color,levs_linpol,levs1_linpol,extent,
-                                  label="Linear Polarized Intensity [Jy/beam]")
+                                  label="Linear Polarized Intensity [Jy/beam]",do_colorbar=self.do_colorbar)
             if plot_mode=="frac_pol":
                 plot_lin_pol = np.array(self.clean_image.lin_pol)
                 plot_frac_pol = plot_lin_pol / np.array(self.clean_image.Z)
@@ -369,7 +371,7 @@ class FitsImage(object):
                                                   plot_frac_pol)
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
-                                  label="Fractional Linear Polarization")
+                                  label="Fractional Linear Polarization",do_colorbar=self.do_colorbar)
 
         if plot_evpa and np.sum(self.clean_image.lin_pol)!=0:
             levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
@@ -411,7 +413,7 @@ class FitsImage(object):
         self.ax.tick_params(axis="x",labelsize=font_size_axis_tick)
 
         if plot_mask:
-            self.plotColormap(self.clean_image.mask,"gray_r",np.zeros(100),[0.00],extent,label="Mask")
+            self.plotColormap(self.clean_image.mask,"gray_r",np.zeros(100),[0.00],extent,label="Mask",do_colorbar=self.do_colorbar)
 
 
         # Read modelfit files in
@@ -480,7 +482,7 @@ class FitsImage(object):
                      levs1, #sigma levs output
                      extent, #plot lims x_min,x_max,y_min,y_max
                      label="Flux Density [Jy/beam]", #label for colorbar
-                     do_colorbar=True
+                     do_colorbar=False
                      ):
 
         #OPTIONS for fractional polarization plot
@@ -515,8 +517,8 @@ class FitsImage(object):
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=ticks)
-                    cbar.set_label(label)
-                    cbar.ax.set_yticklabels(ticklabels)
+                    cbar.set_label(label,fontsize=font_size_axis_title)
+                    cbar.ax.set_yticklabels(ticklabels, labelsize=font_size_axis_tick)
             elif vmax <=0.2:
                 ticks = np.array([0.0, 0.025, 0.05, 0.75, 0.1, 0.125, 0.15, 0.175, 0.2])
                 ticklabels = ["0.000", "0.025", "0.050", "0.075", "0.100", "0.125", "0.150", "0.175", "0.200"]
@@ -530,14 +532,14 @@ class FitsImage(object):
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=final_ticks)
-                    cbar.set_label(label)
-                    cbar.ax.set_yticklabels(final_labels)
+                    cbar.set_label(label, fontsize=font_size_axis_title)
+                    cbar.ax.set_yticklabels(ticklabels, labelsize=font_size_axis_tick)
             else:
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-                    cbar.set_label(label)
+                    cbar.set_label(label, fontsize=font_size_axis_title)
             if do_colorbar:
                 cbar.ax.yaxis.set_minor_formatter(ticker.NullFormatter())
         elif label=="Linear Polarized Intensity [Jy/beam]":
@@ -564,7 +566,7 @@ class FitsImage(object):
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-                cbar.set_label(label)
+                cbar.set_label(label, fontsize=font_size_axis_title)
         elif label=="Mask":
             if im_color=="":
                 im_color="inferno"
@@ -581,7 +583,7 @@ class FitsImage(object):
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-                cbar.set_label(label)
+                cbar.set_label(label, fontsize=font_size_axis_title)
 
     def plotComponent(self,x,y,maj,min,pos,scale):
 
@@ -681,6 +683,7 @@ class MultiFitsImage(object):
                  contour_alpha=1,  # transparency
                  contour_width=0.5,  # contour linewidth
                  im_color='',  # string for matplotlib colormap
+                 do_colorbar=False, #choose whether to display colorbar for every image
                  plot_beam=True,  # choose whether to plot beam or not
                  overplot_gauss=False,  # choose whether to plot modelfit components
                  component_color="black",  # choose component color for Gauss component
@@ -744,6 +747,7 @@ class MultiFitsImage(object):
                                         contour_alpha=contour_alpha,
                                         contour_width=contour_width,
                                         im_color=im_color,
+                                        do_colorbar=do_colorbar,
                                         plot_beam=plot_beam,
                                         overplot_gauss=overplot_gauss,
                                         component_color=component_color,
