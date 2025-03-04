@@ -204,7 +204,6 @@ class ImageCube(object):
             beams=[]
             for freq in self.freqs:
                 cube=self.slice(freq_lim=[freq*1e-9-1,freq*1e-9+1])
-                print(cube)
                 beam=get_common_beam(cube.images_majs.flatten(), cube.images_mins.flatten(), cube.images_pas.flatten(), arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
                 beams.append(beam)
             return beams
@@ -487,7 +486,6 @@ class ImageCube(object):
                 im_cube=ImageCube(images)
                 im_cube=im_cube.regrid(npix_i,pixel_size_i,mode=mode,useDIFMAP=useDIFMAP)
                 #restore images
-                print(f"Using beam {beam_i[0]},{beam_i[1]},{beam_i[2]}.")
                 im_cube=im_cube.restore(beam_i[0],beam_i[1],beam_i[2],mode=mode,useDIFMAP=useDIFMAP)
 
                 images=im_cube.images.flatten()

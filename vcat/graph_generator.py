@@ -518,8 +518,8 @@ class FitsImage(object):
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=ticks)
-                    cbar.set_label(label,fontsize=font_size_axis_title)
-                    cbar.ax.set_yticklabels(ticklabels, labelsize=font_size_axis_tick)
+                    cbar.set_label(label,fontsize=self.ax.xaxis.label.get_size())
+                    cbar.ax.set_yticklabels(ticklabels, labelsize=self.ax.yaxis.get_ticklabels()[0].get_size())
             elif vmax <=0.2:
                 ticks = np.array([0.0, 0.025, 0.05, 0.75, 0.1, 0.125, 0.15, 0.175, 0.2])
                 ticklabels = ["0.000", "0.025", "0.050", "0.075", "0.100", "0.125", "0.150", "0.175", "0.200"]
@@ -533,14 +533,14 @@ class FitsImage(object):
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=final_ticks)
-                    cbar.set_label(label, fontsize=font_size_axis_title)
-                    cbar.ax.set_yticklabels(ticklabels, labelsize=font_size_axis_tick)
+                    cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
+                    cbar.ax.set_yticklabels(ticklabels, labelsize=self.ax.yaxis.get_ticklabels()[0].get_size())
             else:
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-                    cbar.set_label(label, fontsize=font_size_axis_title)
+                    cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
             if do_colorbar:
                 cbar.ax.yaxis.set_minor_formatter(ticker.NullFormatter())
         elif label=="Linear Polarized Intensity [Jy/beam]":
@@ -567,7 +567,7 @@ class FitsImage(object):
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-                cbar.set_label(label, fontsize=font_size_axis_title)
+                cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
         elif label=="Mask":
             if im_color=="":
                 im_color="inferno"
@@ -584,7 +584,7 @@ class FitsImage(object):
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
-                cbar.set_label(label, fontsize=font_size_axis_title)
+                cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
     def plotComponent(self,x,y,maj,min,pos,scale):
 
@@ -765,6 +765,7 @@ class MultiFitsImage(object):
                                         evpa_color=evpa_color,
                                         title=titles[i,j],
                                         background_color=background_color,
+                                        fig=self.fig,
                                         ax=self.axes[i,j],
                                         font_size_axis_title=font_size_axis_title,
                                         font_size_axis_tick=font_size_axis_tick,

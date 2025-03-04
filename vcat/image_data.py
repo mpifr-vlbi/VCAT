@@ -721,8 +721,8 @@ class ImageData(object):
             if not (bmaj == -1 and bmin == -1 and posa == -1):
                 #convert to jansky per pixel
                 new_image_i = JyPerBeam2Jy(new_image_i,self.beam_maj,self.beam_min,self.degpp*self.scale)
-                new_image_i = convolve_with_elliptical_gaussian(new_image_i, bmaj / self.scale / self.degpp/2,
-                                                             bmin / self.scale / self.degpp/2, posa)
+                new_image_i = convolve_with_elliptical_gaussian(new_image_i, bmaj / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                             bmin / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))), posa)
                 #convert to jansky per (new) beam
                 new_image_i = Jy2JyPerBeam(new_image_i,bmaj,bmin,self.degpp*self.scale)
             # try polarization
@@ -733,7 +733,9 @@ class ImageData(object):
                 new_image_q = imgalign.real
                 if not (bmaj==-1 and bmin ==-1 and posa==-1):
                     new_image_q = JyPerBeam2Jy(new_image_q, self.beam_maj, self.beam_min, self.degpp * self.scale)
-                    new_image_q = convolve_with_elliptical_gaussian(new_image_q,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
+                    new_image_q = convolve_with_elliptical_gaussian(new_image_q,
+                                                                    bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                    bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
                     # convert to jansky per (new) beam
                     new_image_q = Jy2JyPerBeam(new_image_q, bmaj, bmin, self.degpp * self.scale)
 
@@ -743,7 +745,8 @@ class ImageData(object):
                 new_image_u = imgalign.real
                 if not (bmaj==-1 and bmin ==-1 and posa==-1):
                     new_image_u = JyPerBeam2Jy(new_image_u, self.beam_maj, self.beam_min, self.degpp * self.scale)
-                    new_image_u= convolve_with_elliptical_gaussian(new_image_u,bmaj/self.scale/self.degpp/2,bmin/self.scale/self.degpp/2,posa)
+                    new_image_u= convolve_with_elliptical_gaussian(new_image_u,bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                    bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
                     # convert to jansky per (new) beam
                     new_image_u = Jy2JyPerBeam(new_image_u, bmaj, bmin, self.degpp * self.scale)
 
@@ -831,8 +834,8 @@ class ImageData(object):
                         new_image_model = JyPerBeam2Jy(new_image_model, self.beam_maj, self.beam_min,
                                                        self.degpp * self.scale)
                         new_image_model = convolve_with_elliptical_gaussian(new_image_model,
-                                                                            bmaj / self.scale / self.degpp / 2,
-                                                                            bmin / self.scale / self.degpp / 2,
+                                                                            bmaj / self.scale / self.degpp / (2*np.sqrt(2*np.log(2))),
+                                                                            bmin / self.scale / self.degpp / (2*np.sqrt(2*np.log(2))),
                                                                             posa)
                         # convert to jansky per (new) beam
                         new_image_model = Jy2JyPerBeam(new_image_model, bmaj, bmin, self.degpp * self.scale)

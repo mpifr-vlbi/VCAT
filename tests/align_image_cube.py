@@ -1,6 +1,7 @@
 from vcat import ImageCube, ImageData, FitsImage, MultiFitsImage
 import matplotlib.pyplot as plt
 
+useDIFMAP=False
 
 #import data
 EKu=ImageData("../dataset_example/0235+164/Ku/0235+164E.icn.fits",
@@ -35,6 +36,8 @@ im_cube=ImageCube(images)
 #plot it
 im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 
-im_cube=im_cube.align(mode="epoch")
+im_cube=im_cube.align(mode="freq",useDIFMAP=False)
+im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 
-im_cube.plot()
+im_cube=im_cube.stack(mode="freq")
+im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
