@@ -85,7 +85,6 @@ def getComponentInfo(filename,scale=60*60*1000):
     data_df = pd.DataFrame()
     hdu_list = fits.open(filename)
     comp_data = hdu_list[1].data
-    freq=hdu_list[0].header["CRVAL3"]
     comp_data1 = np.zeros((len(comp_data), len(comp_data[0])))
     date = np.array([])
     year = np.array([])

@@ -212,6 +212,7 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
         if export_fits:
             file=fits.open(fits_files[0])
             file[0].data=output_stacked
+            file[0].header["DATE-OBS"]="3000-01-01T00:00:00.000000" #we will write an arbitrary year into the header
             file[1].header['XTENSION'] = 'BINTABLE'
             file.writeto(output_file,overwrite=overwrite)
         

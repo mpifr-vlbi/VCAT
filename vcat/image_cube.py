@@ -135,7 +135,7 @@ class ImageCube(object):
                         stokes_u_fits.append(image.stokes_u_path)
 
                 new_fits_i = (self.images.flatten()[0].model_save_dir + "mod_files_clean/" +
-                              self.name + "_" + "{:.0f}".format(self.freqs[i]*1e9).replace(".","_") + "GHz_stacked.fits")
+                              self.name + "_" + "{:.0f}".format(self.freqs[i]).replace(".","_") + "GHz_stacked.fits")
 
                 if len(stokes_i_fits) != len(stokes_q_fits) or len(stokes_i_fits) != len(stokes_u_fits):
                     warnings.warn("Polarization data not present or invalid, will only stack Stokes I!", UserWarning)
