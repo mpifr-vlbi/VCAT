@@ -33,10 +33,10 @@ images=[EKu,FKu,EK,FK,EQ,FQ]
 im_cube=ImageCube(images)
 
 #plot it
-im_cube.plot()
+im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 
-im_cube=im_cube.regrid(1024,0.1)
+im_cube=im_cube.regrid(1024,0.03)
 
 stack=im_cube.stack(mode="freq")
 
-stack.plot()
+stack.plot(plot_mode="lin_pol",plot_evpa=True)

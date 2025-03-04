@@ -283,9 +283,44 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def plot(self,im_colormap=True,show=True):
-        #TODO fill in all the parameters
-        MultiFitsImage(self,im_colormap=im_colormap)
+    def plot(self, show=True, **kwargs):
+        defaults = {
+            "swap_axis": False,
+            "stokes_i_sigma_cut": 3,
+            "plot_mode": "stokes_i",
+            "im_colormap": False,
+            "contour": True,
+            "contour_color": 'grey',
+            "contour_cmap": None,
+            "contour_alpha": 1,
+            "contour_width": 0.5,
+            "im_color": '',
+            "do_colorbar": False,
+            "plot_beam": True,
+            "overplot_gauss": False,
+            "component_color": "black",
+            "overplot_clean": False,
+            "plot_mask": False,
+            "xlim": [],
+            "ylim": [],
+            "plot_evpa": False,
+            "evpa_width": 2,
+            "evpa_len": 8,
+            "lin_pol_sigma_cut": 3,
+            "evpa_distance": 10,
+            "rotate_evpa": 0,
+            "evpa_color": "white",
+            "titles": [],
+            "background_color": "white",
+            "figsize": "",
+            "font_size_axis_title": 8,
+            "font_size_axis_tick": 6,
+            "rcparams": {}
+        }
+
+        params = {**defaults, **kwargs}
+        MultiFitsImage(self,**params)
+
         if show:
             plt.show()
 
@@ -500,14 +535,3 @@ class ImageCube(object):
     def get_rm_map(self):
         #TODO get RM map
         pass
-
-
-
-
-
-
-
-
-
-
-

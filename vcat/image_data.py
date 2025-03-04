@@ -567,9 +567,42 @@ class ImageData(object):
 
         return newImageData
 
-    def plot(self,plot_mode="stokes_i",plot_mask=False,show=True):
-        #TODO Include all parameters from FitsImage here
-        FitsImage(self,plot_mode="stokes_i",plot_mask=plot_mask)
+    def plot(self,show=True,**kwargs):
+        defaults = {
+            "stokes_i_sigma_cut": 3,
+            "plot_mode": "stokes_i",
+            "im_colormap": False,
+            "contour": True,
+            "contour_color": 'grey',
+            "contour_cmap": None,
+            "contour_alpha": 1,
+            "contour_width": 0.5,
+            "im_color": '',
+            "do_colorbar": False,
+            "plot_beam": True,
+            "overplot_gauss": False,
+            "component_color": "black",
+            "overplot_clean": False,
+            "plot_mask": False,
+            "xlim": [],
+            "ylim": [],
+            "plot_evpa": False,
+            "evpa_width": 2,
+            "evpa_len": 8,
+            "lin_pol_sigma_cut": 3,
+            "evpa_distance": 10,
+            "rotate_evpa": 0,
+            "evpa_color": "white",
+            "title": "",
+            "background_color": "white",
+            "font_size_axis_title": 8,
+            "font_size_axis_tick": 6,
+            "rcparams": {}
+        }
+
+        params = {**defaults, **kwargs}
+        FitsImage(self, **params)
+
         if show:
             plt.show()
 
