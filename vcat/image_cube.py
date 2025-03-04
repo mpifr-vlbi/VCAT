@@ -404,17 +404,21 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def align(self,mode="epoch",beam_maj="",beam_min="",beam_pa="",npix="",pixel_size="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image=""):
-        #TODO implement version with input reference ImageData object
-        #TODO Align selected maps to ImageData object
+    def align(self,mode="epoch",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001):
 
-        # find common beam to use
-        if beam_maj == "" or beam_min == "" or beam_pa == "":
-            common_beam = self.get_common_beam(mode=mode, arg=beam_arg)
+        # get beam(s)
+        if beam_maj == -1 and beam_min == -1 and beam_posa == -1:
+            beams = self.get_common_beam(mode=mode, arg=beam_arg, ppe=ppe, tolerance=tolerance, plot_beams=False)
         else:
-            # will use custom specified beam params
-            pass
+            if isinstance(beam_maj, list) and isinstance(beam_min, list) and isinstance(beam_posa, list):
+                beams = []
+                for i in range(len(beam_maj)):
+                    beams.append([beam_maj[i], beam_min[i], beam_posa[i]])
+            else:
+                beams = [beam_maj, beam_min, beam_posa]
+                mode="all"
 
+        images_new=[]
         if mode=="all":
             images=self.images.flatten()
             if ref_image=="":
@@ -435,30 +439,111 @@ class ImageCube(object):
                 #use reference image
                 npix=len(ref_image.X)
                 pixel_size=ref_image.degpp*ref_image.scale
-                common_beam=[ref_image.beam_maj,ref_image.beam_min,ref_image.beam_posa]
+                beams=[ref_image.beam_maj,ref_image.beam_min,ref_image.beam_posa]
 
             #regrid images
             im_cube=self.regrid(npix,pixel_size,mode=mode,useDIFMAP=useDIFMAP)
             #restore images
-            im_cube=im_cube.restore(common_beam[0],common_beam[1],common_beam[2],mode=mode,useDIFMAP=useDIFMAP)
+            im_cube=im_cube.restore(beams[0],beams[1],beams[2],mode=mode,useDIFMAP=useDIFMAP)
 
             images=im_cube.images.flatten()
-
-            #align images
-            images_new=[]
             #choose reference_image (this is pretty random)
-            if ref_image==""_
+            if ref_image=="":
                 ref_image=images[0]
+            # align images
             for image in images:
                 images_new.append(image.align(ref_image,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
 
-            return ImageCube(image_data_list=images_new)
-
         elif mode=="freq":
-            pass
-        elif mode=="epoch":
-            pass
+            for i in range(len(self.freqs)):
+                images=self.images[:,i].flatten()
 
+                ref_image_i = ref_image[i] if isinstance(ref_image,list) else ref_image
+                npix_i = npix[i] if isinstance(npix,list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(npix, list) else pixel_size
+
+                if ref_image_i=="":
+                    beam_i=beams[i]
+                    if npix_i=="" or pixel_size_i=="":
+                        #find largest FOV to use for regridding
+                        npixs=[]
+                        pixel_sizes=[]
+                        for image in images:
+                            npixs=np.append(npixs,len(image.X))
+                            pixel_sizes=np.append(pixel_sizes,image.degpp*image.scale)
+                        fovs=npixs*pixel_sizes
+                        npix_i=round(npixs[np.argmax(fovs)])
+                        pixel_size_i=pixel_sizes[np.argmax(fovs)]
+                    else:
+                        #will use custom specified npix and pixel_size
+                        pass
+                else:
+                    #use reference image
+                    npix_i=len(ref_image_i.X)
+                    pixel_size_i=ref_image_i.degpp*ref_image.scale
+                    beam_i=[ref_image_i.beam_maj,ref_image.beam_min,ref_image.beam_posa]
+
+                #regrid images
+                im_cube=ImageCube(images)
+                im_cube=im_cube.regrid(npix_i,pixel_size_i,mode=mode,useDIFMAP=useDIFMAP)
+                #restore images
+                print(f"Using beam {beam_i[0]},{beam_i[1]},{beam_i[2]}.")
+                im_cube=im_cube.restore(beam_i[0],beam_i[1],beam_i[2],mode=mode,useDIFMAP=useDIFMAP)
+
+                images=im_cube.images.flatten()
+                #choose reference_image (this is pretty random)
+                if ref_image_i=="":
+                    ref_image_i=images[0]
+                # align images
+                for image in images:
+                    images_new.append(image.align(ref_image_i,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
+
+        elif mode=="epoch":
+            for i in range(len(self.dates)):
+                images = self.images[i, :].flatten()
+
+                ref_image_i = ref_image[i] if isinstance(ref_image, list) else ref_image
+                npix_i = npix[i] if isinstance(npix, list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(npix, list) else pixel_size
+
+                if ref_image_i == "":
+                    beam_i = beams[i]
+                    if npix_i == "" or pixel_size_i == "":
+                        # find largest FOV to use for regridding
+                        npixs = []
+                        pixel_sizes = []
+                        for image in images:
+                            npixs = np.append(npixs, len(image.X))
+                            pixel_sizes = np.append(pixel_sizes, image.degpp * image.scale)
+                        fovs = npixs * pixel_sizes
+                        npix_i = round(npixs[np.argmax(fovs)])
+                        pixel_size_i = pixel_sizes[np.argmax(fovs)]
+                    else:
+                        # will use custom specified npix and pixel_size
+                        pass
+                else:
+                    # use reference image
+                    npix_i = len(ref_image_i.X)
+                    pixel_size_i = ref_image_i.degpp * ref_image.scale
+                    beam_i = [ref_image_i.beam_maj, ref_image.beam_min, ref_image.beam_posa]
+
+                # regrid images
+                im_cube = ImageCube(images)
+                im_cube = im_cube.regrid(npix_i, pixel_size_i, mode=mode, useDIFMAP=useDIFMAP)
+                # restore images
+                im_cube = im_cube.restore(beam_i[0], beam_i[1], beam_i[2], mode=mode, useDIFMAP=useDIFMAP)
+
+                images = im_cube.images.flatten()
+                # choose reference_image (this is pretty random)
+                if ref_image_i == "":
+                    ref_image_i = images[-1] #use highest frequency by default
+                # align images
+                for image in images:
+                    images_new.append(image.align(ref_image_i, masked_shift=True, method=method, useDIFMAP=useDIFMAP))
+        else:
+            raise Exception("Please use a valid align mode ('all', 'epoch', 'freq').")
+
+        return ImageCube(image_data_list=images_new)
 
     def slice(self,epoch_lim="",freq_lim=""):
         """

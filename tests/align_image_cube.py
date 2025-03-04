@@ -35,6 +35,6 @@ im_cube=ImageCube(images)
 #plot it
 im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 
-im_cube=im_cube.align(mode="all")
+im_cube=im_cube.align(mode="epoch")
 
 im_cube.plot()
