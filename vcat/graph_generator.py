@@ -475,6 +475,7 @@ class FitsImage(object):
         mpl.rcParams.update(rcparams)
         self.fig.tight_layout()
 
+
     def plotColormap(self,
                      Z, #2d data array to plot
                      im_color, #colormap to use

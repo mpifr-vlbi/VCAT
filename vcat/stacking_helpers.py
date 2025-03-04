@@ -347,6 +347,7 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         uvf_files=[], #optional input array of file paths to .uvf files for fits_files
         weighting=[0,-1], #weighting option for uvw in DIFMAP, default is natural weighting
         do_selfcal=True,
+        print_log=False
         ):
 
         if use_common_beam:
@@ -384,19 +385,26 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
 
         for ind, fits_file in enumerate(fits_files):
             send_difmap_command("obs " + uvf_files[ind])
-            print("obs "+uvf_files[ind])
+
             send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  #use custom weighting
             if abs(shift_x)>0 or abs(shift_y)>9:
                 send_difmap_command(f"shift {shift_x},{shift_y}")
             send_difmap_command("select " + channel)
             send_difmap_command("rmod " + mod_files[ind])
+
             if do_selfcal:
                 send_difmap_command("selfcal")
             send_difmap_command("maps " + str(n_pixel) + "," + str(pixel_size))
             if not (bmaj==-1 and bmin ==-1 and posa==-1):
                 send_difmap_command("restore " + str(bmaj) + "," + str(bmin) + "," + str(posa))
             send_difmap_command("save " + outname)
-            print(outname)
+
+            if print_log:
+                print("obs " + uvf_files[ind])
+                print("rmod " + mod_files[ind])
+                if not (bmaj == -1 and bmin == -1 and posa == -1):
+                    print("restore " + str(bmaj) + "," + str(bmin) + "," + str(posa))
+                print("save " + outname)
         
         os.system("rm -rf difmap.log*")
         

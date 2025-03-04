@@ -1,0 +1,25 @@
+! Started logfile: difmap.log on Tue Mar  4 01:27:41 2025
+![@/usr/local/difmap/uvf_difmap_2.5g/difmap.boot]
+! Obeying initialization file: /usr/local/difmap/uvf_difmap_2.5g/difmap.boot
+device /xw
+! Attempting to open device: '/xw'
+pgscr 2,1,0,1
+float x_cmp
+float y_cmp
+float fl_cmp
+![Exited script file: /usr/local/difmap/uvf_difmap_2.5g/difmap.boot]
+![@3C111_2014-05-08_44GHz.par]
+mapunits mas
+! Distances in the map plane now have units: milli-arcsec.
+! Distances in the UV plane now have units: mega-wavelengths.
+multi_model false
+! Use one model for all channel/polarization selections.
+get tmp/mod_files_clean/3C111_2014-05-08_44GHz
+! observe: File "tmp/mod_files_clean/3C111_2014-05-08_44GHz.uvf" does not exist
+! Error occured in command: get
+![Exited script file: 3C111_2014-05-08_44GHz.par]
+! 
+! <Aborted by Interrupt>
+exit
+! Exiting program
+! Log file difmap.log closed on Tue Mar  4 01:28:19 2025

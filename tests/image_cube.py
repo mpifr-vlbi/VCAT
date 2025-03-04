@@ -4,18 +4,20 @@ import matplotlib.pyplot as plt
 dataC=ImageData("../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.fits",
         uvf_file="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.uvf")
 dataQ=ImageData("../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.fits",
-        uvf_file="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.uvf")
+        uvf_file="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.uvf")
 
 images=[dataC,dataQ]
 
 im_cube=ImageCube(images)
 
-print(im_cube.get_common_beam(mode="freq"))
+#plot it
+im_cube.plot()
 
-im_cube=im_cube.removeEpoch(epoch="2022-02-01")
+#restore it
+im_cube_new=im_cube.restore(mode="epoch")
+
+#plot it again
+im_cube_new.plot()
 
 
-#plot
 
-MultiFitsImage(im_cube,im_colormap=True)
-plt.show()

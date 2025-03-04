@@ -4,8 +4,10 @@ from astropy.io import fits
 import os
 from astropy.time import Time
 import sys
-from vcat import ImageData
+from vcat.image_data import ImageData
 from vcat.helpers import get_common_beam
+from vcat.graph_generator import MultiFitsImage
+import matplotlib.pyplot as plt
 
 class ImageCube(object):
 
@@ -86,8 +88,7 @@ class ImageCube(object):
             [maj, min, pos] List with new major and minor axis and position angle
         """
         if mode=="all":
-            cube=self.slice(epoch_lim=epoch_lim,freq_lim=freq_lim)
-            return get_common_beam(cube.images_majs.flatten(), cube.images_mins.flatten(), cube.images_pas.flatten(), arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
+            return get_common_beam(self.images_majs.flatten(), self.images_mins.flatten(), self.images_pas.flatten(), arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
         elif mode=="freq":
             beams=[]
             for freq in self.freqs:
@@ -107,7 +108,7 @@ class ImageCube(object):
             raise Exception("Please specify valid mode ('all','freq','epoch')")
 
 
-    def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True):
+    def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True,ppe=100,tolerance=0.0001,plot_beams=False):
         """
         This function allows to restore the ImageCube with a custom beam
         Args:
@@ -117,19 +118,55 @@ class ImageCube(object):
             arg: Type of algorithm to use for common beam calculation ("mean", "max", "median", "circ", "common")
             mode: Select restore mode ("all" -> applies beam to all, "freq" -> restores common beam per frequency,
             "epoch" -> restores common beam per epoch)
-
+            useDIFMAP: Choose whether to use DIFMAP for restoring
+            ppe: Points per Ellipse for "common" algorithm
+            tolerance: Tolerance parameter for "common" algorithm
+            plot_beams: Boolean to choose if a diagnostic plot of all beams and the common beam should be displayed
         Returns:
-
+            new ImageCube object with restored images
         """
         #TODO restore all images with a beam (or a selection)
 
-        if mode=="all":
-            pass
-        elif mode=="freq":
-            pass
-        elif mode=="epoch":
-            pass
+        # get beam(s)
+        if beam_maj==-1 and beam_min==-1 and beam_posa==-1:
+            beams=self.get_common_beam(mode=mode, arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
+        else:
+            beams=[beam_maj,beam_min,beam_posa]
+            mode="all"
 
+        #initialize empty array
+        images = []
+
+        if mode=="all":
+            for image in self.images.flatten():
+                print(beams[0],beams[1],beams[2])
+                new_image=image.restore(beams[0],beams[1],beams[2],useDIFMAP=useDIFMAP)
+                print(new_image)
+                images.append(new_image)
+        elif mode=="freq":
+            for i in range(len(self.freqs)):
+                image_select=self.images[:,i]
+                for image in image_select:
+                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],useDIFMAP=useDIFMAP))
+        elif mode=="epoch":
+            for i in range(len(self.dates)):
+                image_select=self.images[i,:]
+                for image in image_select:
+                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],useDIFMAP=useDIFMAP))
+        else:
+            raise Exception("Please specify a valid restore mode ('all', 'freq', 'epoch')")
+
+        return ImageCube(image_data_list=images)
+
+    def plot(self,im_colormap=True,show=True):
+        #TODO fill in all the parameters
+        MultiFitsImage(self,im_colormap=im_colormap)
+        if show:
+            plt.show()
+
+
+    def regrid(self,npix, pixelsize):
+        #TODO
         pass
 
     def shift(self, shift_x, shift_y):
