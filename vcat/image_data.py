@@ -12,7 +12,6 @@ from astropy.time import Time
 
 from vcat.graph_generator import FitsImage
 from vcat.kinematics import Component
-from vcat.alignment.align_imagesEHTim_final import AlignMaps
 from vcat.helpers import *
 from vcat.stacking_helpers import fold_with_beam
 import warnings
@@ -595,13 +594,13 @@ class ImageData(object):
                 #regrid images
                 image_self = self.copy()
                 # convolve with common beam
+                image_self = image_self.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
                 image_self = image_self.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
-                image_self = image_self.regrid(npix,pixel_size,useDIFMAP=useDIFMAP)
-
 
                 # same for image 2
-                image_data2 = image_data2.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
                 image_data2 = image_data2.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
+                image_data2 = image_data2.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
+
 
 
             else:
@@ -640,13 +639,17 @@ class ImageData(object):
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
 
-    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=False):
+    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
             bmaj: Beam major axis (in mas)
             bmin: Beam minor axis (in mas)
             posa: Beam position angle (in deg)
+            shift_x: Shift in mas in x-direction
+            shift_y: Shift in mas in y-direction
+            npix: Number of pixels in one image direction
+            pixel_size: pixel size in mas
         Returns:
             New ImageData object
         """

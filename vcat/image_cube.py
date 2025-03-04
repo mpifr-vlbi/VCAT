@@ -7,7 +7,10 @@ import sys
 from vcat.image_data import ImageData
 from vcat.helpers import get_common_beam
 from vcat.graph_generator import MultiFitsImage
+from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
+from vcat.stacking_helpers import stack_fits, stack_pol_fits
+import warnings
 
 class ImageCube(object):
 
@@ -35,13 +38,24 @@ class ImageCube(object):
         self.freqs=[]
         self.dates=[]
         self.mjds=[]
+        self.name=""
 
-
+        images=[]
         #go through image data list and extract some info
         for image in image_data_list:
-            self.freqs.append(image.freq)
-            self.dates.append(image.date)
-            self.mjds.append(image.mjd)
+            skip=False
+            if self.name=="":
+                self.name=image.name
+            elif self.name != image.name:
+                warnings.warn(f"ImageCube setup for source {self.name} but {image.name} detected in one input file, will skip it.",UserWarning)
+                skip=True
+            if not skip:
+                self.freqs.append(image.freq)
+                self.dates.append(image.date)
+                self.mjds.append(image.mjd)
+                images.append(image)
+
+        image_data_list=images
         self.freqs=np.sort(np.unique(self.freqs))
         self.dates=np.sort(np.unique(self.dates))
         self.mjds=np.sort(np.unique(self.mjds))
@@ -70,9 +84,102 @@ class ImageCube(object):
     def __str__(self):
         return f"ImageCube with {self.shape[1]} frequencies and {self.shape[0]} epochs."
 
-    def stack(self):
-        #TODO stack all images from the same frequency at different epochs
+    def mask(self):
+        #TODO Not sure if we really need this, should probably be done on every image individually....
         pass
+
+    def stack(self,mode="freq", stack_linpol=False):
+        """
+        Args:
+            mode: Select mode ("all" -> stack all images, "freq" -> stack all images from the same frequency across epochs,
+            "epoch" -> stack all images from the same epoch across all frequencies)
+            stack_linpol: If true, polarization will be stacked in lin_pol and EVPA instead of Q and U
+        Returns:
+            new ImageCube with reduced dimension according to mode selection with stacked images
+        """
+        #TODO implement stack_linpol option -> how to handle new ImageData object without new fits file?
+        new_fits_files=[]
+        if mode=="all":
+            stokes_i_fits=[]
+            stokes_q_fits=[]
+            stokes_u_fits=[]
+            for image in self.images.flatten():
+                stokes_i_fits.append(image.file_path)
+                if image.stokes_q_path!="":
+                    stokes_q_fits.append(image.stokes_q_path)
+                if image.stokes_u_path!="":
+                    stokes_u_fits.append(image.stokes_u_path)
+
+            new_fits_i = self.images.flatten()[0].model_save_dir + "mod_files_clean/" + self.name + "_stacked.fits"
+
+            if len(stokes_i_fits)!=len(stokes_q_fits) or len(stokes_i_fits)!=len(stokes_u_fits):
+                warnings.warn("Polarization data not present or invalid, will only stack Stokes I!",UserWarning)
+                stack_fits(fits_files=stokes_i_fits,output_file=new_fits_i)
+            else:
+                stack_fits(fits_files=stokes_i_fits,stokes_q_fits=stokes_q_fits,stokes_u_fits=stokes_u_fits,
+                           output_file=new_fits_i)
+
+            new_fits_files.append(new_fits_i)
+
+        elif mode=="freq":
+            for i in range(len(self.freqs)):
+                stokes_i_fits = []
+                stokes_q_fits = []
+                stokes_u_fits = []
+                for image in self.images[:,i].flatten():
+                    if image.file_path!="":
+                        stokes_i_fits.append(image.file_path)
+                    if image.stokes_q_path != "":
+                        stokes_q_fits.append(image.stokes_q_path)
+                    if image.stokes_u_path != "":
+                        stokes_u_fits.append(image.stokes_u_path)
+
+                new_fits_i = (self.images.flatten()[0].model_save_dir + "mod_files_clean/" +
+                              self.name + "_" + "{:.0f}".format(self.freqs[i]*1e9).replace(".","_") + "GHz_stacked.fits")
+
+                if len(stokes_i_fits) != len(stokes_q_fits) or len(stokes_i_fits) != len(stokes_u_fits):
+                    warnings.warn("Polarization data not present or invalid, will only stack Stokes I!", UserWarning)
+                    stack_fits(fits_files=stokes_i_fits, output_file=new_fits_i)
+                else:
+                    stack_fits(fits_files=stokes_i_fits, stokes_q_fits=stokes_q_fits, stokes_u_fits=stokes_u_fits,
+                               output_file=new_fits_i)
+
+                new_fits_files.append(new_fits_i)
+
+        elif mode=="epoch":
+            for i in range(len(self.dates)):
+                stokes_i_fits = []
+                stokes_q_fits = []
+                stokes_u_fits = []
+                for image in self.images[i, :].flatten():
+                    if image.file_path != "":
+                        stokes_i_fits.append(image.file_path)
+                    if image.stokes_q_path != "":
+                        stokes_q_fits.append(image.stokes_q_path)
+                    if image.stokes_u_path != "":
+                        stokes_u_fits.append(image.stokes_u_path)
+
+                new_fits_i = (self.images.flatten()[0].model_save_dir + "mod_files_clean/" +
+                              self.name + "_" + self.dates[i] + "_stacked.fits")
+
+                if len(stokes_i_fits) != len(stokes_q_fits) or len(stokes_i_fits) != len(stokes_u_fits):
+                    warnings.warn("Polarization data not present or invalid, will only stack Stokes I!", UserWarning)
+                    stack_fits(fits_files=stokes_i_fits, output_file=new_fits_i)
+                else:
+                    stack_fits(fits_files=stokes_i_fits, stokes_q_fits=stokes_q_fits, stokes_u_fits=stokes_u_fits,
+                               output_file=new_fits_i)
+
+                new_fits_files.append(new_fits_i)
+        else:
+            raise Exception("Please specify valid stacking mode ('all', 'freq', 'epoch')")
+
+        #create new ImageData objects from new fits files:
+        images=[]
+        for file in new_fits_files:
+            images.append(ImageData(file,noise_method=self.images.flatten()[0].noise_method,difmap_path=self.images.flatten()[0].difmap_path))
+
+        #return new ImageCube
+        return ImageCube(image_data_list=images)
 
     def get_common_beam(self,mode="all",arg="common",ppe=100,tolerance=0.0001,plot_beams=False):
         """
@@ -108,7 +215,8 @@ class ImageCube(object):
             raise Exception("Please specify valid mode ('all','freq','epoch')")
 
 
-    def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True,ppe=100,tolerance=0.0001,plot_beams=False):
+    def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True,
+                shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],ppe=100,tolerance=0.0001,plot_beams=False):
         """
         This function allows to restore the ImageCube with a custom beam
         Args:
@@ -119,13 +227,17 @@ class ImageCube(object):
             mode: Select restore mode ("all" -> applies beam to all, "freq" -> restores common beam per frequency,
             "epoch" -> restores common beam per epoch)
             useDIFMAP: Choose whether to use DIFMAP for restoring
+            shift_x: Shift in mas in x-direction (list or float)
+            shift_y: Shift in mas in y-direction (list or float)
+            npix: Number of pixels in one image direction (list or float)
+            pixel_size: pixel size in mas (list or float)
+            weighting: Choose weighting to use (for DIFMAP, e.g. [0,-1])
             ppe: Points per Ellipse for "common" algorithm
             tolerance: Tolerance parameter for "common" algorithm
             plot_beams: Boolean to choose if a diagnostic plot of all beams and the common beam should be displayed
         Returns:
             new ImageCube object with restored images
         """
-        #TODO restore all images with a beam (or a selection)
 
         # get beam(s)
         if beam_maj==-1 and beam_min==-1 and beam_posa==-1:
@@ -139,22 +251,35 @@ class ImageCube(object):
 
         if mode=="all":
             for image in self.images.flatten():
-                print(beams[0],beams[1],beams[2])
-                new_image=image.restore(beams[0],beams[1],beams[2],useDIFMAP=useDIFMAP)
-                print(new_image)
+                new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,
+                                        pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
                 images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
+                #check if parameters were input per frequency or for all frequencies
+                shift_x_i = shift_x[i] if isinstance(shift_x,list) else shift_x
+                shift_y_i = shift_y[i] if isinstance(shift_y,list) else shift_y
+                npix_i = n_pix[i] if isinstance(npix, list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
+
                 image_select=self.images[:,i]
                 for image in image_select:
-                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],useDIFMAP=useDIFMAP))
+                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
+                                        pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
         elif mode=="epoch":
             for i in range(len(self.dates)):
+                # check if parameters were input per frequency or for all frequencies
+                shift_x_i = shift_x[i] if isinstance(shift_x, list) else shift_x
+                shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
+                npix_i = n_pix[i] if isinstance(npix, list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
+
                 image_select=self.images[i,:]
                 for image in image_select:
-                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],useDIFMAP=useDIFMAP))
+                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
+                                        pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
         else:
-            raise Exception("Please specify a valid restore mode ('all', 'freq', 'epoch')")
+            raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
 
         return ImageCube(image_data_list=images)
 
@@ -164,14 +289,76 @@ class ImageCube(object):
         if show:
             plt.show()
 
+    def regrid(self,npix="", pixel_size="",mode="all",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
+        # initialize empty array
+        images = []
 
-    def regrid(self,npix, pixelsize):
-        #TODO
-        pass
+        if mode=="all":
+            for image in self.images.flatten():
+                new_image=image.regrid(npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
+                images.append(new_image)
+        elif mode=="freq":
+            for i in range(len(self.freqs)):
+                # check if parameters were input per frequency or for all frequencies
+                npix_i = npix[i] if isinstance(npix, list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
-    def shift(self, shift_x, shift_y):
-        #TODO shift all images or a selection
-        pass
+                image_select = self.images[:, i]
+                for image in image_select:
+                    images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, weighting=weighting, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
+        elif mode=="epoch":
+            for i in range(len(self.dates)):
+                # check if parameters were input per frequency or for all frequencies
+                npix_i = npix[i] if isinstance(npix, list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
+
+                image_select = self.images[i, :]
+                for image in image_select:
+                    images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, weighting=weighting, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
+        else:
+            raise Exception("Please specify valid regrid mode ('all', 'epoch', 'freq')!")
+
+        return ImageCube(image_data_list=images)
+
+    def shift(self, mode="all", shift_x=0, shift_y=0, npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
+        # initialize empty array
+        images = []
+
+        if mode == "all":
+            for image in self.images.flatten():
+                new_image = image.shift(shift_x=shift_x,shift_y=shift_y,npix=npix, pixel_size=pixel_size,
+                                        weighting=weighting, useDIFMAP=useDIFMAP)
+                images.append(new_image)
+        elif mode == "freq":
+            for i in range(len(self.freqs)):
+                # check if parameters were input per frequency or for all frequencies
+                shift_x_i = shift_x[i] if isinstance(shift_x, list) else shift_x
+                shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
+                npix_i = n_pix[i] if isinstance(npix, list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
+
+                image_select = self.images[:, i]
+                for image in image_select:
+                    images.append(
+                        image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
+                                    weighting=weighting, useDIFMAP=useDIFMAP))
+        elif mode == "epoch":
+            for i in range(len(self.dates)):
+                # check if parameters were input per frequency or for all frequencies
+                shift_x_i = shift_x[i] if isinstance(shift_x, list) else shift_x
+                shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
+                npix_i = npix[i] if isinstance(npix, list) else npix
+                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
+
+                image_select = self.images[i, :]
+                for image in image_select:
+                    images.append(
+                        image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
+                                    weighting=weighting, useDIFMAP=useDIFMAP))
+        else:
+            raise Exception("Please specify valid shift mode ('all', 'epoch', 'freq')!")
+
+        return ImageCube(image_data_list=images)
 
     def align(self,image_data):
         #TODO Align selected maps to ImageData object

@@ -1,8 +1,8 @@
-! Command file created by the difmap on Tue Mar  4 01:35:02 2025
+! Command file created by the difmap on Tue Mar  4 16:31:03 2025
 mapunits mas
 multi_model false
 get tmp/mod_files_clean/3C111_2014-05-08_44GHz
-mapsize 1024,0.02, 1024,0.02
+mapsize 2048,0.1, 2048,0.1
 select I, 1, 8
 uvtaper 0, 0
 uvrange 0, 0

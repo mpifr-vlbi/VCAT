@@ -138,10 +138,10 @@ def align_images(image_array, #input images to be aligned
 def stack_fits(fits_files, #a list of filepaths to fits files (either full polarization or just stokes I)
         stokes_q_fits=[], #a list of filepaths to fits files containing stokes Q
         stokes_u_fits=[], #a list of filepaths to fits files conataining stokes U
-        export_fits=False, #choose whether to write an output fits file (stacked)
+        export_fits=True, #choose whether to write an output fits file (stacked)
         output_file="stacked.fits", #choose file name for output file
         overwrite=True, #choose whether to overwrite an already existing image or not
-        align=True #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightest pixel in Stokes I)
+        align=False #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightest pixel in Stokes I)
         ):
     
     #check if there is more than one fits file
@@ -212,6 +212,7 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
         if export_fits:
             file=fits.open(fits_files[0])
             file[0].data=output_stacked
+            file[1].header['XTENSION'] = 'BINTABLE'
             file.writeto(output_file,overwrite=overwrite)
         
         return output_stacked
@@ -224,7 +225,7 @@ def stack_pol_fits(fits_files, #list of file paths to fits files with full polar
         stokes_q_fits=[], #list of file paths to fits files with Stokes Q data
         stokes_u_fits=[], #list of file paths to fits files with Stokes U data
         weighted=False, #choose whether to weight the EVPA stacking by the level of linear polarization
-        align=True #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightes pixel in Stokes I)
+        align=False #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightes pixel in Stokes I)
         ):
 
     #check if there is more than one fits file
@@ -301,31 +302,6 @@ def stack_pol_fits(fits_files, #list of file paths to fits files with full polar
                     output_stacked[2][spw]=stack_images(pol_images[spw][2]) #stack EVPA without weights
 
         return output_stacked
-        
-#takes an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
-def get_sigma_levs(image, #2d array/list
-        sigma_contour_limit=3 #choose the lowest sigma contour to plot
-        ):
-    
-    Z1 = image.flatten()
-    bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins = "auto")
-    bin_widths = np.diff(bin_borders)
-    bin_centers = bin_borders[:-1] + bin_widths / 2.
-    bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
-    
-    t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), 0.001)
-    fit_t = fitting.LevMarLSQFitter()
-    t = fit_t(t_init, bin_centers, bin_heights, weights = 1. / bin_heights_err)
-    noise=t.stddev.value
-
-    #Set contourlevels to mean value + 3 * rms_noise * 2 ** x
-    levs1 = t.mean.value + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * t.stddev.value * np.logspace(0, 100, 100, endpoint = False, base = 2)
-    levs = t.mean.value + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * t.stddev.value * np.logspace(0, 100, 100, endpoint = False, base = 2)
-    levs = np.flip(levs)
-    levs = np.concatenate((levs, levs1))
-    
-    return levs,levs1[0]
-
 
 #this method folds images with a defined beam (either custom input or common beam), needs .uvf,.mod and .fits files from the original images as inputs
 #requires the definition of "difmap_path", since it runs difmap in the background, so you need to point difmap_path to where your difmap executable sits

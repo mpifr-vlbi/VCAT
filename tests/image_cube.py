@@ -13,11 +13,20 @@ im_cube=ImageCube(images)
 #plot it
 im_cube.plot()
 
-#restore it
-im_cube_new=im_cube.restore(mode="epoch")
+#regrid it
+im_cube=im_cube.regrid(mode="all",npix=1024,pixel_size=0.1,useDIFMAP=True)
+print("Regridded to 1024,0.1")
+im_cube.plot()
 
-#plot it again
-im_cube_new.plot()
+#restore it
+im_cube=im_cube.restore(useDIFMAP=True)
+print("Restored with common beam")
+im_cube.plot()
+
+#shift it
+im_cube=im_cube.shift(shift_x=10,shift_y=10,mode="freq",useDIFMAP=True)
+print("shifted by 5,5")
+im_cube.plot()
 
 
 
