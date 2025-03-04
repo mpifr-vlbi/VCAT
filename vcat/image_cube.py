@@ -84,6 +84,10 @@ class ImageCube(object):
     def __str__(self):
         return f"ImageCube with {self.shape[1]} frequencies and {self.shape[0]} epochs."
 
+    def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files=""):
+        #TODO create ImageData object with files
+        pass
+
     def mask(self):
         #TODO Not sure if we really need this, should probably be done on every image individually....
         pass
@@ -243,8 +247,13 @@ class ImageCube(object):
         if beam_maj==-1 and beam_min==-1 and beam_posa==-1:
             beams=self.get_common_beam(mode=mode, arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
         else:
-            beams=[beam_maj,beam_min,beam_posa]
-            mode="all"
+            if isinstance(beam_maj,list) and isinstance(beam_min,list) and isinstance(beam_posa,list):
+                beams=[]
+                for i in range(len(beam_maj)):
+                    beams.append([beam_maj[i],beam_min[i],beam_posa[i]])
+            else:
+                beams=[beam_maj,beam_min,beam_posa]
+                mode="all"
 
         #initialize empty array
         images = []
@@ -395,9 +404,61 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def align(self,image_data):
+    def align(self,mode="epoch",beam_maj="",beam_min="",beam_pa="",npix="",pixel_size="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image=""):
+        #TODO implement version with input reference ImageData object
         #TODO Align selected maps to ImageData object
-        pass
+
+        # find common beam to use
+        if beam_maj == "" or beam_min == "" or beam_pa == "":
+            common_beam = self.get_common_beam(mode=mode, arg=beam_arg)
+        else:
+            # will use custom specified beam params
+            pass
+
+        if mode=="all":
+            images=self.images.flatten()
+            if ref_image=="":
+                if npix=="" or pixel_size=="":
+                    #find largest FOV to use for regridding
+                    npixs=[]
+                    pixel_sizes=[]
+                    for image in images:
+                        npixs=np.append(npixs,len(image.X))
+                        pixel_sizes=np.append(pixel_sizes,image.degpp*image.scale)
+                    fovs=npixs*pixel_sizes
+                    npix=round(npixs[np.argmax(fovs)])
+                    pixel_size=pixel_sizes[np.argmax(fovs)]
+                else:
+                    #will use custom specified npix and pixel_size
+                    pass
+            else:
+                #use reference image
+                npix=len(ref_image.X)
+                pixel_size=ref_image.degpp*ref_image.scale
+                common_beam=[ref_image.beam_maj,ref_image.beam_min,ref_image.beam_posa]
+
+            #regrid images
+            im_cube=self.regrid(npix,pixel_size,mode=mode,useDIFMAP=useDIFMAP)
+            #restore images
+            im_cube=im_cube.restore(common_beam[0],common_beam[1],common_beam[2],mode=mode,useDIFMAP=useDIFMAP)
+
+            images=im_cube.images.flatten()
+
+            #align images
+            images_new=[]
+            #choose reference_image (this is pretty random)
+            if ref_image==""_
+                ref_image=images[0]
+            for image in images:
+                images_new.append(image.align(ref_image,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
+
+            return ImageCube(image_data_list=images_new)
+
+        elif mode=="freq":
+            pass
+        elif mode=="epoch":
+            pass
+
 
     def slice(self,epoch_lim="",freq_lim=""):
         """
@@ -429,7 +490,6 @@ class ImageCube(object):
         else:
             mjd_min=0
             mjd_max=np.inf
-
 
         try:
             freq_min=freq_lim[0]*1e9
@@ -526,7 +586,6 @@ class ImageCube(object):
                 start_cube = start_cube.concatenate(cubes[i])
 
         return start_cube
-
 
     def get_spectral_index_map(self):
         #TODO get spectral index map
