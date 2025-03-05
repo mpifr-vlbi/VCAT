@@ -657,3 +657,52 @@ def convolve_with_elliptical_gaussian(image, sigma_x, sigma_y, theta):
     return convolved
 
 
+def get_frequency(filepath):
+    with fits.open(filepath) as hdu_list:
+        return float(hdu_list[0].header["CRVAL3"])
+
+
+def sort_fits_by_date_and_frequency(fits_files):
+    if fits_files!="":
+        fits_files = np.array(fits_files)
+
+        if len(fits_files) > 0:
+            dates = np.array([get_date(f) for f in fits_files])
+            frequencies = np.array([get_frequency(f) for f in fits_files])
+
+            # Sort primarily by date, secondarily by frequency
+            sorted_indices = np.lexsort((frequencies, dates))
+            fits_files = fits_files[sorted_indices]
+
+        return fits_files.tolist()
+    else:
+        return fits_files
+
+def get_uvf_frequency(filepath):
+    """Extracts frequency from the FITS header by finding the correct CVALX."""
+    with fits.open(filepath) as hdu_list:
+        header = hdu_list[0].header
+        for i in range(1, 100):  # Check CTYPE1 to CTYPE99 (assuming X is within this range)
+            ctype_key = f"CTYPE{i}"
+            cval_key = f"CRVAL{i}"
+            if ctype_key in header and "FREQ" in header[ctype_key]:
+                return float(header[cval_key])
+        raise ValueError(f"Frequency keyword not found in {filepath}")
+
+def sort_uvf_by_date_and_frequency(uvf_files):
+    if uvf_files!="":
+        uvf_files = np.array(uvf_files)
+
+        if len(uvf_files) > 0:
+            dates = np.array([fits.open(f)[0].header["DATE-OBS"] for f in uvf_files])
+            frequencies = np.array([get_uvf_frequency(f) for f in uvf_files])
+
+            # Sort by date first, then by frequency
+            sorted_indices = np.lexsort((frequencies, dates))
+            uvf_files = uvf_files[sorted_indices]
+
+        return uvf_files.tolist()
+    else:
+        return uvf_files
+
+

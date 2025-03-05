@@ -5,7 +5,7 @@ import os
 from astropy.time import Time
 import sys
 from vcat.image_data import ImageData
-from vcat.helpers import get_common_beam
+from vcat.helpers import get_common_beam, sort_fits_by_date_and_frequency, sort_uvf_by_date_and_frequency
 from vcat.graph_generator import MultiFitsImage
 from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
@@ -85,8 +85,26 @@ class ImageCube(object):
         return f"ImageCube with {self.shape[1]} frequencies and {self.shape[0]} epochs."
 
     def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files=""):
-        #TODO create ImageData object with files
-        pass
+        #sort input files
+        fits_files=sort_fits_by_date_and_frequency(fits_files)
+        uvf_files=sort_uvf_by_date_and_frequency(uvf_files)
+        stokes_q_files=sort_fits_by_date_and_frequency(stokes_q_files)
+        stokes_u_files=sort_fits_by_date_and_frequency(stokes_u_files)
+        model_fits_files=sort_fits_by_date_and_frequency(model_fits_files)
+
+        #initialize image array
+        images=[]
+        for i in range(len(fits_files)):
+            fits_file = fits_files[i] if isinstance(fits_files, list) else ""
+            uvf_file = uvf_files[i] if isinstance(uvf_files, list) else ""
+            stokes_q_file = stokes_q_files[i] if isinstance(stokes_q_files, list) else ""
+            stokes_u_file = stokes_u_files[i] if isinstance(stokes_u_files, list) else ""
+            model_fits_file = model_fits_files[i] if isinstance(model_fits_files, list) else ""
+
+            images.append(ImageData(fits_file=fits_file,uvf_file=uvf_file,stokes_q=stokes_q_file,stokes_u=stokes_u_file,model=model_fits_file))
+
+        #reinitialize instance
+        return ImageCube(image_data_list=images)
 
     def mask(self):
         #TODO Not sure if we really need this, should probably be done on every image individually....
