@@ -58,6 +58,7 @@ class ImageData(object):
                  is_casa_model=False,
                  noise_method="Histogram Fit", #choose noise method
                  correct_rician_bias=False,
+                 error=0.05, #relative error flux densities
                  difmap_path=""):
 
         self.file_path = fits_file
@@ -73,6 +74,7 @@ class ImageData(object):
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
+        self.error=error
 
 
         # Read clean files in
@@ -377,13 +379,22 @@ class ImageData(object):
 
         # additional parameters only used for spectral index type data
         self.is_spix=False
+        self.spix=[]
         self.spix_vmin=-3
         self.spix_vmax=5
 
         #additional parameter only used for rotation measure data
         self.is_rm=False
+        self.rm=[]
         self.rm_vmin=""
         self.rm_vmax=""
+
+        # additional parameter only used for Spectral turnover data
+        self.is_turnover = False
+        self.turnover = []
+        self.turnover_flux = []
+        self.turnover_error = []
+        self.turnover_chi_sq = []
 
     #print function for ImageData
     def __str__(self):
@@ -660,7 +671,6 @@ class ImageData(object):
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
 
                 shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
-                print(-shift[1],shift[0])
                 print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp))
                 #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
@@ -710,7 +720,7 @@ class ImageData(object):
         if self.uvf_file=="" or useDIFMAP==False:
             #this means there is no valid .uvf file or we don't want to use DIFMAP
 
-            print("No .uvf file attached, will do simple shift of image only")
+            print("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
 
             # shift in degree
             shift_x_deg = shift_x / self.scale

@@ -5,7 +5,8 @@ import os
 from astropy.time import Time
 import sys
 from vcat.image_data import ImageData
-from vcat.helpers import get_common_beam, sort_fits_by_date_and_frequency, sort_uvf_by_date_and_frequency, closest_index
+from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
+                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit)
 from vcat.graph_generator import MultiFitsImage
 from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ import warnings
 import scipy.optimize as opt
 import numpy.ma as ma
 from astropy.constants import c
+from scipy.optimize import curve_fit
 
 class ImageCube(object):
 
@@ -426,7 +428,8 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def align(self,mode="epoch",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001):
+    def align(self,mode="epoch",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",
+              ref_freq="",ref_epoch="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001):
 
         # get beam(s)
         if beam_maj == -1 and beam_min == -1 and beam_posa == -1:
@@ -514,8 +517,12 @@ class ImageCube(object):
                 images=im_cube.images.flatten()
                 #choose reference_image (this is pretty random)
                 if ref_image_i=="":
-                    ref_image_i=images[0]
-                # align images
+                    if ref_epoch=="":
+                        ref_image_i=images[0]
+                    else:
+                        j = closest_index(self.mjds,Time(ref_epoch).mjd)
+                        ref_image_i=images[j]
+                #align images
                 for image in images:
                     images_new.append(image.align(ref_image_i,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
 
@@ -557,7 +564,11 @@ class ImageCube(object):
 
                 # choose reference_image (this is pretty random)
                 if ref_image_i == "":
-                    ref_image_i = images[-1] #use highest frequency by default
+                    if ref_freq == "":
+                        ref_image_i = images[-1]
+                    else:
+                        j = closest_index(self.freqs, freq*1e9)
+                        ref_image_i = images[j]
                 # align images
                 for image in images:
                     images_new.append(image.align(ref_image_i, masked_shift=True, method=method, useDIFMAP=useDIFMAP))
@@ -711,7 +722,6 @@ class ImageCube(object):
             images=self.images[i,:].flatten()
 
             #find images to use
-            print(self.freqs,freq1)
             image1=images[closest_index(self.freqs,freq1*1e9)]
             image2=images[closest_index(self.freqs,freq2*1e9)]
 
@@ -732,7 +742,7 @@ class ImageCube(object):
 
             # TODO maybe it makes sense to introduce a new SpixData Class here? The current solution is a bit hacky, but it works
             image_copy=image2.copy()
-            image_copy.Z=a
+            image_copy.spix=a
             image_copy.is_spix=True
             image_copy.spix_vmin=spix_vmin
             image_copy.spix_vmax=spix_vmax
@@ -787,7 +797,7 @@ class ImageCube(object):
 
             # TODO maybe it makes sense to introduce a new RMData Class here? The current solution is a bit hacky, but it works
             image_copy = image2.copy()
-            image_copy.Z = rm #write rotation measure to Z
+            image_copy.rm = rm #write rotation measure to Z
             image_copy.evpa = evpa0 #write intrinsic evpa to evpa
             image_copy.is_rm = True
             image_copy.rm_vmin=rm_vmin
@@ -799,6 +809,94 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=rm_maps)
 
-    def get_turnover_map(self):
-        #TODO get turnover frequency map
-        pass
+    def get_turnover_map(self,epoch="",sigma_lim=10,max_feval=1000000,specific_pixel=(-1,-1)):
+        #Largely imported from Luca Ricci's Turnover frequency code
+        #TODO get individual pixel fit plot
+        #TODO basic error handling to check if the files are aligned and regridded and restored.
+
+        if isinstance(epoch, list):
+            epochs=epoch
+        elif epoch=="":
+            epochs=self.dates
+        else:
+            epochs=[epoch]
+
+        frequencies=np.array(self.freqs)*1e-9 #Frequencies in GHz
+
+        final_images=[]
+
+        for epoch in epochs:
+            i = closest_index(self.mjds, Time(epoch).mjd)
+            images = self.images[i, :].flatten()
+
+            #initialize result arrays
+            turnover = np.zeros_like(images[0].Z)
+            turnover_flux = np.zeros_like(images[0].Z)
+            chi_square = np.zeros_like(images[0].Z)
+            error_map = np.zeros_like(images[0].Z)
+
+            lowest_freq = frequencies[0]
+            highest_freq = frequencies[-1]
+
+            for i in range(len(images[0].Z)):
+                for j in range(len(images[0].Z[0])):
+                    brightness = []
+                    err_brightness = []
+
+                    for image in images:
+                        if image.Z[i,j] > image.noise * sigma_lim:
+                            brightness.append(image.Z[i,j])
+                            err_brightness.append(image.Z[i,j]*image.error)
+
+                    if len(brightness) == len(images):
+                        try:
+                            popt, pcov = curve_fit(func_turn, frequencies, brightness, sigma=err_brightness,
+                                                   maxfev=max_feval)
+                            perr = np.sqrt(np.diag(pcov))
+                            x_vals = np.linspace(lowest_freq,highest_freq,1000)
+                            y_vals = func_turn(x_vals, *popt)
+                            peak_idx = np.argmax(y_vals)
+                            turnover_freq = x_vals[peak_idx]
+                            peak_brightness = y_vals[peak_idx]
+
+                            if lowest_freq +1 <= turnover_freq <= highest_freq -1:
+                                turnover[i,j] = turnover_freq
+                                turnover_flux[i,j] = peak_brightness
+
+                                # Calculate error on turnover frequency
+                                popt_plus = popt + perr  # Parameters with added errors
+                                popt_minus = popt - perr  # Parameters with subtracted errors
+
+                                # Perturbed turnover frequencies
+                                y_vals_plus = func_turn(x_vals, *popt_plus)
+                                y_vals_minus = func_turn(x_vals, *popt_minus)
+                                turnover_freq_plus = x_vals[np.argmax(y_vals_plus)]
+                                turnover_freq_minus = x_vals[np.argmax(y_vals_minus)]
+
+                                # Error as average absolute difference
+                                error_map[i, j] = 0.5 * (abs(turnover_freq_plus - turnover_freq) + abs(
+                                    turnover_freq_minus - turnover_freq))
+                            else:
+                                turnover[i,j] = 0
+                            chi_square[i,j] = np.sum(((np.array(brightness) - func_turn(np.array(frequencies), *popt)) / np.array(err_brightness))**2)
+                            # Plot specific pixel
+
+                            if (i, j) == specific_pixel:
+                                fitted_func = func_turn(np.array(frequencies), *popt)
+                                plot_pixel_fit(frequencies, brightness, err_brightness, fitted_func, specific_pixel,
+                                               popt, turnover_freq)
+
+                        except:
+                            continue
+
+            # TODO maybe it makes sense to introduce a new TurnoverData Class here? The current solution is a bit hacky, but it works
+            image_copy = images[0].copy()
+            image_copy.is_turnover = True
+            image_copy.turnover = turnover
+            image_copy.turnover_flux = turnover_flux
+            image_copy.turnover_error = error_map
+            image_copy.turnover_chi_sq = chi_square
+
+            final_images.append(image_copy)
+
+        return ImageCube(image_data_list=final_images)

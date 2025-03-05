@@ -374,11 +374,27 @@ class FitsImage(object):
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
                                   label="Fractional Linear Polarization",do_colorbar=self.do_colorbar)
         if plot_mode=="spix":
-            self.plotColormap(Z,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
+            self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
 
         if plot_mode=="rm":
-            Z=np.ma.masked_where((abs(Z) > 20000),Z)
+            Z=np.ma.masked_where((abs(self.clean_image.rm) > 20000),self.clean_image.rm)
             self.plotColormap(Z, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
+
+        if plot_mode == "turnover_freq" or plot_mode=="turnover":
+            Z=np.ma.masked_where(self.clean_image.turnover==0,self.clean_image.turnover)
+            self.plotColormap(Z, im_color, levs, levs1, extent, label="Turnover Frequency [GHz]", do_colorbar=self.do_colorbar)
+        if plot_mode == "turnover_flux":
+            Z = np.ma.masked_where(self.clean_image.turnover == 0,self.clean_image.turnover_flux)
+            self.plotColormap(Z, im_color, levs, levs1, extent, label="Turnover Flux [Jy/beam]",
+                              do_colorbar=self.do_colorbar)
+        if plot_mode == "turnover_error":
+            Z = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_error)
+            self.plotColormap(Z, im_color, levs, levs1, extent, label="Turnover Error [GHz]",
+                              do_colorbar=self.do_colorbar)
+        if plot_mode == "turnover_chisquare":
+            Z = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_chi_sq)
+            self.plotColormap(Z, im_color, levs, levs1, extent, label=r"Turnover $\chi^2$",
+                              do_colorbar=self.do_colorbar)
 
         if plot_evpa and np.sum(self.clean_image.lin_pol)!=0:
             levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
@@ -595,7 +611,6 @@ class FitsImage(object):
             if im_color=="":
                 im_color="coolwarm"
 
-
             if self.clean_image.rm_vmin!="" and self.clean_image.rm_vmax!="":
                 col = self.ax.imshow(Z, cmap=im_color, vmin=self.clean_image.rm_vmin, vmax=self.clean_image.rm_vmax, extent=extent, origin='lower')
             else:
@@ -609,6 +624,19 @@ class FitsImage(object):
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
+
+        elif label=="Turnover Frequency [GHz]" or label=="Turnover Flux [Jy/beam]" or label=="Turnover Error [GHz]" or label=="Turnover $\Chi^2$":
+            if im_color=="":
+                im_color="inferno"
+
+            col = self.ax.imshow(Z, cmap=im_color, extent=extent, origin='lower')
+
+            if do_colorbar:
+                divider = make_axes_locatable(self.ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
+
 
         else:
             if im_color=="":
@@ -767,7 +795,6 @@ class MultiFitsImage(object):
 
         #create FitsImage for every image
         self.plots=np.empty((self.nrows,self.ncols),dtype=object)
-        print(self.nrows, self.ncols)
 
         for i in range(self.nrows):
             for j in range(self.ncols):

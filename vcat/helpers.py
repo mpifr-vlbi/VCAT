@@ -708,3 +708,25 @@ def sort_uvf_by_date_and_frequency(uvf_files):
 def closest_index(lst, target):
     return min(range(len(lst)), key=lambda i: abs(lst[i] - target))
 
+def func_turn(x, i0, turn, alpha0):
+    """Turnover frequency function."""
+    alphat = 2.5
+    return i0 * (x / turn)**alphat * (1.0 - np.exp(-(turn / x)**(alphat - alpha0)))
+
+def plot_pixel_fit(frequencies, brightness, err_brightness, fitted_func, pixel, popt, peak_brightness):
+    """Plot the data points and fitted function for a specific pixel."""
+    x_smooth = np.linspace(min(frequencies), max(frequencies), 10000)  # High-resolution x-axis
+    y_smooth = func_turn(x_smooth, *popt)  # Fitted function for high-res x-axis
+    plt.figure(figsize=(10, 6))
+    plt.style.use('default')
+    plt.errorbar(frequencies, brightness, yerr=err_brightness, fmt='o', color='blue', label='Data Points')
+    plt.plot(x_smooth, y_smooth, color='red', label=f'Fitted Function\nPeak: {peak_brightness:.2f} GHz')
+    plt.xlabel('Frequency [GHz]', fontsize=16)
+    plt.ylabel('Brightness [Jy/beam]', fontsize=16)
+    plt.title(f'Pixel ({pixel[1]}, {pixel[0]})', fontsize=18)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=14)
+    plt.grid()
+    #plt.savefig(f'pixel_fit_{pixel[1]}_{pixel[0]}.pdf', format='pdf', dpi=300, bbox_inches='tight')
+    plt.show()
