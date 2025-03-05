@@ -694,9 +694,8 @@ def sort_uvf_by_date_and_frequency(uvf_files):
         uvf_files = np.array(uvf_files)
 
         if len(uvf_files) > 0:
-            dates = np.array([fits.open(f)[0].header["DATE-OBS"] for f in uvf_files])
+            dates = np.array([fits.open(f)[0].header["DATE-OBS"].split("T")[0] for f in uvf_files])
             frequencies = np.array([get_uvf_frequency(f) for f in uvf_files])
-
             # Sort by date first, then by frequency
             sorted_indices = np.lexsort((frequencies, dates))
             uvf_files = uvf_files[sorted_indices]
@@ -705,4 +704,7 @@ def sort_uvf_by_date_and_frequency(uvf_files):
     else:
         return uvf_files
 
+
+def closest_index(lst, target):
+    return min(range(len(lst)), key=lambda i: abs(lst[i] - target))
 

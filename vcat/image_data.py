@@ -20,6 +20,9 @@ from skimage.draw import disk, ellipse
 from skimage.registration import phase_cross_correlation
 from scipy.interpolate import RegularGridInterpolator
 import copy
+from astropy.utils.exceptions import ErfaWarning
+
+warnings.simplefilter('ignore', ErfaWarning)
 
 class ImageData(object):
 
@@ -371,6 +374,16 @@ class ImageData(object):
                 self.mask = np.zeros_like(self.Z, dtype=bool)
             else:
                 self.mask=mask
+
+        # additional parameters only used for spectral index type data
+        self.is_spix=False
+        self.spix_vmin=-3
+        self.spix_vmax=5
+
+        #additional parameter only used for rotation measure data
+        self.is_rm=False
+        self.rm_vmin=""
+        self.rm_vmax=""
 
     #print function for ImageData
     def __str__(self):

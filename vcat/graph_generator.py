@@ -315,6 +315,7 @@ class FitsImage(object):
         self.noise_method=self.clean_image.noise_method
         self.do_colorbar=do_colorbar
 
+
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
 
@@ -372,6 +373,12 @@ class FitsImage(object):
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
                                   label="Fractional Linear Polarization",do_colorbar=self.do_colorbar)
+        if plot_mode=="spix":
+            self.plotColormap(Z,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
+
+        if plot_mode=="rm":
+            Z=np.ma.masked_where((abs(Z) > 20000),Z)
+            self.plotColormap(Z, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
 
         if plot_evpa and np.sum(self.clean_image.lin_pol)!=0:
             levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
@@ -572,6 +579,36 @@ class FitsImage(object):
             if im_color=="":
                 im_color="inferno"
             col = self.ax.imshow(Z, cmap=im_color, vmin=0, vmax=1, interpolation='none', alpha=Z.astype(float), extent=extent, origin="lower", zorder=10)
+        elif label=="Spectral Index":
+            if im_color=="":
+                im_color="hot_r"
+
+            col = self.ax.imshow(Z, cmap=im_color, vmin=self.clean_image.spix_vmin, vmax=self.clean_image.spix_vmax, extent=extent, origin='lower')
+
+            if do_colorbar:
+                divider = make_axes_locatable(self.ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
+
+        elif label=="Rotation Measure [rad/m^2]":
+            if im_color=="":
+                im_color="coolwarm"
+
+
+            if self.clean_image.rm_vmin!="" and self.clean_image.rm_vmax!="":
+                col = self.ax.imshow(Z, cmap=im_color, vmin=self.clean_image.rm_vmin, vmax=self.clean_image.rm_vmax, extent=extent, origin='lower')
+            else:
+                #scale up and down equally
+                vmax=np.max(abs(Z))
+                vmin=-vmax
+                col = self.ax.imshow(Z, cmap=im_color, vmin=vmin, vmax=vmax, extent=extent, origin='lower')
+
+            if do_colorbar:
+                divider = make_axes_locatable(self.ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         else:
             if im_color=="":

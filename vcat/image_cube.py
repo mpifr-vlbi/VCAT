@@ -5,12 +5,15 @@ import os
 from astropy.time import Time
 import sys
 from vcat.image_data import ImageData
-from vcat.helpers import get_common_beam, sort_fits_by_date_and_frequency, sort_uvf_by_date_and_frequency
+from vcat.helpers import get_common_beam, sort_fits_by_date_and_frequency, sort_uvf_by_date_and_frequency, closest_index
 from vcat.graph_generator import MultiFitsImage
 from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
 import warnings
+import scipy.optimize as opt
+import numpy.ma as ma
+from astropy.constants import c
 
 class ImageCube(object):
 
@@ -85,12 +88,14 @@ class ImageCube(object):
         return f"ImageCube with {self.shape[1]} frequencies and {self.shape[0]} epochs."
 
     def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files=""):
+        #TODO set some input parameters like noise_method etc.
         #sort input files
         fits_files=sort_fits_by_date_and_frequency(fits_files)
         uvf_files=sort_uvf_by_date_and_frequency(uvf_files)
         stokes_q_files=sort_fits_by_date_and_frequency(stokes_q_files)
         stokes_u_files=sort_fits_by_date_and_frequency(stokes_u_files)
         model_fits_files=sort_fits_by_date_and_frequency(model_fits_files)
+
 
         #initialize image array
         images=[]
@@ -288,7 +293,7 @@ class ImageCube(object):
                 npix_i = n_pix[i] if isinstance(npix, list) else npix
                 pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
-                image_select=self.images[:,i]
+                image_select=self.images[:,i].flatten()
                 for image in image_select:
                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
@@ -300,7 +305,7 @@ class ImageCube(object):
                 npix_i = n_pix[i] if isinstance(npix, list) else npix
                 pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
-                image_select=self.images[i,:]
+                image_select=self.images[i,:].flatten()
                 for image in image_select:
                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
@@ -502,9 +507,9 @@ class ImageCube(object):
 
                 #regrid images
                 im_cube=ImageCube(images)
-                im_cube=im_cube.regrid(npix_i,pixel_size_i,mode=mode,useDIFMAP=useDIFMAP)
+                im_cube=im_cube.regrid(npix_i,pixel_size_i,mode="all",useDIFMAP=useDIFMAP)
                 #restore images
-                im_cube=im_cube.restore(beam_i[0],beam_i[1],beam_i[2],mode=mode,useDIFMAP=useDIFMAP)
+                im_cube=im_cube.restore(beam_i[0],beam_i[1],beam_i[2],mode="all",useDIFMAP=useDIFMAP)
 
                 images=im_cube.images.flatten()
                 #choose reference_image (this is pretty random)
@@ -545,11 +550,11 @@ class ImageCube(object):
 
                 # regrid images
                 im_cube = ImageCube(images)
-                im_cube = im_cube.regrid(npix_i, pixel_size_i, mode=mode, useDIFMAP=useDIFMAP)
+                im_cube = im_cube.regrid(npix_i, pixel_size_i, mode="all", useDIFMAP=useDIFMAP)
                 # restore images
-                im_cube = im_cube.restore(beam_i[0], beam_i[1], beam_i[2], mode=mode, useDIFMAP=useDIFMAP)
-
+                im_cube = im_cube.restore(beam_i[0], beam_i[1], beam_i[2], mode="all", useDIFMAP=useDIFMAP)
                 images = im_cube.images.flatten()
+
                 # choose reference_image (this is pretty random)
                 if ref_image_i == "":
                     ref_image_i = images[-1] #use highest frequency by default
@@ -688,10 +693,112 @@ class ImageCube(object):
 
         return start_cube
 
-    def get_spectral_index_map(self):
-        #TODO get spectral index map
-        pass
+    def get_spectral_index_map(self,freq1,freq2,epoch="",spix_vmin=-3,spix_vmax=5,sigma_lim=3,plot=False):
+        #TODO implement fitting spix across more than two frequencies
 
-    def get_rm_map(self):
-        #TODO get RM map
+        #TODO basic check if images are aligned an same pixels if not, align automatically
+
+        if isinstance(epoch, list):
+            epochs=epoch
+        elif epoch=="":
+            epochs=self.dates
+        else:
+            epochs=[epoch]
+
+        spec_ind_maps=[]
+        for epoch in epochs:
+            i=closest_index(self.mjds,Time(epoch).mjd)
+            images=self.images[i,:].flatten()
+
+            #find images to use
+            print(self.freqs,freq1)
+            image1=images[closest_index(self.freqs,freq1*1e9)]
+            image2=images[closest_index(self.freqs,freq2*1e9)]
+
+            #filter according to sigma cut
+            spix1=image1.Z*(image1.Z>image1.noise*sigma_lim)*(image2.Z>image2.noise*sigma_lim)
+            spix2=image2.Z*(image2.Z>image2.noise*sigma_lim)*(image1.Z>image1.noise*sigma_lim)
+
+            spix1[spix1==0] = image1.noise*sigma_lim
+            spix2[spix2==0] = image2.noise*sigma_lim
+
+            a = np.log10(spix2/spix1)/np.log10(freq2/freq1)
+
+            sys.stdout.write('\nSpectral index max(alpha)={} - min(alpha)={}\nCutoff {}<alpha<{}\n'.format(ma.amax(a),ma.amin(a),spix_vmin,spix_vmax))
+
+            a[a<spix_vmin]=spix_vmin
+            a[a>spix_vmax]=spix_vmax
+            a[spix2==image2.noise*sigma_lim] = spix_vmin
+
+            # TODO maybe it makes sense to introduce a new SpixData Class here? The current solution is a bit hacky, but it works
+            image_copy=image2.copy()
+            image_copy.Z=a
+            image_copy.is_spix=True
+            image_copy.spix_vmin=spix_vmin
+            image_copy.spix_vmax=spix_vmax
+            if plot:
+                image_copy.plot(plot_mode="spix",im_colormap=True,contour=False)
+
+            spec_ind_maps.append(image_copy)
+
+        return ImageCube(image_data_list=spec_ind_maps)
+
+    def get_rm_map(self,freq1,freq2,epoch="",sigma_lim=3,rm_vmin="",rm_vmax="",sigma_lim_pol=5,plot=False):
+        #TODO get RM map across more than 2 frequencies by fitting
+
+        # TODO basic check if images are aligned an same pixels if not, align automatically
+
+        if isinstance(epoch, list):
+            epochs=epoch
+        elif epoch=="":
+            epochs=self.dates
+        else:
+            epochs=[epoch]
+
+        rm_maps=[]
+        for epoch in epochs:
+            i=closest_index(self.mjds,Time(epoch).mjd)
+            images=self.images[i,:].flatten()
+
+            #find images to use
+            image1=images[closest_index(self.freqs,freq1*1e9)]
+            image2=images[closest_index(self.freqs,freq2*1e9)]
+
+            # filter according to sigma cut
+            evpa1 = (image1.evpa * (image1.Z > image1.noise * sigma_lim) * (image1.lin_pol > image1.pol_noise * sigma_lim_pol)
+                     *(image2.Z > image2.noise * sigma_lim) * (image2.lin_pol > image2.pol_noise * sigma_lim_pol))
+            evpa2 = (image2.evpa * (image2.Z > image2.noise * sigma_lim) * (image2.lin_pol > image2.pol_noise * sigma_lim_pol)
+                     * (image1.Z > image1.noise * sigma_lim) * (image1.lin_pol > image1.pol_noise * sigma_lim_pol))
+
+            evpa1[evpa1 == 0] = 0
+            evpa2[evpa2 == 0] = 1000 #for masked areas will create incredibly high RM that will be filtered later
+
+
+            #calculate wavelengths
+            lam1=c.si.value/image1.freq
+            lam2=c.si.value/image2.freq
+
+            # calculate rotation measure
+            rm=(evpa2-evpa1)/(lam2**2-lam1**2)
+
+
+            #calculate intrinsic EVPA
+            evpa0=(evpa1*lam2**2-evpa2*lam1**2)/(lam2**2-lam1**2)
+
+            # TODO maybe it makes sense to introduce a new RMData Class here? The current solution is a bit hacky, but it works
+            image_copy = image2.copy()
+            image_copy.Z = rm #write rotation measure to Z
+            image_copy.evpa = evpa0 #write intrinsic evpa to evpa
+            image_copy.is_rm = True
+            image_copy.rm_vmin=rm_vmin
+            image_copy.rm_vmax=rm_vmax
+            if plot:
+                image_copy.plot(plot_mode="rm",im_colormap=True, contour=False)
+
+            rm_maps.append(image_copy)
+
+        return ImageCube(image_data_list=rm_maps)
+
+    def get_turnover_map(self):
+        #TODO get turnover frequency map
         pass
