@@ -900,3 +900,7 @@ class ImageCube(object):
             final_images.append(image_copy)
 
         return ImageCube(image_data_list=final_images)
+
+    def rotate(self,angle):
+        #TODO implement
+        pass

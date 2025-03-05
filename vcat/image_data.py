@@ -1097,6 +1097,7 @@ class ImageData(object):
                     new_x,new_y=rotate_points(f[1].data["DELTAX"],f[1].data["DELTAY"],-angle)
                     f[1].data['DELTAX']=new_x
                     f[1].data['DELTAY']=new_y
+                    f[0].header['BPA']+=angle
                     f.writeto(new_stokes_i_fits, overwrite=True)
 
                 if len(self.stokes_q) > 0:
@@ -1109,6 +1110,7 @@ class ImageData(object):
                         new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
                         f[1].data['DELTAX'] = new_x
                         f[1].data['DELTAY'] = new_y
+                        f[0].header['BPA'] += angle
                         f.writeto(new_stokes_q_fits, overwrite=True)
                 else:
                     new_stokes_q_fits = ""
@@ -1123,6 +1125,7 @@ class ImageData(object):
                         new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
                         f[1].data['DELTAX'] = new_x
                         f[1].data['DELTAY'] = new_y
+                        f[0].header['BPA'] += angle
                         f.writeto(new_stokes_u_fits, overwrite=True)
                 else:
                     new_stokes_u_fits = ""
@@ -1136,6 +1139,7 @@ class ImageData(object):
                 f[0].data[2, 0, :, :] = new_image_u
                 new_stokes_i_fits = self.model_save_dir + "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                     self.freq / 1e9).replace(".", "_") + "GHz.fits"
+                f[0].header['BPA'] += angle
                 f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
                 new_stokes_q_fits = ""
                 new_stokes_u_fits = ""
@@ -1154,6 +1158,7 @@ class ImageData(object):
                             new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
                             f[1].data['DELTAX'] = new_x
                             f[1].data['DELTAY'] = new_y
+                            f[0].header['BPA'] += angle
                             f.writeto(new_model_fits, overwrite=True)
                     else:
                         new_model_fits = ""

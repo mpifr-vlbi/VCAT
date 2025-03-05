@@ -767,6 +767,8 @@ def rotate_uvf_file(uvf_file,angle, output):
         new_u, new_v = rotate_points(u,v,angle)
         f[0].data["UU"]=new_u
         f[0].data["VV"]=new_v
+        f[1].header["XTENSION"]="BINTABLE"
+        f[2].header["XTENSION"]="BINTABLE"
         f.writeto(output,overwrite=True)
 
 

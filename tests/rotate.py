@@ -9,6 +9,9 @@ data=ImageData("../dataset_example/0215_pol/Ku/0215+015.icn.fits",
 
 data.plot()
 
-data_new=data.rotate(-45,useDIFMAP=False)
+data_new=data.rotate(-25,useDIFMAP=True)
 
 data_new.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
+
+data_n=data_new.rotate(25,useDIFMAP=False)
+data_n.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
