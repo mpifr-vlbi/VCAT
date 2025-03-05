@@ -21,6 +21,8 @@ from skimage.registration import phase_cross_correlation
 from scipy.interpolate import RegularGridInterpolator
 import copy
 from astropy.utils.exceptions import ErfaWarning
+import numpy as np
+import scipy.ndimage
 
 warnings.simplefilter('ignore', ErfaWarning)
 
@@ -368,8 +370,8 @@ class ImageData(object):
         if len(mask)==0:
             self.mask = np.zeros_like(self.Z, dtype=bool)
             #test masking
-            #self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
-            #self.masking(mask_type="cut_left",args=-200)
+            self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
+            self.masking(mask_type="cut_left",args=-200)
         else:
             if np.shape(mask) != np.shape(self.Z):
                 warnings.warn("Mask input format invalid, Mask reset to no mask.",UserWarning)
@@ -425,7 +427,6 @@ class ImageData(object):
 
         Returns:
             ImageData object with regridded images
-
         """
 
         n2 = len(self.X)
@@ -695,7 +696,7 @@ class ImageData(object):
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
 
-    def restore(self,bmaj,bmin,posa,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
@@ -1055,6 +1056,155 @@ class ImageData(object):
 
         if mask_type == 'reset':
             self.mask=np.zeros_like(self.Z)
+
+
+    def rotate(self,angle,useDIFMAP=True,reshape=False,order=1):
+
+        #rotate mask
+        new_mask=scipy.ndimage.rotate(self.mask,-angle,reshape=reshape,order=0)
+        #make sure values are valid
+        new_mask[new_mask < 0.1] = False
+        new_mask[new_mask >= 0.1] = True
+
+        #rotate uvf file
+        if self.uvf_file!="":
+            new_uvf = self.model_save_dir + "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                self.freq / 1e9).replace(".", "_") + "GHz.uvf"
+
+            rotate_uvf_file(self.uvf_file, -angle, new_uvf)
+
+
+        if self.uvf_file=="" or not useDIFMAP:
+            print("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
+
+            new_image_i=scipy.ndimage.rotate(self.Z,-angle,reshape=reshape,order=order)
+
+            try:
+                new_image_q = scipy.ndimage.rotate(self.stokes_q,-angle,reshape=reshape,order=order)
+                new_image_u = scipy.ndimage.rotate(self.stokes_u,-angle,reshape=reshape,order=order)
+            except:
+                warnings.warn("Unable to rotate polarization, probably no polarization loaded", UserWarning)
+
+            # write outputs to the fits files
+            if self.only_stokes_i:
+                # this means DIFMAP style fits image
+                with fits.open(self.fits_file) as f:
+                    # overwrite image data
+                    f[0].data[0, 0, :, :] = new_image_i
+                    new_stokes_i_fits = self.model_save_dir + "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                        self.freq / 1e9).replace(".", "_") + "GHz.fits"
+                    f[1].header['XTENSION'] = 'BINTABLE'
+                    new_x,new_y=rotate_points(f[1].data["DELTAX"],f[1].data["DELTAY"],-angle)
+                    f[1].data['DELTAX']=new_x
+                    f[1].data['DELTAY']=new_y
+                    f.writeto(new_stokes_i_fits, overwrite=True)
+
+                if len(self.stokes_q) > 0:
+                    with fits.open(self.stokes_q_path) as f:
+                        # overwrite image data
+                        f[0].data[0, 0, :, :] = new_image_q
+                        new_stokes_q_fits = self.model_save_dir + "mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                            self.freq / 1e9).replace(".", "_") + "GHz.fits"
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
+                        f[1].data['DELTAX'] = new_x
+                        f[1].data['DELTAY'] = new_y
+                        f.writeto(new_stokes_q_fits, overwrite=True)
+                else:
+                    new_stokes_q_fits = ""
+
+                if len(self.stokes_u) > 0:
+                    with fits.open(self.stokes_u_path) as f:
+                        # overwrite image data
+                        f[0].data[0, 0, :, :] = new_image_u
+                        new_stokes_u_fits = self.model_save_dir + "mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                            self.freq / 1e9).replace(".", "_") + "GHz.fits"
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
+                        f[1].data['DELTAX'] = new_x
+                        f[1].data['DELTAY'] = new_y
+                        f.writeto(new_stokes_u_fits, overwrite=True)
+                else:
+                    new_stokes_u_fits = ""
+
+            else:
+                # CASA style
+                f = fits.open(self.fits_file)
+                # overwrite image data
+                f[0].data[0, 0, :, :] = new_image_i
+                f[0].data[1, 0, :, :] = new_image_q
+                f[0].data[2, 0, :, :] = new_image_u
+                new_stokes_i_fits = self.model_save_dir + "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                    self.freq / 1e9).replace(".", "_") + "GHz.fits"
+                f.writeto(new_stokes_i_fits, overwrite=True, output_verify='ignore')
+                new_stokes_q_fits = ""
+                new_stokes_u_fits = ""
+
+            # if model loaded try rotating as well
+            try:
+                if not self.model_file_path == self.fits_file:
+                    if not self.model_file_path == "":
+
+                        new_image_model=scipy.ndimage.rotate(fits.open(self.model_file_path)[0].data,-angle,reshape=reshape,order=order)
+
+                        with fits.open(self.model_file_path) as f:
+                            f[0].data[0, 0, :, :] = new_image_model
+                            new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                            f[1].header['XTENSION'] = 'BINTABLE'
+                            new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
+                            f[1].data['DELTAX'] = new_x
+                            f[1].data['DELTAY'] = new_y
+                            f.writeto(new_model_fits, overwrite=True)
+                    else:
+                        new_model_fits = ""
+                else:
+                    new_model_fits = new_stokes_i_fits
+            except:
+                warnings.warn("Model not regridded, probably no model loaded.", UserWarning)
+                new_model_fits = ""
+
+            newImageData= ImageData(fits_file=new_stokes_i_fits,
+                         uvf_file=self.uvf_file,
+                         stokes_q=new_stokes_q_fits,
+                         stokes_u=new_stokes_u_fits,
+                         mask=new_mask,
+                         noise_method=self.noise_method,
+                         model_save_dir=self.model_save_dir,
+                         model=new_model_fits,
+                         correct_rician_bias=self.correct_rician_bias,
+                         difmap_path=self.difmap_path)
+
+        else:
+
+            newImageData=ImageData(fits_file=self.fits_file,
+                         uvf_file=self.uvf_file,
+                         stokes_q=self.stokes_q_path,
+                         stokes_u=self.stokes_u_path,
+                         mask=self.mask,
+                         noise_method=self.noise_method,
+                         model_save_dir=self.model_save_dir,
+                         model=self.model_file_path,
+                         correct_rician_bias=self.correct_rician_bias,
+                         difmap_path=self.difmap_path)
+
+            rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
+            try:
+                rotate_mod_file(self.stokes_q_mod_file,angle,self.stokes_q_mod_file)
+                rotate_mod_file(self.stokes_u_mod_file,angle,self.stokes_u_mod_file)
+            except:
+                warnings.warn("Could not rotate polarization, probably not loaded.", UserWarning)
+            try:
+                rotate_mod_file(self.model_mod_file,angle,self.model_mod_file)
+            except:
+                warnings.warn("Could not rotate model, probably not loaded.", UserWarning)
+
+            newImageData.uvf_file=new_uvf
+            newImageData.mask=new_mask
+            newImageData.beam_pa+=angle
+
+            newImageData=newImageData.restore()
+
+        return newImageData
 
 
     def get_noise_from_shift(self,shift_factor=20):

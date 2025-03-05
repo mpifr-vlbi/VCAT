@@ -730,3 +730,45 @@ def plot_pixel_fit(frequencies, brightness, err_brightness, fitted_func, pixel, 
     plt.grid()
     #plt.savefig(f'pixel_fit_{pixel[1]}_{pixel[0]}.pdf', format='pdf', dpi=300, bbox_inches='tight')
     plt.show()
+
+def rotate_points(x, y, angle_deg):
+    """ Rotate points (x, y) by angle (in degrees) around the origin. """
+    angle_rad = np.radians(angle_deg)  # Convert degrees to radians
+    cos_theta, sin_theta = np.cos(angle_rad), np.sin(angle_rad)
+
+    # Apply rotation matrix
+    x_new = cos_theta * x - sin_theta * y
+    y_new = sin_theta * x + cos_theta * y
+
+    return x_new, y_new
+
+def rotate_mod_file(mod_file,angle, output="tmp.mod"):
+    with open(mod_file) as infile, open("tmp.mod","w") as outfile:
+        for line in infile:
+            if not line.startswith("#"):
+                linepart = line.split()
+                posa=float(linepart[2])
+                posa+=angle
+
+                if posa<-180:
+                    posa+=360
+                elif posa>180:
+                    posa-=360
+
+                linepart[2]="{:.3f}".format(posa)
+                outfile.write(" ".join(linepart)+"\n")
+
+    os.replace("tmp.mod",output)
+
+def rotate_uvf_file(uvf_file,angle, output):
+    with(fits.open(uvf_file)) as f:
+        u=f[0].data["UU"]
+        v=f[0].data["VV"]
+        new_u, new_v = rotate_points(u,v,angle)
+        f[0].data["UU"]=new_u
+        f[0].data["VV"]=new_v
+        f.writeto(output,overwrite=True)
+
+
+
+
