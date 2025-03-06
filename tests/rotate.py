@@ -1,4 +1,5 @@
 from vcat import ImageData
+import matplotlib.pyplot as plt
 
 data=ImageData("../dataset_example/0215_pol/Ku/0215+015.icn.fits",
         model="../dataset_example/0215_pol/Ku/0215+015.icn.fits",
@@ -15,3 +16,9 @@ data_new.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
 
 data_n=data_new.rotate(25,useDIFMAP=False)
 data_n.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
+
+
+ridgeline=data_n.get_ridgeline()
+
+plt.plot(ridgeline["dist_int"],ridgeline["intensity"])
+plt.show()
