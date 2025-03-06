@@ -57,6 +57,8 @@ class ImageData(object):
                  evpa=[],
                  pol_from_stokes=True,
                  mask="",
+                 ridgeline="",
+                 counter_ridgeline="",
                  stokes_q="",
                  stokes_u="",
                  model_save_dir="tmp/",
@@ -80,7 +82,14 @@ class ImageData(object):
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
         self.error=error
-        self.ridgeline=Ridgeline()
+        if ridgeline=="":
+            self.ridgeline=Ridgeline()
+        else:
+            self.ridgeline=ridgeline
+        if counter_ridgeline=="":
+            self.counter_ridgeline=Ridgeline()
+        else:
+            self.counter_ridgeline=counter_ridgeline
 
 
         # Read clean files in
@@ -584,6 +593,8 @@ class ImageData(object):
                          stokes_q=new_stokes_q_fits,
                          stokes_u=new_stokes_u_fits,
                          mask=new_mask,
+                         ridgeline=self.ridgeline,
+                         counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,
                          model_save_dir=self.model_save_dir,
                          model=new_model_fits,
@@ -610,6 +621,8 @@ class ImageData(object):
             "do_colorbar": False,
             "plot_ridgeline": False,
             "ridgeline_color": "red",
+            "plot_counter_ridgeline": False,
+            "counter_ridgeline_color": "red",
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
@@ -968,6 +981,8 @@ class ImageData(object):
                          stokes_q=new_stokes_q_fits,
                          stokes_u=new_stokes_u_fits,
                          mask=new_mask,
+                         ridgeline=self.ridgeline,
+                         counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,
                          model_save_dir=self.model_save_dir,
                          model=new_model_fits,
@@ -1084,6 +1099,11 @@ class ImageData(object):
         self.ridgeline.X_ridg=x_new
         self.ridgeline.Y_ridg=y_new
 
+        #rotate counterridgeline
+        x_new, y_new = rotate_points(np.array(self.counter_ridgeline.X_ridg), np.array(self.counter_ridgeline.Y_ridg), -angle)
+        self.counter_ridgeline.X_ridg = x_new
+        self.counter_ridgeline.Y_ridg = y_new
+
         #do actual image rotations
         if self.uvf_file=="" or not useDIFMAP:
             print("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
@@ -1184,6 +1204,8 @@ class ImageData(object):
                          stokes_q=new_stokes_q_fits,
                          stokes_u=new_stokes_u_fits,
                          mask=new_mask,
+                         ridgeline=self.ridgeline,
+                         counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,
                          model_save_dir=self.model_save_dir,
                          model=new_model_fits,
@@ -1197,6 +1219,8 @@ class ImageData(object):
                          stokes_q=self.stokes_q_path,
                          stokes_u=self.stokes_u_path,
                          mask=self.mask,
+                         ridgeline=self.ridgeline,
+                         counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,
                          model_save_dir=self.model_save_dir,
                          model=self.model_file_path,
@@ -1235,8 +1259,12 @@ class ImageData(object):
         self.ridgeline=ridgeline
 
         if counterjet:
-            #TODO do analysis also for counterjet!
-            pass
+            counter_ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
+                                                 self.X,self.Y,counterjet=True,angle_for_slices=angle_for_slices,cut_radial=cut_radial,
+                                                 cut_final=cut_final,width=width,j_len=j_len,chi_sq_val=chi_sq_val,err_FWHM=err_FWHM)
+            self.counter_ridgeline=counter_ridgeline
+
+            return ridgeline, counter_ridgeline
 
         return ridgeline
 
@@ -1255,6 +1283,9 @@ class ImageData(object):
         noise=np.std(shifted_image.Z)
 
         return noise
+
+    def jet_to_counterjet_profile(self,savefig="",show=True):
+        self.ridgeline.jet_to_counterjet_profile(self.counter_ridgeline,savefig=savefig,show=show)
 
 
 

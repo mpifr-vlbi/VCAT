@@ -236,6 +236,8 @@ class FitsImage(object):
         im_color: Choose colormap name
         plot_ridgeline: Choose to plot ridgeline
         ridgeline_color: Color for ridgeline
+        plot_counter_ridgeline: Choose to plot counter ridgeline
+        counter_ridgeline_color= Choose color for counter ridgeline
         plot_beam: Choose whether to plot the beam or not
         overplot_gauss: Choose whether to overplot modelfit components (if available in image_data)
         component_color: Choose color to plot components
@@ -266,6 +268,8 @@ class FitsImage(object):
                  do_colorbar=False, #choose whether to display colorbar
                  plot_ridgeline=False, #choose whether to display the ridgeline
                  ridgeline_color="red", #choose ridgeline color
+                 plot_counter_ridgeline= False,
+                 counter_ridgeline_color= "red",
                  plot_beam=True, #choose whether to plot beam or not
                  overplot_gauss=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
@@ -321,6 +325,7 @@ class FitsImage(object):
         self.noise_method=self.clean_image.noise_method
         self.do_colorbar=do_colorbar
         self.ridgeline_color=ridgeline_color
+        self.counter_ridgeline_color=counter_ridgeline_color
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
@@ -383,23 +388,23 @@ class FitsImage(object):
             self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
 
         if plot_mode=="rm":
-            Z=np.ma.masked_where((abs(self.clean_image.rm) > 20000),self.clean_image.rm)
-            self.plotColormap(Z, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
+            rm=np.ma.masked_where((abs(self.clean_image.rm) > 20000),self.clean_image.rm)
+            self.plotColormap(rm, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
 
         if plot_mode == "turnover_freq" or plot_mode=="turnover":
-            Z=np.ma.masked_where(self.clean_image.turnover==0,self.clean_image.turnover)
-            self.plotColormap(Z, im_color, levs, levs1, extent, label="Turnover Frequency [GHz]", do_colorbar=self.do_colorbar)
+            to=np.ma.masked_where(self.clean_image.turnover==0,self.clean_image.turnover)
+            self.plotColormap(to, im_color, levs, levs1, extent, label="Turnover Frequency [GHz]", do_colorbar=self.do_colorbar)
         if plot_mode == "turnover_flux":
-            Z = np.ma.masked_where(self.clean_image.turnover == 0,self.clean_image.turnover_flux)
-            self.plotColormap(Z, im_color, levs, levs1, extent, label="Turnover Flux [Jy/beam]",
+            to = np.ma.masked_where(self.clean_image.turnover == 0,self.clean_image.turnover_flux)
+            self.plotColormap(to, im_color, levs, levs1, extent, label="Turnover Flux [Jy/beam]",
                               do_colorbar=self.do_colorbar)
         if plot_mode == "turnover_error":
-            Z = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_error)
-            self.plotColormap(Z, im_color, levs, levs1, extent, label="Turnover Error [GHz]",
+            to = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_error)
+            self.plotColormap(to, im_color, levs, levs1, extent, label="Turnover Error [GHz]",
                               do_colorbar=self.do_colorbar)
         if plot_mode == "turnover_chisquare":
-            Z = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_chi_sq)
-            self.plotColormap(Z, im_color, levs, levs1, extent, label=r"Turnover $\chi^2$",
+            to = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_chi_sq)
+            self.plotColormap(to, im_color, levs, levs1, extent, label=r"Turnover $\chi^2$",
                               do_colorbar=self.do_colorbar)
 
         if plot_evpa and np.sum(self.clean_image.lin_pol)!=0:
@@ -493,6 +498,10 @@ class FitsImage(object):
             #plot ridgeline in image
             self.ax.plot(self.clean_image.ridgeline.X_ridg,self.clean_image.ridgeline.Y_ridg,c=self.ridgeline_color,zorder=6)
 
+        if plot_counter_ridgeline:
+            #plot counterridgeline in image
+            self.ax.plot(self.clean_image.counter_ridgeline.X_ridg, self.clean_image.counter_ridgeline.Y_ridg, c=self.counter_ridgeline_color,
+                         zorder=6)
 
         self.xmin,self.xmax = ra_min, ra_max
         self.ymin,self.ymax = dec_min, dec_max
@@ -763,6 +772,8 @@ class MultiFitsImage(object):
                  do_colorbar=False, #choose whether to display colorbar for every image
                  plot_ridgeline=False, #choose whether to display ridgeline
                  ridgeline_color="red", #choose ridgeline color
+                 plot_counter_ridgeline=False,  # choose whether to display ridgeline
+                 counter_ridgeline_color="red",  # choose ridgeline color
                  plot_beam=True,  # choose whether to plot beam or not
                  overplot_gauss=False,  # choose whether to plot modelfit components
                  component_color="black",  # choose component color for Gauss component
@@ -827,6 +838,9 @@ class MultiFitsImage(object):
                                         im_color=im_color,
                                         do_colorbar=do_colorbar,
                                         plot_ridgeline=plot_ridgeline,
+                                        ridgeline_color=ridgeline_color,
+                                        plot_counter_ridgeline=plot_counter_ridgeline,
+                                        counter_ridgeline_color=counter_ridgeline_color,
                                         plot_beam=plot_beam,
                                         overplot_gauss=overplot_gauss,
                                         component_color=component_color,

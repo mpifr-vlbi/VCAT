@@ -24,7 +24,7 @@ im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 turnover_cube=im_cube.get_turnover_map(specific_pixel=(512,512),limit_freq=False)
 
 #create plots
-turnover_cube.plot(plot_mode="turnover",do_colorbar=True)
-turnover_cube.plot(plot_mode="turnover_flux",do_colorbar=True)
-turnover_cube.plot(plot_mode="turnover_error",do_colorbar=True)
-turnover_cube.plot(plot_mode="turnover_chisquare",do_colorbar=True)
+turnover_cube.plot(plot_mode="turnover",do_colorbar=True,contour=True)
+turnover_cube.plot(plot_mode="turnover_flux",do_colorbar=True,contour=True)
+turnover_cube.plot(plot_mode="turnover_error",do_colorbar=True,contour=True)
+turnover_cube.plot(plot_mode="turnover_chisquare",do_colorbar=True,contour=True)

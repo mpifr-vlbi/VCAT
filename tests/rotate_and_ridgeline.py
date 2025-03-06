@@ -15,14 +15,18 @@ data_new=data.rotate(-64,useDIFMAP=True)
 data_new.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
 
 #do ridgeline fit
-ridgeline=data_new.get_ridgeline(j_len=200)
+ridgeline,counter_ridgeline=data_new.get_ridgeline(j_len=200,counterjet=True)
 
 #rotate the image back for plotting
 data_new.rotate(+64,useDIFMAP=True)
-data_new.plot(plot_mode="stokes_i",plot_ridgeline=True)
+data_new.plot(plot_mode="stokes_i",plot_ridgeline=True,plot_counter_ridgeline=True,counter_ridgeline_color="yellow")
 
 ridgeline.plot(mode="open_angle")
 ridgeline.plot(mode="intensity")
 ridgeline.plot(mode="width")
 ridgeline.plot(mode="ridgeline")
+counter_ridgeline.plot(mode="ridgeline")
+
+#get jet to counterjet profile:
+data_new.jet_to_counterjet_profile()
 

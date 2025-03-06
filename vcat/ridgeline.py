@@ -21,7 +21,7 @@ class Ridgeline(object):
         self.intensity=[]
         self.intensity_err=[]
 
-    def get_ridgeline_luca(self,image_data,noise,error,pixel_size,beam,X_ra,Y_dec,angle_for_slices=0,cut_radial=5.0,
+    def get_ridgeline_luca(self,image_data,noise,error,pixel_size,beam,X_ra,Y_dec,counterjet=False,angle_for_slices=0,cut_radial=5.0,
                            cut_final=10.0,width=40,j_len=100,chi_sq_val=100.0,err_FWHM=0.1,error_flux_slice=0.1):
         # TODO use actual beam width at angle instead of self.beam_maj
         beam=beam[0]
@@ -37,11 +37,17 @@ class Ridgeline(object):
         position_x = max_index[1]
         position_x_beg = position_x - width
         position_x_fin = position_x + width
-        position_y_beg = position_y + 1  # plus 1 so the first slice considered is the first one of the jet (skip the core position)
-        position_y_fin = position_y + j_len
 
-        # initializing some parameters
-        i = position_y_fin - position_y_beg
+        # initializing some parameters depending on counterjet or not
+        if counterjet:
+            position_y_beg = position_y - 1  # minus 1 so the first slice considered is the first one of the counterjet (skip the core position)
+            position_y_fin = position_y - j_len
+            i = position_y_beg - position_y_fin
+        else:
+            position_y_beg = position_y + 1  # plus 1 so the first slice considered is the first one of the jet (skip the core position)
+            position_y_fin = position_y + j_len
+            i = position_y_fin - position_y_beg
+
         cont = 0
         a_old = 0
         b_old = 0
@@ -49,7 +55,11 @@ class Ridgeline(object):
         for x in range(0, i):
 
             # initialize arrays
-            position_y = position_y_beg + x
+            if counterjet:
+                position_y = position_y_beg - x
+            else:
+                position_y = position_y_beg + x
+
             # print(position_y)
             size_x = position_x_fin - position_x_beg
             position_x = int(position_x_beg + size_x / 2)
@@ -173,6 +183,46 @@ class Ridgeline(object):
                 cont += 1
 
         return self
+
+    def jet_to_counterjet_profile(self,counter_ridgeline,savefig="",show=True):
+
+        #initialize arrays
+        sep = []
+        err_beta = []
+        ratio = []
+
+        #get data from jet and counterjet
+        intensityj = np.array(self.intensity)
+        intensity = np.array(counter_ridgeline.intensity)
+        intensityj_err = np.array(self.intensity_err)
+        intensitycj_err = np.array(counter_ridgeline.intensity_err)
+        distj_int = np.array(self.dist_int)
+        distcj_int = np.array(counter_ridgeline.dist_int)
+
+        size = min(len(distj_int), len(distcj_int))
+
+        i = 0
+        j = 0
+        while i < size and j < size:
+            if (distj_int[i] == distcj_int[j]):
+                ratio.append(intensityj[i] / intensity[j])
+                err_beta.append(np.sqrt((1.0 / intensity[i]) ** 2.0 * intensityj_err[i] ** 2.0 +
+                                     (intensityj[i] / (intensity[i] ** 2.0)) ** 2.0 * intensitycj_err[i] ** 2.0))
+                sep.append(distj_int[i])
+                i += 1
+                j += 1
+            elif (distj_int[i] > distcj_int[j]):
+                j += 1
+            elif (distj_int[i] < distcj_int[j]):
+                i += 1
+
+        plt.errorbar(sep, ratio, yerr=err_beta, fmt='o', markersize=5.0)
+        plt.ylabel('Ratio')
+        plt.xlabel('Distance [mas]')
+        if savefig!="":
+            plt.savefig(savefig, dpi=300, bbox_inches='tight')
+        if show:
+            plt.show()
 
     def plot(self,mode="",savefig="",fit=True,start_fit=5,skip_fit=3,avg_fit=3,show=True):
 

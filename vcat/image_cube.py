@@ -331,6 +331,8 @@ class ImageCube(object):
             "do_colorbar": False,
             "plot_ridgeline": False,
             "ridgeline_color": "red",
+            "plot_counter_ridgeline": False,
+            "counter_ridgeline_color": "red",
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
@@ -799,7 +801,7 @@ class ImageCube(object):
 
             # TODO maybe it makes sense to introduce a new RMData Class here? The current solution is a bit hacky, but it works
             image_copy = image2.copy()
-            image_copy.rm = rm #write rotation measure to Z
+            image_copy.rm = rm #write rotation measure to image
             image_copy.evpa = evpa0 #write intrinsic evpa to evpa
             image_copy.is_rm = True
             image_copy.rm_vmin=rm_vmin
@@ -813,7 +815,6 @@ class ImageCube(object):
 
     def get_turnover_map(self,epoch="",sigma_lim=10,max_feval=1000000,specific_pixel=(-1,-1),limit_freq=True):
         #Largely imported from Luca Ricci's Turnover frequency code
-        #TODO get individual pixel fit plot
         #TODO basic error handling to check if the files are aligned and regridded and restored.
 
         if isinstance(epoch, list):

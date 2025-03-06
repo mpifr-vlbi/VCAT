@@ -21,10 +21,10 @@ print(im_cube)
 im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 
 spix_cube=im_cube.get_spectral_index_map(freq1=15,freq2=23)
-spix_cube.plot(plot_mode="spix",im_colormap=True,contour=False,do_colorbar=True)
+spix_cube.plot(plot_mode="spix",im_colormap=True,contour=True,contour_color="black",do_colorbar=True)
 
 rm_cube=im_cube.get_rm_map(freq1=15,freq2=23)
-rm_cube.plot(plot_mode="rm",do_colorbar=True)
+rm_cube.plot(plot_mode="rm",do_colorbar=True,contour=True,contour_color="black")
 
 
 im_cube=im_cube.stack(mode="freq")
