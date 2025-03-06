@@ -151,7 +151,7 @@ class Ridgeline(object):
             if (chi_sq_red < chi_sq_val):
                 if ((FWHM ** 2 - beam ** 2) > 0.0):  # TODO check if this condition is actually the right thing to do
                     self.width.append(np.sqrt(FWHM ** 2 - beam ** 2))
-                    print('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
+                    #print('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
                     self.width_err.append(err_FWHM * np.sqrt(FWHM ** 2 - beam ** 2))
                     self.intensity.append(a[0])
                     self.intensity_err.append(a[0]*error_flux_slice)
@@ -218,9 +218,9 @@ class Ridgeline(object):
 
                 popt, pcov = curve_fit(func, dist_fit, width_fit, sigma=width_err_fit)
                 perr = np.sqrt(np.diag(pcov))
-                print('Fit values (a*x**b) with a the first term and b the second -- First method')
-                print(popt)
-                print(perr)
+                #print('Fit values (a*x**b) with a the first term and b the second -- First method')
+                #print(popt)
+                #print(perr)
 
                 plt.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='red', markersize=7.0)
                 xpoint = np.linspace(self.dist[0], self.dist[len(self.dist) - 1], 1000)
@@ -270,13 +270,13 @@ class Ridgeline(object):
 
                 popt, pcov = curve_fit(func, dist_fit, width_fit, sigma=width_err_fit)
                 perr = np.sqrt(np.diag(pcov))
-                print('Fit values (a*x**b) with a the first term and b the second -- Second method')
-                print(popt)
-                print(perr)
+                #print('Fit values (a*x**b) with a the first term and b the second -- Second method')
+                #print(popt)
+                #print(perr)
 
-                print('Valori fit media')
-                print(dist_fit)
-                print(width_fit)
+                #print('Valori fit media')
+                #print(dist_fit)
+                #print(width_fit)
                 plt.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='purple', markersize=7.0)
                 a = float(popt[0])
                 b = float(popt[1])

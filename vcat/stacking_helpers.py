@@ -347,13 +347,17 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
             print("No or insufficient number of uvf files defined. Will try to guess their names from .fits file names")
             for fits_file in fits_files:
                 uvf_files=np.append(uvf_files,fits_file[:-5]+".uvf")
-       
-        #add difmap to PATH
+
+        env = os.environ.copy()
+
+        # add difmap to PATH
         if difmap_path != None and not difmap_path in os.environ['PATH']:
-            os.environ['PATH'] = os.environ['PATH'] + ':{0}'.format(difmap_path) 
-            
+            env['PATH'] = env['PATH'] + ':{0}'.format(difmap_path)
+
+        # remove potential difmap boot files (we don't need them)
+        env["DIFMAP_LOGIN"] = ""
         # Initialize difmap call
-        child = pexpect.spawn(difmap_path+"difmap", encoding='utf-8', echo=False)
+        child = pexpect.spawn('difmap', encoding='utf-8', echo=False, env=env)
         child.expect_exact("0>",None, 2)
 
         def send_difmap_command(command,prompt="0>"):

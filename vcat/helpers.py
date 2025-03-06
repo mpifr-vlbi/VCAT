@@ -370,13 +370,16 @@ def get_residual_map(uvf_file,mod_file, difmap_path, save_location="residual.fit
     Returns:
         Nothing, but writes a .fits file including the residual map
     """
+    env = os.environ.copy()
 
     # add difmap to PATH
     if difmap_path != None and not difmap_path in os.environ['PATH']:
-        os.environ['PATH'] = os.environ['PATH'] + ':{0}'.format(difmap_path)
+        env['PATH'] = env['PATH'] + ':{0}'.format(difmap_path)
 
+    #remove potential difmap boot files (we don't need them)
+    env["DIFMAP_LOGIN"]=""
     # Initialize difmap call
-    child = pexpect.spawn('difmap', encoding='utf-8', echo=False)
+    child = pexpect.spawn('difmap', encoding='utf-8', echo=False,env=env)
     child.expect_exact("0>", None, 2)
 
     def send_difmap_command(command, prompt="0>"):
@@ -416,12 +419,16 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, x_width, y_wi
 
 #returns the reduced chi-square of a modelfit
 def get_model_chi_square_red(uvf_file,mod_file,difmap_path):
+    env = os.environ.copy()
+
     # add difmap to PATH
     if difmap_path != None and not difmap_path in os.environ['PATH']:
-        os.environ['PATH'] = os.environ['PATH'] + ':{0}'.format(difmap_path)
+        env['PATH'] = env['PATH'] + ':{0}'.format(difmap_path)
 
+    # remove potential difmap boot files (we don't need them)
+    env["DIFMAP_LOGIN"] = ""
     # Initialize difmap call
-    child = pexpect.spawn('difmap', encoding='utf-8', echo=False)
+    child = pexpect.spawn('difmap', encoding='utf-8', echo=False, env=env)
     child.expect_exact("0>", None, 2)
 
     def send_difmap_command(command, prompt="0>"):
