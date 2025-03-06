@@ -234,6 +234,8 @@ class FitsImage(object):
         contour_alpha: Choose transparency for contours
         contour_width: Choose width of contours
         im_color: Choose colormap name
+        plot_ridgeline: Choose to plot ridgeline
+        ridgeline_color: Color for ridgeline
         plot_beam: Choose whether to plot the beam or not
         overplot_gauss: Choose whether to overplot modelfit components (if available in image_data)
         component_color: Choose color to plot components
@@ -262,6 +264,8 @@ class FitsImage(object):
                  contour_width = 0.5,  # contour linewidth
                  im_color='', # string for matplotlib colormap
                  do_colorbar=False, #choose whether to display colorbar
+                 plot_ridgeline=False, #choose whether to display the ridgeline
+                 ridgeline_color="red", #choose ridgeline color
                  plot_beam=True, #choose whether to plot beam or not
                  overplot_gauss=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
@@ -288,6 +292,8 @@ class FitsImage(object):
 
         super().__init__()
 
+        mpl.rcParams.update(rcparams)
+        
         #read image
         self.clean_image = image_data
         self.clean_image_file = self.clean_image.file_path
@@ -314,7 +320,7 @@ class FitsImage(object):
         self.background_color=background_color
         self.noise_method=self.clean_image.noise_method
         self.do_colorbar=do_colorbar
-
+        self.ridgeline_color=ridgeline_color
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
@@ -482,10 +488,16 @@ class FitsImage(object):
                         component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
                     except:
                         component_noise=self.clean_image.noise_3sigma
-                    
+
+        if plot_ridgeline:
+            #plot ridgeline in image
+            self.ax.plot(self.clean_image.ridgeline.X_ridg,self.clean_image.ridgeline.Y_ridg,c=self.ridgeline_color,zorder=6)
+
+
         self.xmin,self.xmax = ra_min, ra_max
         self.ymin,self.ymax = dec_min, dec_max
-        
+
+
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
         # Plot look tuning
@@ -495,7 +507,6 @@ class FitsImage(object):
         self.ax.invert_xaxis()
         self.ax.set_xlabel('Relative R.A. [' + unit + ']',fontsize=font_size_axis_title)
         self.ax.set_ylabel('Relative DEC. [' + unit + ']',fontsize=font_size_axis_title)
-        mpl.rcParams.update(rcparams)
         self.fig.tight_layout()
 
 
@@ -750,6 +761,8 @@ class MultiFitsImage(object):
                  contour_width=0.5,  # contour linewidth
                  im_color='',  # string for matplotlib colormap
                  do_colorbar=False, #choose whether to display colorbar for every image
+                 plot_ridgeline=False, #choose whether to display ridgeline
+                 ridgeline_color="red", #choose ridgeline color
                  plot_beam=True,  # choose whether to plot beam or not
                  overplot_gauss=False,  # choose whether to plot modelfit components
                  component_color="black",  # choose component color for Gauss component
@@ -813,6 +826,7 @@ class MultiFitsImage(object):
                                         contour_width=contour_width,
                                         im_color=im_color,
                                         do_colorbar=do_colorbar,
+                                        plot_ridgeline=plot_ridgeline,
                                         plot_beam=plot_beam,
                                         overplot_gauss=overplot_gauss,
                                         component_color=component_color,

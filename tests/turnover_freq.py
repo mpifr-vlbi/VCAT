@@ -21,7 +21,7 @@ print(im_cube)
 im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 
 #get turnover map
-turnover_cube=im_cube.get_turnover_map(specific_pixel=(512,512))
+turnover_cube=im_cube.get_turnover_map(specific_pixel=(512,512),limit_freq=False)
 
 #create plots
 turnover_cube.plot(plot_mode="turnover",do_colorbar=True)

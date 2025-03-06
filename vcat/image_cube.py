@@ -329,6 +329,8 @@ class ImageCube(object):
             "contour_width": 0.5,
             "im_color": '',
             "do_colorbar": False,
+            "plot_ridgeline": False,
+            "ridgeline_color": "red",
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
@@ -809,7 +811,7 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=rm_maps)
 
-    def get_turnover_map(self,epoch="",sigma_lim=10,max_feval=1000000,specific_pixel=(-1,-1)):
+    def get_turnover_map(self,epoch="",sigma_lim=10,max_feval=1000000,specific_pixel=(-1,-1),limit_freq=True):
         #Largely imported from Luca Ricci's Turnover frequency code
         #TODO get individual pixel fit plot
         #TODO basic error handling to check if the files are aligned and regridded and restored.
@@ -859,7 +861,7 @@ class ImageCube(object):
                             turnover_freq = x_vals[peak_idx]
                             peak_brightness = y_vals[peak_idx]
 
-                            if lowest_freq +1 <= turnover_freq <= highest_freq -1:
+                            if (lowest_freq +1 <= turnover_freq <= highest_freq -1) or not limit_freq:
                                 turnover[i,j] = turnover_freq
                                 turnover_flux[i,j] = peak_brightness
 

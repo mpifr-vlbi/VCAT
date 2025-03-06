@@ -25,6 +25,7 @@ import scipy.ndimage
 from astropy.nddata import Cutout2D
 from astropy.modeling import models, fitting
 from scipy import integrate
+from vcat.ridgeline import Ridgeline
 
 warnings.simplefilter('ignore', ErfaWarning)
 
@@ -79,6 +80,7 @@ class ImageData(object):
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
         self.error=error
+        self.ridgeline=Ridgeline()
 
 
         # Read clean files in
@@ -372,8 +374,8 @@ class ImageData(object):
         if len(mask)==0:
             self.mask = np.zeros_like(self.Z, dtype=bool)
             #test masking
-            self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
-            self.masking(mask_type="cut_left",args=-200)
+            #self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
+            #self.masking(mask_type="cut_left",args=-200)
         else:
             if np.shape(mask) != np.shape(self.Z):
                 warnings.warn("Mask input format invalid, Mask reset to no mask.",UserWarning)
@@ -606,6 +608,8 @@ class ImageData(object):
             "contour_width": 0.5,
             "im_color": '',
             "do_colorbar": False,
+            "plot_ridgeline": False,
+            "ridgeline_color": "red",
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
@@ -1075,7 +1079,12 @@ class ImageData(object):
 
             rotate_uvf_file(self.uvf_file, -angle, new_uvf)
 
+        #rotate ridgeline
+        x_new,y_new=rotate_points(np.array(self.ridgeline.X_ridg), np.array(self.ridgeline.Y_ridg), -angle)
+        self.ridgeline.X_ridg=x_new
+        self.ridgeline.Y_ridg=y_new
 
+        #do actual image rotations
         if self.uvf_file=="" or not useDIFMAP:
             print("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
 
@@ -1214,171 +1223,22 @@ class ImageData(object):
         return newImageData
 
     def get_ridgeline(self,angle_for_slices=0,
-                      cut_radial=5.0, cut_final=10.0,counterjet = True,
-                      width=40,j_len=100,cj_len=100,chi_sq_val=100.0):
-        #TODO ask Luca what exactly the beam parameter is beam_maj or what?
-
+                      cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len=100,chi_sq_val=100.0,err_FWHM=0.1):
+        #TODO CONVERT IT TO Jy/px
         image_data=self.Z
 
-        #initialize arrays
-        X_ridg = []
-        Y_ridg = []
-        open_anglej = []
-        open_anglej_err = []
-        widthj = []
-        widthj_err = []
-        distj = []
-        distj_int = []
-        intensityj = []
+        ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
+                                                 self.X,self.Y,angle_for_slices=angle_for_slices,cut_radial=cut_radial,
+                                                 cut_final=cut_final,width=width,j_len=j_len,chi_sq_val=chi_sq_val,err_FWHM=err_FWHM)
 
-        #Find the position of the maximum and create the box for the analysis
-        max_index = np.unravel_index(np.nanargmax(image_data, axis=None),image_data.shape)
-        max = image_data[max_index[0],max_index[1]]
+        #set new ridgeline
+        self.ridgeline=ridgeline
 
-        position_y = max_index[0]
-        position_y_or = max_index[0]
-        position_x = max_index[1]
-        position_x_beg = position_x - width
-        position_x_fin = position_x + width
-        position_y_beg = position_y + 1  # plus 1 so the first slice considered is the first one of the jet (skip the core position)
-        position_y_fin = position_y + j_len
+        if counterjet:
+            #TODO do analysis also for counterjet!
+            pass
 
-        #initializing some parameters
-        if not counterjet:
-            position_y_beg_rg = position_y_beg
-        position_y_fin_rg = position_y_fin
-        i = position_y_fin - position_y_beg
-        x = 0
-        cont = 0
-        a_old = 0
-        b_old = 0
-
-        for x in range(0,i):
-
-            #initialize arrays
-            position_y = position_y_beg + x
-            #print(position_y)
-            size_x = position_x_fin - position_x_beg
-            position_x = int(position_x_beg + size_x / 2)
-            position = (position_x, position_y)
-            size = (1, size_x)
-
-            #create the array and the parameter (ind) for the slice determination
-            cutout = Cutout2D(image_data,position,size)
-            data_save = cutout.data
-
-            x_line = []
-            y_line = []
-            y_line_int = []
-            data = []
-
-            for y in range(0, size_x):
-                pix_val = data_save[0,y]
-                data.append(pix_val)
-                x_line.append(position_x_beg + y)
-
-            ind = np.argmax(data)
-
-            # conditions for a proper slice determination
-            pos_a = position_x_beg + ind
-            if (x == 0):
-                old_pos_a = pos_a
-                a = 0.0
-                b = -a*angle_for_slices*np.pi/180.0
-            if (x>=1):
-                a = pos_a - old_pos_a
-                b = -a*angle_for_slices*np.pi/180.0
-                if (a < a_old):
-                    diff = a_old -a
-                    b = b_old + diff*angle_for_slices*np.pi/180.0
-                if (a > a_old):
-                    diff = a_old -a
-                    b = b_old + diff*angle_for_slices*np.pi/180.0
-                a_old = a
-                old_pos_a = pos_a
-                b_old = b
-            q = position_y - np.sin(b)*(position_x_beg + ind)
-            y_line = [q + np.sin(b) * z for z in x_line]
-            y_line = np.array(y_line)
-            y_line_int = y_line.astype(int)
-
-            #fill out the array for gaussian analysis, check whether the slice is okay and then prepare for the output map
-            indx = 0
-            indy = 0
-
-            data = []
-            data_err = []
-            for y in range(0, size_x):
-                indx = x_line[y]
-                indy = y_line_int[y]
-                image_data = np.array(image_data)
-                pix_val = image_data[indy,indx]
-                if (pix_val >= cut_radial*self.noise):
-                    data.append(pix_val)
-                    data_err.append(pix_val*self.error)
-
-            if (len(data) <= 5):
-                #print('Not this slice')
-                cont +=1
-                continue
-
-            max_list = np.amax(data)
-            size_x = len(data)
-
-            if (max_list <= cut_final*self.noise):
-                #print('Not this slice')
-                cont += 1
-                continue
-
-            X_ridg.append(pos_a)
-            Y_ridg.append(position_y)
-
-            #Single gaussian fit
-            X = np.linspace(1.0 * self.degpp*self.scale, size_x * self.degpp*self.scale, size_x)
-            model = models.Gaussian1D(max_list, size_x * self.degpp*self.scale / 2.0, self.beam_maj/2/np.sqrt(2*np.log(2)))
-            fitter = fitting.LevMarLSQFitter()
-            fitted_model = fitter(model, X, data)
-            #print(fitted_model)
-
-            #Gaussian integral
-            amplitude = fitted_model.parameters[0]
-            mean = fitted_model.parameters[1]
-            std = fitted_model.parameters[2]
-
-            x1 = 1.0*self.degpp*self.scale
-            x2 = size_x*self.degpp*self.scale
-
-            gauss = lambda x: amplitude * np.exp(-(x-mean)**2/(std**2*2.0))
-            a = integrate.quad(gauss, x1, x2)
-
-            FWHM = 2.0*np.sqrt(2.0*np.log(2))*std
-            #print("The FWHM (convolved) is = " + str(FWHM))
-            chi_sq = 0.0
-            for z in range(0, size_x):
-                chi_sq += ( (data[z] - amplitude*np.exp(-(X[z]-mean)**2/(std**2*2)))**2 / (data_err[z]**2.0))
-            chi_sq_red = float(chi_sq / (size_x - 3))
-            #print('The chi_square_red is = ' + str(chi_sq_red))
-            if(chi_sq_red < chi_sq_val):
-                if (( FWHM**2 - self.beam_maj**2)>0.0): #TODO check if this condition is actually the right thing to do
-                    widthj.append( sqrt(FWHM**2-self.beam_maj**2))
-                    print('The FWHM (de-convolved) is = ' + str( sqrt(FWHM**2.0 - beam**2.0) ))
-                    widthj_err.append(err_FWHM * np.sqrt(FWHM**2-self.beam_maj**2))
-                    intensityj.append(a[0])
-                    cont +=1
-                    distj.append(cont*self.degpp*self.scale)
-                    distj_int.append(cont*self.degpp*self.scale)
-                    open_anglej.append(2.0*atan(0.5*np.sqrt(FWHM**2-self.beam_maj**2)/(cont*self.degpp*self.scale))*180.0/np.pi)
-                    open_anglej_err.append(err_FWHM*FWHM*4*cont*self.degpp*self.scale*FWHM/(np.sqrt(FWHM**2-self.beam_maj**2)*(4.0*cont**2*self.degpp**2*self.scale**2+FWHM**2-self.beam_maj**2)))
-
-                if ((FWHM**2-self.beam_maj**2)<0.0):
-                    cont +=1
-                    distj_int.append(cont*self.degpp*self.scale)
-                    intensityj.append(a[0])
-            if (chi_sq_red > chi_sq_val):
-                cont += 1
-
-        return {"X_ridg": X_ridg, "Y_ridg": Y_ridg, "open_angle": open_anglej, "open_angle_err": open_anglej_err,
-                "width": widthj, "width_err": widthj_err, "dist": distj, "dist_int": distj_int, "intensity": intensityj}
+        return ridgeline
 
     def get_noise_from_shift(self,shift_factor=20):
 
