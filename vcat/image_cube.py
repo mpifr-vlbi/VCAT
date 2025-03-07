@@ -316,7 +316,7 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def plot(self, show=True, **kwargs):
+    def plot(self, show=True, savefig="", **kwargs):
         defaults = {
             "swap_axis": False,
             "stokes_i_sigma_cut": 3,
@@ -359,8 +359,10 @@ class ImageCube(object):
         }
 
         params = {**defaults, **kwargs}
-        MultiFitsImage(self,**params)
+        plot=MultiFitsImage(self,**params)
 
+        if savefig!="":
+            plot.export(savefig)
         if show:
             plt.show()
 

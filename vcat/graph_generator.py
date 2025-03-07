@@ -886,5 +886,11 @@ class MultiFitsImage(object):
                                         font_size_axis_tick=font_size_axis_tick,
                                         rcparams=rcparams)
 
+    def export(self,name):
+        if name.split(".")[-1] in ("png","jpg","jpeg","pdf","gif"):
+            self.fig.savefig(name, dpi=300, bbox_inches='tight', transparent=False)
+        else:
+            self.fig.savefig(name+".png",dpi=300,bbox_inches="tight", transparent=False)
+
 
 

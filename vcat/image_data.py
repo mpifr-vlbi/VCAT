@@ -616,7 +616,7 @@ class ImageData(object):
 
         return newImageData
 
-    def plot(self,show=True,**kwargs):
+    def plot(self,show=True,savefig="",**kwargs):
         defaults = {
             "stokes_i_sigma_cut": 3,
             "plot_mode": "stokes_i",
@@ -657,8 +657,9 @@ class ImageData(object):
         }
 
         params = {**defaults, **kwargs}
-        FitsImage(self, **params)
-
+        plot=FitsImage(self, **params)
+        if savefig!="":
+            plot.export(savefig)
         if show:
             plt.show()
 
