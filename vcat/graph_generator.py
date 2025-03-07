@@ -778,113 +778,144 @@ class MultiFitsImage(object):
 
     def __init__(self,
                  image_cube,  # ImageData object
+                 mode="individual", #Choose what effect the parameters have ('individual','freq','epoch','all')
                  swap_axis=False, #If True frequency will be plotted in x-direction and time in y #TODO
-                 stokes_i_sigma_cut=3,  # sigma_cut for stokes_i_contours
-                 plot_mode="stokes_i",  # possible modes "stokes_i", "lin_pol", "frac_pol"
-                 im_colormap=False,  # Choose whether to do colormap or not
-                 contour=True,  # Choose whether to do contour plot or not
-                 contour_color='grey',
-                 # input: array of color-strings; if None, the contour-colormap (contour_cmap) will be used
-                 contour_cmap=None,  # matplotlib colormap string
-                 contour_alpha=1,  # transparency
-                 contour_width=0.5,  # contour linewidth
-                 im_color='',  # string for matplotlib colormap
-                 do_colorbar=False, #choose whether to display colorbar for every image
-                 plot_ridgeline=False, #choose whether to display ridgeline
-                 ridgeline_color="red", #choose ridgeline color
-                 plot_counter_ridgeline=False,  # choose whether to display ridgeline
-                 counter_ridgeline_color="red",  # choose ridgeline color
-                 plot_line="",  # Provide two points for plotting a line
-                 line_color="black",
-                 line_width=2,  # width of the line
-                 plot_beam=True,  # choose whether to plot beam or not
-                 overplot_gauss=False,  # choose whether to plot modelfit components
-                 component_color="black",  # choose component color for Gauss component
-                 overplot_clean=False,  # choose whether to plot clean components
-                 plot_mask=False, #decide whether to plot masks or not
-                 xlim=[],  # xplot limits, e.g. [5,-5]
-                 ylim=[],  # yplot limits
-                 ###HERE STARTS POLARIZATION INPUT
-                 plot_evpa=False,  # decide whether to plot EVPA or not
-                 evpa_width=2,  # choose width of EVPA lines
-                 evpa_len=8,  # choose length of EVPA in pixels
-                 lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
-                 evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
-                 rotate_evpa=0,  # rotate EVPAs by a given angle in degrees (North through East)
-                 evpa_color="white",  # set EVPA color for plot
-                 titles=[],  # plot title (default is no title, can be "all" to print date and frequency or 2d array with titles)
-                 background_color="white",  # background color
-                 figsize="", #define figsize
-                 font_size_axis_title=8, #set fontsize for axis title
-                 font_size_axis_tick=6, #set fontsize for axis ticks
-                 rcparams={}  # option to modify matplotlib look
+                 figsize="", #define figsize,
+                 **kwargs #additional plot params
                  ):
         #TODO for all input parameters make them possible as arrays to choose for every image or just one parameter to use for all images
 
         super().__init__()
 
         self.image_cube=image_cube
-        self.nrows, self.ncols = self.image_cube.shape
+        if not swap_axis:
+            self.nrows, self.ncols = self.image_cube.shape
+        else:
+            self.ncols, self.nrows = self.image_cube.shape
         if figsize=="":
             figsize=(3*self.ncols,3*self.nrows)
         self.fig, self.axes = plt.subplots(self.nrows, self.ncols, figsize=figsize)
         self.axes=np.atleast_2d(self.axes)
 
         if self.axes.shape[0]==self.ncols and self.axes.shape[1]==self.nrows:
-            if not self.ncols==self.nrows:
+            if not self.ncols==self.nrows and not swap_axis:
                 self.axes=self.axes.T
 
-        if np.shape(titles)!=self.image_cube.shape:
-            if titles=="all":
-                titles=np.full(self.image_cube.shape,"",dtype=object)
-            else:
-                titles=np.full(self.image_cube.shape," ",dtype=object)
+        #read in input parameters for individual plots
+        if mode=="all":
+            #This means kwargs are just numbers
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(image_cube.shape, dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+
+                for i in range(len(self.image_cube.dates)):
+                    for j in range(len(self.image_cube.freqs)):
+                        kwargs[key][i, j] = value
+        elif mode=="freq":
+            #allow input parameters per frequency
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(image_cube.shape,dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+
+                if not isinstance(value,list) or (key in ["xlim","ylim"] and (len(value)==2 or len(value)==0)):
+                    for i in range(len(self.image_cube.dates)):
+                        for j in range(len(self.image_cube.freqs)):
+                            kwargs[key][i,j] = value
+                elif len(value)==len(self.image_cube.freqs):
+                    for i in range(len(self.image_cube.freqs)):
+                        kwargs[key][:,i]=value[i]
+                else:
+                    raise Exception(f"Please provide valid {key} parameter.")
+        elif mode=="epoch":
+
+            # allow input parameters per epoch
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(image_cube.shape, dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+                if not isinstance(value,list) or (key in ["xlim","ylim"] and (len(value)==2 or len(value)==0)):
+                    for i in range(len(self.image_cube.dates)):
+                        for j in range(len(self.image_cube.freqs)):
+                            kwargs[key][i, j] = value
+                elif len(value) == len(self.image_cube.dates):
+                    for i in range(len(self.image_cube.dates)):
+                        kwargs[key][i, :] = value[i]
+                else:
+                    raise Exception(f"Please provide valid {key} parameter.")
+
+        elif mode=="individual":
+            # allow input parameters per frequency
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(image_cube.shape, dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+                if not isinstance(value,list) or (key in ["xlim","ylim"] and (len(value)==2 or len(value)==0)):
+                    for i in range(len(self.image_cube.dates)):
+                        for j in range(len(self.image_cube.freqs)):
+                            kwargs[key][i, j] = value
+                elif len(value) == len(self.image_cube.images) and len(value[0]) == len(self.image_cube.images[0]):
+                    for i in range(len(self.image_cube.dates)):
+                        for j in range(len(self.image_cube.freqs)):
+                            kwargs[key][i,j] = value[i][j]
+                else:
+                    raise Exception(f"Please provide valid {key} parameter.")
+        else:
+            raise Exception("Please select valid plot mode ('individual','freq','epoch','all'")
+
 
         #create FitsImage for every image
         self.plots=np.empty((self.nrows,self.ncols),dtype=object)
 
         for i in range(self.nrows):
             for j in range(self.ncols):
-                if self.image_cube.images[i,j]==None:
-                    #image missing TODO do something here
-                    pass
+
+                if swap_axis:
+                    image_i=j
+                    image_j=i
                 else:
-                    self.plots[i,j]=FitsImage(image_data=self.image_cube.images[i,j],
-                                        stokes_i_sigma_cut=stokes_i_sigma_cut,
-                                        plot_mode=plot_mode,
-                                        im_colormap=im_colormap,
-                                        contour=contour,
-                                        contour_color=contour_color,
-                                        contour_cmap=contour_cmap,
-                                        contour_alpha=contour_alpha,
-                                        contour_width=contour_width,
-                                        im_color=im_color,
-                                        do_colorbar=do_colorbar,
-                                        plot_ridgeline=plot_ridgeline,
-                                        ridgeline_color=ridgeline_color,
-                                        plot_counter_ridgeline=plot_counter_ridgeline,
-                                        counter_ridgeline_color=counter_ridgeline_color,
-                                        plot_beam=plot_beam,
-                                        overplot_gauss=overplot_gauss,
-                                        component_color=component_color,
-                                        overplot_clean=overplot_clean,
-                                        plot_mask=plot_mask,
-                                        xlim=xlim,
-                                        ylim=ylim,
-                                        plot_evpa=plot_evpa,
-                                        evpa_width=evpa_width,
-                                        evpa_len=evpa_len,
-                                        lin_pol_sigma_cut=lin_pol_sigma_cut,
-                                        evpa_distance=evpa_distance,
-                                        rotate_evpa=rotate_evpa,
-                                        evpa_color=evpa_color,
-                                        title=titles[i,j],
-                                        background_color=background_color,
+                    image_i=i
+                    image_j=j
+                if self.image_cube.images[image_i,image_j]==None:
+                    #turn off the plot because no data is here
+                    self.axes[i,j].axis("off")
+                else:
+                    self.plots[i,j]=FitsImage(image_data=self.image_cube.images[image_i,image_j],
+                                        stokes_i_sigma_cut=kwargs["stokes_i_sigma_cut"][image_i,image_j],
+                                        plot_mode=kwargs["plot_mode"][image_i,image_j],
+                                        im_colormap=kwargs["im_colormap"][image_i,image_j],
+                                        contour=kwargs["contour"][image_i,image_j],
+                                        contour_color=kwargs["contour_color"][image_i,image_j],
+                                        contour_cmap=kwargs["contour_cmap"][image_i,image_j],
+                                        contour_alpha=kwargs["contour_alpha"][image_i,image_j],
+                                        contour_width=kwargs["contour_width"][image_i,image_j],
+                                        im_color=kwargs["im_color"][image_i,image_j],
+                                        do_colorbar=kwargs["do_colorbar"][image_i,image_j],
+                                        plot_ridgeline=kwargs["plot_ridgeline"][image_i,image_j],
+                                        ridgeline_color=kwargs["ridgeline_color"][image_i,image_j],
+                                        plot_counter_ridgeline=kwargs["plot_counter_ridgeline"][image_i,image_j],
+                                        counter_ridgeline_color=kwargs["counter_ridgeline_color"][image_i,image_j],
+                                        plot_line=kwargs["plot_line"][image_i,image_j],  # Provide two points for plotting a line
+                                        line_color=kwargs["line_color"][image_i,image_j],
+                                        line_width=kwargs["line_width"][image_i,image_j],  # width of the line
+                                        plot_beam=kwargs["plot_beam"][image_i,image_j],
+                                        overplot_gauss=kwargs["overplot_gauss"][image_i,image_j],
+                                        component_color=kwargs["component_color"][image_i,image_j],
+                                        overplot_clean=kwargs["overplot_clean"][image_i,image_j],
+                                        plot_mask=kwargs["plot_mask"][image_i,image_j],
+                                        xlim=kwargs["xlim"][image_i,image_j],
+                                        ylim=kwargs["ylim"][image_i,image_j],
+                                        plot_evpa=kwargs["plot_evpa"][image_i,image_j],
+                                        evpa_width=kwargs["evpa_width"][image_i,image_j],
+                                        evpa_len=kwargs["evpa_len"][image_i,image_j],
+                                        lin_pol_sigma_cut=kwargs["lin_pol_sigma_cut"][image_i,image_j],
+                                        evpa_distance=kwargs["evpa_distance"][image_i,image_j],
+                                        rotate_evpa=kwargs["rotate_evpa"][image_i,image_j],
+                                        evpa_color=kwargs["evpa_color"][image_i,image_j],
+                                        title=kwargs["title"][image_i,image_j],
+                                        background_color=kwargs["background_color"][image_i,image_j],
                                         fig=self.fig,
                                         ax=self.axes[i,j],
-                                        font_size_axis_title=font_size_axis_title,
-                                        font_size_axis_tick=font_size_axis_tick,
-                                        rcparams=rcparams)
+                                        font_size_axis_title=kwargs["font_size_axis_title"][image_i,image_j],
+                                        font_size_axis_tick=kwargs["font_size_axis_tick"][image_i,image_j],
+                                        rcparams=kwargs["rcparams"][image_i,image_j])
 
     def export(self,name):
         if name.split(".")[-1] in ("png","jpg","jpeg","pdf","gif"):

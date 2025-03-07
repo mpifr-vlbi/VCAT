@@ -11,7 +11,7 @@ images=[dataC,dataQ]
 im_cube=ImageCube(images)
 
 #plot it
-im_cube.plot()
+im_cube.plot(mode="epoch",xlim=[10,-10])
 
 #regrid it
 im_cube=im_cube.regrid(mode="all",npix=1024,pixel_size=0.1,useDIFMAP=True)

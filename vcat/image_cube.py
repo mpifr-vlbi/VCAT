@@ -89,8 +89,7 @@ class ImageCube(object):
     def __str__(self):
         return f"ImageCube with {self.shape[1]} frequencies and {self.shape[0]} epochs."
 
-    def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files=""):
-        #TODO set some input parameters like noise_method etc.
+    def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files="",**kwargs):
         #sort input files
         fits_files=sort_fits_by_date_and_frequency(fits_files)
         uvf_files=sort_uvf_by_date_and_frequency(uvf_files)
@@ -108,7 +107,7 @@ class ImageCube(object):
             stokes_u_file = stokes_u_files[i] if isinstance(stokes_u_files, list) else ""
             model_fits_file = model_fits_files[i] if isinstance(model_fits_files, list) else ""
 
-            images.append(ImageData(fits_file=fits_file,uvf_file=uvf_file,stokes_q=stokes_q_file,stokes_u=stokes_u_file,model=model_fits_file))
+            images.append(ImageData(fits_file=fits_file,uvf_file=uvf_file,stokes_q=stokes_q_file,stokes_u=stokes_u_file,model=model_fits_file,**kwargs))
 
         #reinitialize instance
         return ImageCube(image_data_list=images)
@@ -350,7 +349,7 @@ class ImageCube(object):
             "evpa_distance": 10,
             "rotate_evpa": 0,
             "evpa_color": "white",
-            "titles": [],
+            "title": "",
             "background_color": "white",
             "figsize": "",
             "font_size_axis_title": 8,
