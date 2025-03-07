@@ -72,12 +72,16 @@ class ImageData(object):
         self.file_path = fits_file
         self.fits_file = fits_file
         self.model_file_path = model
+        #TODO check if the next two lines might cause any errors!
+        if self.model_file_path=="":
+            self.model_file_path=self.fits_file
         self.lin_pol=lin_pol
         self.evpa=evpa
         self.stokes_i=stokes_i
         self.uvf_file=uvf_file
         self.difmap_path=difmap_path
         self.residual_map_path=""
+        self.residual_map = []
         self.noise_method=noise_method
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
@@ -349,12 +353,16 @@ class ImageData(object):
             self.components.append(component)
         
         #calculate residual map if uvf and modelfile present
-        if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model:
+        if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
+            os.makedirs(model_save_dir+"residual_maps", exist_ok=True)
             self.residual_map_path = model_save_dir + "residual_maps/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
                                                                                                                  "_") + "GHz_residual.fits"
-            get_residual_map(self.uvf_file,model_save_dir+ "residual_maps/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
+            get_residual_map(self.uvf_file,model_save_dir+ "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
                              difmap_path=self.difmap_path,
-                             save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp)
+                             save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp*self.scale)
+
+            self.residual_map=fits.open(self.residual_map_path)[0].data[0,0,:,:]
+
 
         hdu_list.close()
 
@@ -655,7 +663,7 @@ class ImageData(object):
             plt.show()
 
 
-    def align(self,image_data2,masked_shift=True,method="cross_correlation",auto_mask='', auto_regrid=False,useDIFMAP=True):
+    def align(self,image_data2,masked_shift=True,method="cross_correlation",auto_mask='',beam_arg="common", auto_regrid=False,useDIFMAP=True):
 
         if (self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp:
             if auto_regrid:
@@ -670,7 +678,7 @@ class ImageData(object):
                 #get common beam
                 common_beam=get_common_beam([self.beam_maj,image_data2.beam_maj],
                                             [self.beam_min,image_data2.beam_min],
-                                            [self.beam_pa,image_data2.beam_pa],arg="common")
+                                            [self.beam_pa,image_data2.beam_pa],arg=beam_arg)
 
                 #regrid images
                 image_self = self.copy()

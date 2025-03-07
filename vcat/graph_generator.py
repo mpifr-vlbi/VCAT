@@ -387,6 +387,9 @@ class FitsImage(object):
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
                                   label="Fractional Linear Polarization",do_colorbar=self.do_colorbar)
+
+        if plot_mode=="residual":
+            self.plotColormap(self.clean_image.residual_map,im_color,levs,levs1,extent,label="Residual Flux Density [Jy/beam]", do_colorbar=self.do_colorbar)
         if plot_mode=="spix":
             self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
 
@@ -620,7 +623,19 @@ class FitsImage(object):
         elif label=="Mask":
             if im_color=="":
                 im_color="inferno"
-            col = self.ax.imshow(Z, cmap=im_color, vmin=0, vmax=1, interpolation='none', alpha=Z.astype(float), extent=extent, origin="lower", zorder=10)
+            self.ax.imshow(Z, cmap=im_color, vmin=0, vmax=1, interpolation='none', alpha=Z.astype(float), extent=extent, origin="lower", zorder=10)
+
+        elif label=="Residual Flux Density [Jy/beam]":
+            if im_color=="":
+                im_color="gray"
+            col = self.ax.imshow(Z, cmap=im_color, extent=extent, origin="lower")
+
+            if do_colorbar:
+                divider = make_axes_locatable(self.ax)
+                cax = divider.append_axes("right", size="5%", pad=0.05)
+                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
+
         elif label=="Spectral Index":
             if im_color=="":
                 im_color="hot_r"
@@ -662,7 +677,6 @@ class FitsImage(object):
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
-
 
         else:
             if im_color=="":
