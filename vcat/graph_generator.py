@@ -280,6 +280,13 @@ class FitsImage(object):
                  plot_mask=False, #choose whether to plot mask
                  xlim=[], #xplot limits, e.g. [5,-5]
                  ylim=[], #yplot limits
+                 levs="", #predefined plot levels
+                 levs1="", #predefined plot levels1
+                 levs_linpol="", #predefined linpol levs
+                 levs1_linpol="", #predefined linepol levs1
+                 stokes_i_vmax="", #input vmax for plot
+                 fracpol_vmax="", #input vmax for plot
+                 linpol_vmax="", #input vmax for plot
                  ###HERE STARTS POLARIZATION INPUT
                  plot_evpa=False, #decide whether to plot EVPA or not
                  evpa_width=2, #choose width of EVPA lines
@@ -329,6 +336,9 @@ class FitsImage(object):
         self.do_colorbar=do_colorbar
         self.ridgeline_color=ridgeline_color
         self.counter_ridgeline_color=counter_ridgeline_color
+        self.stokes_i_vmax=stokes_i_vmax
+        self.linpol_vmax=linpol_vmax
+        self.fracpol_vmax=fracpol_vmax
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
@@ -364,7 +374,11 @@ class FitsImage(object):
         clean_alpha = 1  # float for sympol transparency
 
         #get sigma levs
-        levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_noise)
+        if not isinstance(levs,list) and not isinstance(levs1,list):
+            levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_noise)
+
+        self.levs=levs
+        self.levs1=levs1
 
         # Image colormap
         if self.im_colormap == True and plot_mode=="stokes_i":
@@ -374,7 +388,9 @@ class FitsImage(object):
 
         if (plot_mode=="lin_pol" or plot_mode=="frac_pol") and np.sum(self.clean_image.lin_pol)!=0:
 
-            levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+            if not isinstance(levs_linpol,list) and not isinstance(levs1_linpol,list):
+                levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+
 
             if plot_mode=="lin_pol":
                 self.plotColormap(self.clean_image.lin_pol,im_color,levs_linpol,levs1_linpol,extent,
@@ -414,7 +430,8 @@ class FitsImage(object):
                               do_colorbar=self.do_colorbar)
 
         if plot_evpa and np.sum(self.clean_image.lin_pol)!=0:
-            levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+            if not isinstance(levs_linpol,list) and not isinstance(levs1_linpol,list):
+                levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
             self.plotEvpa(self.clean_image.evpa, rotate_evpa, evpa_len, evpa_distance, levs1_linpol, levs1)
 
         # Contour plot
@@ -515,6 +532,8 @@ class FitsImage(object):
         self.xmin,self.xmax = ra_min, ra_max
         self.ymin,self.ymax = dec_min, dec_max
 
+        self.levs_linpol = levs_linpol
+        self.levs1_linpol = levs1_linpol
 
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
@@ -541,8 +560,11 @@ class FitsImage(object):
         #OPTIONS for fractional polarization plot
         if label=="Fractional Linear Polarization":
             vmin=0
-            vmax = np.max([0.1, np.min([0.8, np.max(Z)*.8/.7])])
-
+            if self.fracpol_vmax=="":
+                vmax = np.max([0.1, np.min([0.8, np.max(Z)*.8/.7])])
+                self.fracpol_vmax=vmax
+            else:
+                vmax=self.fracpol_vmax
             if im_color == "":
                 im_color = cmaps.neon_r
 
@@ -600,8 +622,12 @@ class FitsImage(object):
                 im_color = "cubehelix_r"
 
             linthresh = 10.0 * levs1[0]
+            if self.linpol_vmax=="":
+                vmax = np.max([np.max(Z), 10.0 * levs1[0]])
+                self.linpol_vmax=vmax
+            else:
+                vmax=self.linpol_vmax
 
-            vmax = np.max([np.max(Z), 10.0 * levs1[0]])
             vmin = 0
             if linthresh < 0.5 * np.max([vmax, -vmin]):
                 col = self.ax.imshow(Z,
@@ -681,8 +707,15 @@ class FitsImage(object):
         else:
             if im_color=="":
                 im_color="inferno"
+
+            if self.stokes_i_vmax=="":
+                vmax = 0.5 * np.max(Z)
+                self.stokes_i_vmax=vmax
+            else:
+                vmax=self.stokes_i_vmax
+
             col = self.ax.imshow(Z, cmap=im_color, norm=colors.SymLogNorm(linthresh=abs(levs1[0]), linscale=0.5, vmin=levs1[0],
-                                                                        vmax=0.5 * np.max(Z), base=10.), extent=extent,
+                                                                        vmax=vmax, base=10.), extent=extent,
                                 origin='lower')
 
             if do_colorbar:
@@ -779,11 +812,13 @@ class MultiFitsImage(object):
     def __init__(self,
                  image_cube,  # ImageData object
                  mode="individual", #Choose what effect the parameters have ('individual','freq','epoch','all')
-                 swap_axis=False, #If True frequency will be plotted in x-direction and time in y #TODO
-                 figsize="", #define figsize,
+                 swap_axis=False, #If True frequency will be plotted in x-direction and time in y
+                 figsize="", #define figsize
+                 shared_colormap="individual", #options are 'freq', 'epoch', 'all','individual'
+                 shared_colorbar=False, #if true, will plot a shared colorbar according to share_colormap setting
+                 shared_sigma="max", #select which common sigma to use options: 'max','min'
                  **kwargs #additional plot params
                  ):
-        #TODO for all input parameters make them possible as arrays to choose for every image or just one parameter to use for all images
 
         super().__init__()
 
@@ -860,6 +895,97 @@ class MultiFitsImage(object):
         else:
             raise Exception("Please select valid plot mode ('individual','freq','epoch','all'")
 
+        #check if colormap is shared between plots:
+        if shared_colormap == "all":
+            noises=image_cube.noises
+
+            if shared_sigma=="max":
+                index = np.unravel_index(np.argmax(noises), noises.shape)
+            else:
+                index = np.unravel_index(np.argmin(noises), noises.shape)
+
+            plot=image_cube.images[index].plot(plot_mode=kwargs["plot_mode"][0,0],show=False)
+
+            for i in range(len(self.image_cube.dates)):
+                for j in range(len(self.image_cube.freqs)):
+                    #get levs:
+                    kwargs["levs"][i,j]=plot.levs
+                    kwargs["levs1"][i,j]=plot.levs1
+                    kwargs["levs_linpol"][i,j]=plot.levs_linpol
+                    kwargs["levs1_linpol"][i,j]=plot.levs1_linpol
+                    kwargs["stokes_i_vmax"][i,j]=plot.stokes_i_vmax
+                    kwargs["linpol_vmax"][i,j]=plot.linpol_vmax
+                    kwargs["fracpol_vmax"][i,j]=plot.fracpol_vmax
+
+            plt.close()
+
+            #TODO make plots for the shared colorbar
+            if shared_colorbar:
+                pass
+
+        elif shared_colormap=="epoch":
+            for i in range(len(self.image_cube.dates)):
+                images=image_cube.images[i,:].flatten()
+                noises = image_cube.noises[i,:].flatten()
+
+                if shared_sigma == "max":
+                    index = np.argmax(noises)
+                else:
+                    index = np.argmin(noises)
+
+                plot = images[index].plot(plot_mode=kwargs["plot_mode"][i, 0], show=False)
+
+                for j in range(len(self.image_cube.freqs)):
+                    # get levs:
+                    kwargs["levs"][i, j] = plot.levs
+                    kwargs["levs1"][i, j] = plot.levs1
+                    kwargs["levs_linpol"][i, j] = plot.levs_linpol
+                    kwargs["levs1_linpol"][i, j] = plot.levs1_linpol
+                    kwargs["stokes_i_vmax"][i, j] = plot.stokes_i_vmax
+                    kwargs["linpol_vmax"][i, j] = plot.linpol_vmax
+                    kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
+
+                plt.close()
+
+            # TODO make plots for the shared colorbar
+            if shared_colorbar:
+                pass
+
+        elif shared_colormap=="freq":
+            for j in range(len(self.image_cube.freqs)):
+                images=image_cube.images[:,j].flatten()
+                noises = image_cube.noises[:,j].flatten()
+
+                if shared_sigma == "max":
+                    index = np.argmax(noises)
+                else:
+                    index = np.argmin(noises)
+
+                plot = images[index].plot(plot_mode=kwargs["plot_mode"][0,j], show=False)
+
+                for i in range(len(self.image_cube.dates)):
+                    # get levs:
+                    kwargs["levs"][i, j] = plot.levs
+                    kwargs["levs1"][i, j] = plot.levs1
+                    kwargs["levs_linpol"][i, j] = plot.levs_linpol
+                    kwargs["levs1_linpol"][i, j] = plot.levs1_linpol
+                    kwargs["stokes_i_vmax"][i, j] = plot.stokes_i_vmax
+                    kwargs["linpol_vmax"][i, j] = plot.linpol_vmax
+                    kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
+
+                plt.close()
+
+            # TODO make plots for the shared colorbar
+            if shared_colorbar:
+                pass
+
+        elif share_colormap=="individual":
+            pass
+        else:
+            raise Exception("Please use valid share_colormap setting ('all','epoch','freq')")
+
+
+
 
         #create FitsImage for every image
         self.plots=np.empty((self.nrows,self.ncols),dtype=object)
@@ -902,6 +1028,13 @@ class MultiFitsImage(object):
                                         plot_mask=kwargs["plot_mask"][image_i,image_j],
                                         xlim=kwargs["xlim"][image_i,image_j],
                                         ylim=kwargs["ylim"][image_i,image_j],
+                                        levs=kwargs["levs"][image_i,image_j],  # predefined plot levels
+                                        levs1=kwargs["levs1"][image_i,image_j],  # predefined plot levels1
+                                        levs_linpol=kwargs["levs_linpol"][image_i,image_j],  # predefined linpol levs
+                                        levs1_linpol=kwargs["levs1_linpol"][image_i,image_j],  # predefined linepol levs1
+                                        stokes_i_vmax=kwargs["stokes_i_vmax"][image_i,image_j],  # input vmax for plot
+                                        fracpol_vmax=kwargs["fracpol_vmax"][image_i,image_j],  # input vmax for plot
+                                        linpol_vmax=kwargs["linpol_vmax"][image_i,image_j],  # input vmax for plot
                                         plot_evpa=kwargs["plot_evpa"][image_i,image_j],
                                         evpa_width=kwargs["evpa_width"][image_i,image_j],
                                         evpa_len=kwargs["evpa_len"][image_i,image_j],

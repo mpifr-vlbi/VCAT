@@ -71,6 +71,7 @@ class ImageCube(object):
         self.images_majs = np.empty((len(self.dates), len(self.freqs)), dtype=float)
         self.images_mins = np.empty((len(self.dates), len(self.freqs)), dtype=float)
         self.images_pas = np.empty((len(self.dates), len(self.freqs)), dtype=float)
+        self.noises = np.empty((len(self.dates), len(self.freqs)), dtype=float)
 
         for i,date in enumerate(self.dates):
             for j, freq in enumerate(self.freqs):
@@ -82,6 +83,7 @@ class ImageCube(object):
                         self.images_majs[i,j]=image.beam_maj
                         self.images_mins[i,j]=image.beam_min
                         self.images_pas[i,j]=image.beam_pa
+                        self.noises[i,j]=image.noise
 
         self.shape=self.images.shape
 
@@ -342,6 +344,13 @@ class ImageCube(object):
             "plot_mask": False,
             "xlim": [],
             "ylim": [],
+            "levs": "",
+            "levs1": "",
+            "levs_linpol": "",
+            "levs1_linpol": "",
+            "stokes_i_vmax": "",
+            "fracpol_vmax": "",
+            "linpol_vmax": "",
             "plot_evpa": False,
             "evpa_width": 2,
             "evpa_len": 8,

@@ -663,6 +663,8 @@ class ImageData(object):
         if show:
             plt.show()
 
+        return plot
+
 
     def align(self,image_data2,masked_shift=True,method="cross_correlation",auto_mask='',beam_arg="common", auto_regrid=False,useDIFMAP=True):
 
