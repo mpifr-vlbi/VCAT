@@ -778,6 +778,12 @@ def rotate_uvf_file(uvf_file,angle, output):
         f[2].header["XTENSION"]="BINTABLE"
         f.writeto(output,overwrite=True)
 
+def is_fits_file(filename):
+    try:
+        with fits.open(filename) as hdul:
+            return True  # Successfully opened, it's a FITS file
+    except Exception:
+        return False
 
 
 

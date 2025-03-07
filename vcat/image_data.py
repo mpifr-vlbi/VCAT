@@ -71,10 +71,6 @@ class ImageData(object):
 
         self.file_path = fits_file
         self.fits_file = fits_file
-        self.model_file_path = model
-        #TODO check if the next two lines might cause any errors!
-        if self.model_file_path=="":
-            self.model_file_path=self.fits_file
         self.lin_pol=lin_pol
         self.evpa=evpa
         self.stokes_i=stokes_i
@@ -135,7 +131,8 @@ class ImageData(object):
 
         # Set name
         self.name = hdu_list[0].header["OBJECT"]
-
+        self.date = get_date(fits_file)
+        self.mjd = Time(self.date).mjd
         self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
 
         # Unit selection and adjustment
@@ -153,6 +150,26 @@ class ImageData(object):
         else:
             self.scale = 60. * 60. * 1000.
             self.unit = 'mas'
+
+        # Set beam parameters
+        try:
+            # DIFMAP style
+            self.beam_maj = hdu_list[0].header["BMAJ"] * self.scale
+            self.beam_min = hdu_list[0].header["BMIN"] * self.scale
+            self.beam_pa = hdu_list[0].header["BPA"]
+        except:
+            try:
+                # TODO check if this is actually working!
+                # CASA style
+                self.beam_maj, self.beam_min, self.beam_pa, na, nb = hdu_list[1].data[0]
+                self.beam_maj = self.beam_maj * 1000  # convert to mas
+                self.beam_min = self.beam_min * 1000  # convert to mas
+            except:
+                print("No input beam information!")
+                self.beam_maj = 0
+                self.beam_min = 0
+                self.beam_pa = 0
+
 
         # Convert Pixel into unit
         self.X = np.linspace(0, hdu_list[0].header["NAXIS1"], hdu_list[0].header["NAXIS1"],
@@ -180,6 +197,30 @@ class ImageData(object):
                 self.Z=self.stokes_i
             except:
                 pass
+
+
+        #handle model loading
+        self.model_file_path = model
+        #TODO check if the next two lines might cause any errors!
+        if self.model_file_path=="":
+            self.model_file_path=self.fits_file
+        elif not isinstance(model, pd.DataFrame) or not is_fits_file(model):
+            #this means it is a .mod file -> will create .fits file from it
+            os.makedirs(model_save_dir + "mod_files_model/", exist_ok=True)
+            new_model_fits=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz"
+            if difmap_path!="" and uvf_file!="":
+                # use difmap to load the model and create model .fits file and store it as model_file_path
+                fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
+                               bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa,
+                               outname=new_model_fits, n_pixel=len(self.X)*2, pixel_size=self.degpp*self.scale,
+                               mod_files=[model], uvf_files=[uvf_file], do_selfcal=True)
+
+            else:
+                #TODO copy the clean .fits file and write the model info to the header and store it as model_file_path
+                raise Exception("Can currently only load .mod file, when .uvf file and difmap_path is specified.")
+
+            self.model_file_path = new_model_fits + ".fits"
+            model = self.model_file_path
 
         #overwrite fits image data with stokes_i input if given
         if not stokes_i==[]:
@@ -234,28 +275,6 @@ class ImageData(object):
             #shift to 0-180 (only positive)
             self.evpa[np.where(self.evpa<0)] = self.evpa[np.where(self.evpa<0)]+np.pi
 
-
-        # Set beam parameters
-        try:
-            #DIFMAP style
-            self.beam_maj = hdu_list[0].header["BMAJ"] * self.scale
-            self.beam_min = hdu_list[0].header["BMIN"] * self.scale
-            self.beam_pa = hdu_list[0].header["BPA"]
-        except:
-            try:
-                #TODO check if this is actually working!
-                #CASA style
-                self.beam_maj, self.beam_min, self.beam_pa, na, nb = hdu_list[1].data[0]
-                self.beam_maj=self.beam_maj*1000 #convert to mas
-                self.beam_min=self.beam_min*1000 #convert to mas
-            except:
-                print("No input beam information!")
-                self.beam_maj = 0
-                self.beam_min = 0
-                self.beam_pa = 0
-
-        self.date = get_date(fits_file)
-        self.mjd = Time(self.date).mjd
         try:
             self.difmap_noise = float(hdu_list[0].header["NOISE"])
         except:
@@ -310,7 +329,7 @@ class ImageData(object):
             os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
             self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(self.model, self.model_mod_file, freq=self.freq)
-        if is_casa_model:
+        elif model!="" and is_casa_model:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
@@ -330,8 +349,9 @@ class ImageData(object):
             os.makedirs(model_save_dir+"mod_files_u", exist_ok=True)
             #try to import model which is attached to the main .fits file
             model_i = getComponentInfo(fits_file)
-            if self.model==None:
+            if not isinstance(self.model, pd.DataFrame) or not isinstance(self.model, str) or self.model==None:
                 self.model = model_i
+            self.model_i = model_i
             self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(model_i, self.stokes_i_mod_file, freq=self.freq)
             #load stokes q and u clean models
