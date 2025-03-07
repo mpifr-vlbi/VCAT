@@ -317,7 +317,7 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def plot(self, show=True, savefig="", **kwargs):
+    def plot(self, show=True, savefig="",**kwargs):
         defaults = {
             "swap_axis": False,
             "stokes_i_sigma_cut": 3,
@@ -351,6 +351,11 @@ class ImageCube(object):
             "stokes_i_vmax": "",
             "fracpol_vmax": "",
             "linpol_vmax": "",
+            "shared_colormap": "individual",  # options are 'freq', 'epoch', 'all','individual'
+            "shared_colorbar": False,  # if true, will plot a shared colorbar according to share_colormap setting
+            "shared_sigma": "max",  # select which common sigma to use options: 'max','min'
+            "shared_colorbar_label": "",  # choose custom colorbar label
+            "shared_colorbar_labelsize" : 10,  # choose labelsize of custom colorbar
             "plot_evpa": False,
             "evpa_width": 2,
             "evpa_len": 8,
@@ -358,7 +363,7 @@ class ImageCube(object):
             "evpa_distance": 10,
             "rotate_evpa": 0,
             "evpa_color": "white",
-            "title": "",
+            "title": " ",
             "background_color": "white",
             "figsize": "",
             "font_size_axis_title": 8,

@@ -1,10 +1,10 @@
-! Started logfile: difmap.log on Fri Mar  7 17:51:47 2025
+! Started logfile: difmap.log on Fri Mar  7 21:20:22 2025
 ! Starting new interactive shell. Use the EOF character to exit.
 ! Obeying initialization file: 
-obs ../dataset_example/0235+164/Ku/0235+164E.uvf
-! Reading UV FITS file: ../dataset_example/0235+164/Ku/0235+164E.uvf
-! AN table 1: 92 integrations on 36 of 36 possible baselines.
-! Apparent sampling: 0.927536 visibilities/baseline/integration-bin.
+obs tmp/mod_files_clean/0235+164_2022-08-01_43GHz.uvf
+! Reading UV FITS file: tmp/mod_files_clean/0235+164_2022-08-01_43GHz.uvf
+! AN table 1: 184 integrations on 36 of 36 possible baselines.
+! Apparent sampling: 0.922101 visibilities/baseline/integration-bin.
 ! Found source: 0235+164
 ! 
 ! There are 4 IFs, and a total of 4 channels:
@@ -12,47 +12,45 @@ obs ../dataset_example/0235+164/Ku/0235+164E.uvf
 !  IF  Channel    Frequency  Freq offset  Number of   Overall IF
 !       origin    at origin  per channel   channels    bandwidth
 !  ------------------------------------------------------------- (Hz)
-!  01        1   1.5176e+10     1.28e+08          1     1.28e+08
-!  02        2   1.5304e+10     1.28e+08          1     1.28e+08
-!  03        3   1.5432e+10     1.28e+08          1     1.28e+08
-!  04        4    1.556e+10     1.28e+08          1     1.28e+08
+!  01        1  4.29765e+10     1.28e+08          1     1.28e+08
+!  02        2  4.31045e+10     1.28e+08          1     1.28e+08
+!  03        3  4.32325e+10     1.28e+08          1     1.28e+08
+!  04        4  4.33605e+10     1.28e+08          1     1.28e+08
 ! 
 ! Polarization(s): RR LL RL LR
 ! 
-! Read 1 lines of history.
+! Read 9 lines of history.
 ! 
-! Reading 49152 visibilities.
+! Reading 97728 visibilities.
 uvw 0,-1
 ! Uniform weighting is not currently selected.
 ! Gridding weights will be scaled by errors raised to the power -1.
 ! Radial weighting is not currently selected.
-select i
-! Selecting polarization: I,  channels: 1..4
+select q
+! Selecting polarization: Q,  channels: 1..4
 ! Reading IF 1 channels: 1..1
 ! Reading IF 2 channels: 2..2
 ! Reading IF 3 channels: 3..3
 ! Reading IF 4 channels: 4..4
-rmod tmp/mod_files_clean/0235+164_2022-08-01_15GHz.mod
-! A total of 270 model components were read from file tmp/mod_files_clean/0235+164_2022-08-01_15GHz.mod
+rmod tmp/mod_files_q/0235+164_2022-08-01_43GHz.mod
+! A total of 15 model components were read from file tmp/mod_files_q/0235+164_2022-08-01_43GHz.mod
 selfcal
 ! Performing phase self-cal
-! Adding 270 model components to the UV plane model.
-! The established model now contains 270 components and 1.41076 Jy
+! Adding 15 model components to the UV plane model.
+! The established model now contains 15 components and -0.0171608 Jy
 ! 
 ! Correcting IF 1.
-!  A total of 162 telescope corrections were flagged in sub-array 1.
+!  A total of 352 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 2.
-!  A total of 162 telescope corrections were flagged in sub-array 1.
+!  A total of 354 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 3.
-!  A total of 162 telescope corrections were flagged in sub-array 1.
+!  A total of 354 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 4.
-!  A total of 162 telescope corrections were flagged in sub-array 1.
+!  A total of 354 telescope corrections were flagged in sub-array 1.
 ! 
-! Fit before self-cal, rms=0.046663Jy  sigma=0.824803
-! Fit after  self-cal, rms=0.046537Jy  sigma=0.812601
-! 
-! Terminated interactive shell.
-! Log file difmap.log closed on Fri Mar  7 17:51:48 2025
+! Fit before self-cal, rms=0.095522Jy  sigma=1.115832
+! Fit after  self-cal, rms=0.092626Jy  sigma=1.023262
+maps 2048,0.0500000008338108

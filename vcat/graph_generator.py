@@ -339,6 +339,7 @@ class FitsImage(object):
         self.stokes_i_vmax=stokes_i_vmax
         self.linpol_vmax=linpol_vmax
         self.fracpol_vmax=fracpol_vmax
+        self.col=""
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
@@ -569,13 +570,13 @@ class FitsImage(object):
                 im_color = cmaps.neon_r
 
             if vmax > 0.4:
-                col = self.ax.imshow(Z,
+                self.col = self.ax.imshow(Z,
                                origin='lower',
                                cmap=im_color,
                                norm=colors.SymLogNorm(linthresh=0.4,
                                                        vmax=vmax, vmin=vmin), extent=extent)
             else:
-                col = self.ax.imshow(Z,
+                self.col = self.ax.imshow(Z,
                                origin='lower',
                                cmap=im_color,
                                vmax=vmax, vmin=vmin, extent=extent)
@@ -591,7 +592,7 @@ class FitsImage(object):
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
-                    cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=ticks)
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax,ticks=ticks)
                     cbar.set_label(label,fontsize=self.ax.xaxis.label.get_size())
                     cbar.ax.set_yticklabels(ticklabels, labelsize=self.ax.yaxis.get_ticklabels()[0].get_size())
             elif vmax <=0.2:
@@ -606,14 +607,14 @@ class FitsImage(object):
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
-                    cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax,ticks=final_ticks)
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax,ticks=final_ticks)
                     cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
                     cbar.ax.set_yticklabels(ticklabels, labelsize=self.ax.yaxis.get_ticklabels()[0].get_size())
             else:
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes("right", size="5%", pad=0.05)
-                    cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                     cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
             if do_colorbar:
                 cbar.ax.yaxis.set_minor_formatter(ticker.NullFormatter())
@@ -630,13 +631,13 @@ class FitsImage(object):
 
             vmin = 0
             if linthresh < 0.5 * np.max([vmax, -vmin]):
-                col = self.ax.imshow(Z,
+                self.col = self.ax.imshow(Z,
                                origin='lower',
                                cmap=im_color,
                                norm=colors.SymLogNorm(linthresh=linthresh,
                                                        vmax=vmax, vmin=vmin),extent=extent)
             else:
-                col = self.ax.imshow(Z,
+                self.col = self.ax.imshow(Z,
                                origin='lower',
                                cmap=im_color,
                                vmax=vmax, vmin=vmin,extent=extent)
@@ -644,7 +645,7 @@ class FitsImage(object):
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
         elif label=="Mask":
             if im_color=="":
@@ -654,24 +655,24 @@ class FitsImage(object):
         elif label=="Residual Flux Density [Jy/beam]":
             if im_color=="":
                 im_color="gray"
-            col = self.ax.imshow(Z, cmap=im_color, extent=extent, origin="lower")
+            self.col = self.ax.imshow(Z, cmap=im_color, extent=extent, origin="lower")
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         elif label=="Spectral Index":
             if im_color=="":
                 im_color="hot_r"
 
-            col = self.ax.imshow(Z, cmap=im_color, vmin=self.clean_image.spix_vmin, vmax=self.clean_image.spix_vmax, extent=extent, origin='lower')
+            self.col = self.ax.imshow(Z, cmap=im_color, vmin=self.clean_image.spix_vmin, vmax=self.clean_image.spix_vmax, extent=extent, origin='lower')
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         elif label=="Rotation Measure [rad/m^2]":
@@ -679,29 +680,29 @@ class FitsImage(object):
                 im_color="coolwarm"
 
             if self.clean_image.rm_vmin!="" and self.clean_image.rm_vmax!="":
-                col = self.ax.imshow(Z, cmap=im_color, vmin=self.clean_image.rm_vmin, vmax=self.clean_image.rm_vmax, extent=extent, origin='lower')
+                self.col = self.ax.imshow(Z, cmap=im_color, vmin=self.clean_image.rm_vmin, vmax=self.clean_image.rm_vmax, extent=extent, origin='lower')
             else:
                 #scale up and down equally
                 vmax=np.max(abs(Z))
                 vmin=-vmax
-                col = self.ax.imshow(Z, cmap=im_color, vmin=vmin, vmax=vmax, extent=extent, origin='lower')
+                self.col = self.ax.imshow(Z, cmap=im_color, vmin=vmin, vmax=vmax, extent=extent, origin='lower')
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         elif label=="Turnover Frequency [GHz]" or label=="Turnover Flux [Jy/beam]" or label=="Turnover Error [GHz]" or label=="Turnover $\Chi^2$":
             if im_color=="":
                 im_color="inferno"
 
-            col = self.ax.imshow(Z, cmap=im_color, extent=extent, origin='lower')
+            self.col = self.ax.imshow(Z, cmap=im_color, extent=extent, origin='lower')
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         else:
@@ -714,14 +715,14 @@ class FitsImage(object):
             else:
                 vmax=self.stokes_i_vmax
 
-            col = self.ax.imshow(Z, cmap=im_color, norm=colors.SymLogNorm(linthresh=abs(levs1[0]), linscale=0.5, vmin=levs1[0],
+            self.col = self.ax.imshow(Z, cmap=im_color, norm=colors.SymLogNorm(linthresh=abs(levs1[0]), linscale=0.5, vmin=levs1[0],
                                                                         vmax=vmax, base=10.), extent=extent,
                                 origin='lower')
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(col, use_gridspec=True, cax=cax)
+                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
     def plotComponent(self,x,y,maj,min,pos,scale):
@@ -817,6 +818,8 @@ class MultiFitsImage(object):
                  shared_colormap="individual", #options are 'freq', 'epoch', 'all','individual'
                  shared_colorbar=False, #if true, will plot a shared colorbar according to share_colormap setting
                  shared_sigma="max", #select which common sigma to use options: 'max','min'
+                 shared_colorbar_label="", #choose custom colorbar label
+                 shared_colorbar_labelsize=10, #choose labelsize of custom colorbar
                  **kwargs #additional plot params
                  ):
 
@@ -917,13 +920,11 @@ class MultiFitsImage(object):
                     kwargs["linpol_vmax"][i,j]=plot.linpol_vmax
                     kwargs["fracpol_vmax"][i,j]=plot.fracpol_vmax
 
+            col=plot.col
             plt.close()
 
-            #TODO make plots for the shared colorbar
-            if shared_colorbar:
-                pass
-
         elif shared_colormap=="epoch":
+            col=[]
             for i in range(len(self.image_cube.dates)):
                 images=image_cube.images[i,:].flatten()
                 noises = image_cube.noises[i,:].flatten()
@@ -945,13 +946,12 @@ class MultiFitsImage(object):
                     kwargs["linpol_vmax"][i, j] = plot.linpol_vmax
                     kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
 
+                col.append(plot.col)
                 plt.close()
 
-            # TODO make plots for the shared colorbar
-            if shared_colorbar:
-                pass
 
         elif shared_colormap=="freq":
+            col=[]
             for j in range(len(self.image_cube.freqs)):
                 images=image_cube.images[:,j].flatten()
                 noises = image_cube.noises[:,j].flatten()
@@ -973,18 +973,13 @@ class MultiFitsImage(object):
                     kwargs["linpol_vmax"][i, j] = plot.linpol_vmax
                     kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
 
+                col.append(plot.col)
                 plt.close()
 
-            # TODO make plots for the shared colorbar
-            if shared_colorbar:
-                pass
-
-        elif share_colormap=="individual":
+        elif shared_colormap=="individual":
             pass
         else:
             raise Exception("Please use valid share_colormap setting ('all','epoch','freq')")
-
-
 
 
         #create FitsImage for every image
@@ -1049,6 +1044,51 @@ class MultiFitsImage(object):
                                         font_size_axis_title=kwargs["font_size_axis_title"][image_i,image_j],
                                         font_size_axis_tick=kwargs["font_size_axis_tick"][image_i,image_j],
                                         rcparams=kwargs["rcparams"][image_i,image_j])
+
+        #get colorbar label:
+        if shared_colorbar_label == "":
+            if kwargs["plot_mode"][0, 0] == "stokes_i":
+                shared_colorbar_label="Flux Density [Jy/beam]"
+            elif kwargs["plot_mode"][0, 0] == "lin_pol":
+                shared_colorbar_label="Linear Polarization [Jy/beam]"
+            elif kwargs["plot_mode"][0, 0] == "frac_pol":
+                shared_colorbar_label="Linear Polarization Fraction"
+            elif kwargs["plot_mode"][0, 0] == "spix":
+                shared_colorbar_label="Spectral Index"
+            elif kwargs["plot_mode"][0, 0] == "rm":
+                shared_colorbar_label="Rotation Measure [rad/m^2]"
+            elif kwargs["plot_mode"][0, 0] == "residual":
+                shared_colorbar_label="Residual Flux Density [Jy/beam]"
+            elif kwargs["plot_mode"][0, 0] == "turnover":
+                shared_colorbar_label="Turnover Frequency [GHz]"
+            elif kwargs["plot_mode"][0, 0] == "turnover_flux":
+                shared_colorbar_label = "Turnover Flux [Jy/beam]"
+            elif kwargs["plot_mode"][0, 0] == "turnover_error":
+                shared_colorbar_label = "Turnover Error [GHz]"
+            elif kwargs["plot_mode"][0, 0] == "turnover_chisquare":
+                shared_colorbar_label = r"Turnover $\chi^2$"
+            else:
+                shared_colorbar_label = "Flux Density [Jy/beam]"
+
+        # check if colorbar should be plotted and is shared between plots:
+        if shared_colormap == "all" and shared_colorbar:
+            cbar = self.fig.colorbar(col, ax=self.axes, orientation="horizontal", fraction=0.05, pad=0.1)
+            cbar.set_label(shared_colorbar_label,fontsize=shared_colorbar_labelsize)
+        elif shared_colormap=="epoch" and shared_colorbar:
+            for i in range(len(self.image_cube.dates)):
+                if swap_axis:
+                    cbar = self.fig.colorbar(col[i], ax=self.axes[:, i], orientation="horizontal", fraction=0.05, pad=0.05)
+                else:
+                    cbar = self.fig.colorbar(col[i], ax=self.axes[i, :], orientation="vertical", fraction=0.05, pad=0.1)
+                cbar.set_label(shared_colorbar_label,fontsize=shared_colorbar_labelsize)
+        elif shared_colormap=="freq" and shared_colorbar:
+            for j in range(len(self.image_cube.freqs)):
+                if swap_axis:
+                    cbar = self.fig.colorbar(col[j], ax=self.axes[j, :], orientation="vertical", fraction=0.05, pad=0.05)
+                else:
+                    cbar = self.fig.colorbar(col[j], ax=self.axes[:, j], orientation="horizontal", fraction=0.05, pad=0.1)
+                cbar.set_label(shared_colorbar_label,fontsize=shared_colorbar_labelsize)
+
 
     def export(self,name):
         if name.split(".")[-1] in ("png","jpg","jpeg","pdf","gif"):
