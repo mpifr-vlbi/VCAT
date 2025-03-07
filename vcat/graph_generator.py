@@ -270,6 +270,9 @@ class FitsImage(object):
                  ridgeline_color="red", #choose ridgeline color
                  plot_counter_ridgeline= False,
                  counter_ridgeline_color= "red",
+                 plot_line="", #Provide two points for plotting a line
+                 line_color="black",
+                 line_width=2, #width of the line
                  plot_beam=True, #choose whether to plot beam or not
                  overplot_gauss=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
@@ -502,6 +505,9 @@ class FitsImage(object):
             #plot counterridgeline in image
             self.ax.plot(self.clean_image.counter_ridgeline.X_ridg, self.clean_image.counter_ridgeline.Y_ridg, c=self.counter_ridgeline_color,
                          zorder=6)
+
+        if plot_line!="":
+            self.ax.plot([plot_line[0][0],plot_line[1][0]],[plot_line[0][1],plot_line[1][1]],linewidth=line_width,c=line_color,zorder=7)
 
         self.xmin,self.xmax = ra_min, ra_max
         self.ymin,self.ymax = dec_min, dec_max
@@ -774,6 +780,9 @@ class MultiFitsImage(object):
                  ridgeline_color="red", #choose ridgeline color
                  plot_counter_ridgeline=False,  # choose whether to display ridgeline
                  counter_ridgeline_color="red",  # choose ridgeline color
+                 plot_line="",  # Provide two points for plotting a line
+                 line_color="black",
+                 line_width=2,  # width of the line
                  plot_beam=True,  # choose whether to plot beam or not
                  overplot_gauss=False,  # choose whether to plot modelfit components
                  component_color="black",  # choose component color for Gauss component

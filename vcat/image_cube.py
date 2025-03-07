@@ -333,6 +333,9 @@ class ImageCube(object):
             "ridgeline_color": "red",
             "plot_counter_ridgeline": False,
             "counter_ridgeline_color": "red",
+            "plot_line" : "",
+            "line_color" : "black",
+            "line_width" : 2,
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
@@ -708,7 +711,7 @@ class ImageCube(object):
 
         return start_cube
 
-    def get_spectral_index_map(self,freq1,freq2,epoch="",spix_vmin=-3,spix_vmax=5,sigma_lim=3,plot=False):
+    def get_spectral_index_map(self,freq1,freq2,ref_image="",epoch="",spix_vmin=-3,spix_vmax=5,sigma_lim=3,plot=False):
         #TODO implement fitting spix across more than two frequencies
 
         #TODO basic check if images are aligned an same pixels if not, align automatically
@@ -745,7 +748,9 @@ class ImageCube(object):
             a[spix2==image2.noise*sigma_lim] = spix_vmin
 
             # TODO maybe it makes sense to introduce a new SpixData Class here? The current solution is a bit hacky, but it works
-            image_copy=image2.copy()
+            if ref_image=="":
+                ref_image=image2
+            image_copy=ref_image.copy()
             image_copy.spix=a
             image_copy.is_spix=True
             image_copy.spix_vmin=spix_vmin
@@ -756,6 +761,25 @@ class ImageCube(object):
             spec_ind_maps.append(image_copy)
 
         return ImageCube(image_data_list=spec_ind_maps)
+
+    def get_images(self,freq="",epoch=""):
+        if isinstance(epoch,str) and epoch!="":
+            mjd=Time(epoch).mjd
+        elif isinstance(epoch,float) or isinstance(epoch,int):
+            mjd=epoch
+
+        if epoch=="" and freq=="":
+            return self.images
+        elif epoch=="":
+            freq_ind = closest_index(self.freqs, freq * 1e9)
+            return self.images[:,freq_ind]
+        elif freq=="":
+            time_ind = closest_index(self.mjds,mjd)
+            return self.images[time_ind,:]
+        else:
+            time_ind=closest_index(self.mjds,mjd)
+            freq_ind=closest_index(self.freqs,freq*1e9)
+            return self.images[time_ind,freq_ind]
 
     def get_rm_map(self,freq1,freq2,epoch="",sigma_lim=3,rm_vmin="",rm_vmax="",sigma_lim_pol=5,plot=False):
         #TODO get RM map across more than 2 frequencies by fitting
@@ -813,7 +837,7 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=rm_maps)
 
-    def get_turnover_map(self,epoch="",sigma_lim=10,max_feval=1000000,specific_pixel=(-1,-1),limit_freq=True):
+    def get_turnover_map(self,epoch="",ref_image="",sigma_lim=10,max_feval=1000000,specific_pixel=(-1,-1),limit_freq=True):
         #Largely imported from Luca Ricci's Turnover frequency code
         #TODO basic error handling to check if the files are aligned and regridded and restored.
 
@@ -893,7 +917,10 @@ class ImageCube(object):
                             continue
 
             # TODO maybe it makes sense to introduce a new TurnoverData Class here? The current solution is a bit hacky, but it works
-            image_copy = images[0].copy()
+            if ref_image=="":
+                image_copy = images[-1].copy()
+            else:
+                image_copy=ref_image
             image_copy.is_turnover = True
             image_copy.turnover = turnover
             image_copy.turnover_flux = turnover_flux

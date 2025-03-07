@@ -26,6 +26,7 @@ from astropy.nddata import Cutout2D
 from astropy.modeling import models, fitting
 from scipy import integrate
 from vcat.ridgeline import Ridgeline
+from skimage.measure import profile_line
 
 warnings.simplefilter('ignore', ErfaWarning)
 
@@ -623,6 +624,9 @@ class ImageData(object):
             "ridgeline_color": "red",
             "plot_counter_ridgeline": False,
             "counter_ridgeline_color": "red",
+            "plot_line" : "",
+            "line_color" : "black",
+            "line_width" : 2,
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
@@ -1246,10 +1250,53 @@ class ImageData(object):
 
         return newImageData
 
+    def get_profile(self,point1,point2,show=True,image="stokes_i"):
+
+        #get index of slice ends
+        x_ind1 = closest_index(self.X,point1[0])
+        y_ind1 = closest_index(self.Y,point1[1])
+        x_ind2 = closest_index(self.X, point2[0])
+        y_ind2 = closest_index(self.Y, point2[1])
+
+        #select image to get slice from
+        if image=="stokes_i":
+            image_data=self.Z
+        elif image=="lin_pol":
+            image_data=self.lin_pol
+        elif image=="evpa":
+            image_data=self.evpa
+        elif image=="spix":
+            image_data=self.spix
+        elif image=="rm":
+            image_data=self.rm
+
+        intensity_profile=profile_line(image_data, (x_ind1,y_ind1), (x_ind2,y_ind2))
+
+        #calculate distance between points
+        dist=np.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2)
+        #get x_values of intensity_profile
+        x_values=np.linspace(0,dist,len(intensity_profile))
+
+        if show:
+            plt.plot(x_values,intensity_profile)
+            plt.xlabel("Distance from Point 1 [mas]")
+            plt.ylabel("Flux Density [Jy/beam]")
+            plt.tight_layout()
+            plt.show()
+
+        return x_values, intensity_profile
+
+
+
+
+
     def get_ridgeline(self,angle_for_slices=0,
-                      cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len=100,chi_sq_val=100.0,err_FWHM=0.1):
+                      cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",chi_sq_val=100.0,err_FWHM=0.1):
         #TODO CONVERT IT TO Jy/px
         image_data=self.Z
+
+        if j_len=="":
+            j_len=len(self.Y)/2-10
 
         ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
                                                  self.X,self.Y,angle_for_slices=angle_for_slices,cut_radial=cut_radial,

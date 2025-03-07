@@ -29,9 +29,6 @@ Examples for running the modules are in the folder examples.
 Example data for running the modules is in examples/example_data.
 """
 
-# This is to remove the "Welcome to eht_imaging" message
-print("\033[F\033[K", end="")  # Clears the second line
-print("\033[F\033[K", end="")  # Clears the first line
 
 print("\rThank you for using VCAT. Have fun with VLBI!", end="\n")
 print("\rIf you are using this package please cite VCAT Team et al. 2025 ....")
