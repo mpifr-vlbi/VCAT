@@ -1,4 +1,4 @@
-! Started logfile: difmap.log on Sat Mar  8 20:31:54 2025
+! Started logfile: difmap.log_1 on Sat Mar  8 20:32:55 2025
 ! Starting new interactive shell. Use the EOF character to exit.
 ! Obeying initialization file: 
 obs ../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.uvf
@@ -40,8 +40,40 @@ select i
 ! Reading IF 6 channels: 6..6
 ! Reading IF 7 channels: 7..7
 ! Reading IF 8 channels: 8..8
-rmod tmp/mod_files_model/3C111_2014-05-08_5GHz.mod
-! A total of 1135 model components were read from file tmp/mod_files_model/3C111_2014-05-08_5GHz.mod
+rmod tmp/mod_files_clean/3C111_2014-05-08_5GHz.mod
+! A total of 1135 model components were read from file tmp/mod_files_clean/3C111_2014-05-08_5GHz.mod
 selfcal
 ! Performing phase self-cal
 ! Adding 1135 model components to the UV plane model.
+! The established model now contains 1135 components and 2.92537 Jy
+! 
+! Correcting IF 1.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 2.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 3.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 4.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 5.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 6.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 7.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 8.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
+! 
+! Fit before self-cal, rms=0.022684Jy  sigma=1.129580
+! Fit after  self-cal, rms=0.022633Jy  sigma=1.127198
+maps 2048,0.1
+! Map grid = 2048x2048 pixels with 0.100x0.100 milli-arcsec cellsize.
+restore 3.0590304401057042,1.933941658106844,-7.2620278802868
+! Inverting map and beam 

@@ -80,54 +80,90 @@ def getComponentInfo(filename,scale=60*60*1000):
         Pandas Dataframe with the model data (Flux, Delta_x, Delta_y, Major Axis, Minor Axis, PA, Typ_obj)    
     """
 
-    #TODO also include reading .mod files
+    if is_fits_file(filename):
+        #read in fits file
+        data_df = pd.DataFrame()
+        hdu_list = fits.open(filename)
+        comp_data = hdu_list[1].data
+        comp_data1 = np.zeros((len(comp_data), len(comp_data[0])))
+        date = np.array([])
+        year = np.array([])
+        mjd = np.array([])
+        for j in range(len(comp_data)):
+            comp_data1[j, :] = comp_data[j]
+            date1=get_date(filename)
+            date = np.append(date, date1)
+            t = Time(date1)
+            year = np.append(year, t.jyear)
+            mjd = np.append(mjd, t.mjd)
+        comp_data1_df = pd.DataFrame(data=comp_data1,
+                                     columns=["Flux", "Delta_x", "Delta_y", "Major_axis", "Minor_axis", "PA",
+                                              "Typ_obj"])
+        comp_data1_df["Date"] = date
+        comp_data1_df["Year"] = year
+        comp_data1_df["mjd"] = mjd
+        comp_data1_df.sort_values(by=["Delta_x", "Delta_y"], ascending=False, inplace=True)
+        if data_df.empty:
+            data_df = comp_data1_df
+        else:
+            data_df = pd.concat([data_df, comp_data1_df], axis=0, ignore_index=True)
+        os.makedirs("tmp",exist_ok=True)
 
-    data_df = pd.DataFrame()
-    hdu_list = fits.open(filename)
-    comp_data = hdu_list[1].data
-    comp_data1 = np.zeros((len(comp_data), len(comp_data[0])))
-    date = np.array([])
-    year = np.array([])
-    mjd = np.array([])
-    for j in range(len(comp_data)):
-        comp_data1[j, :] = comp_data[j]
-        date1=get_date(filename)
-        date = np.append(date, date1)
-        t = Time(date1)
-        year = np.append(year, t.jyear)
-        mjd = np.append(mjd, t.mjd)
-    comp_data1_df = pd.DataFrame(data=comp_data1,
-                                 columns=["Flux", "Delta_x", "Delta_y", "Major_axis", "Minor_axis", "PA",
-                                          "Typ_obj"])
-    comp_data1_df["Date"] = date
-    comp_data1_df["Year"] = year
-    comp_data1_df["mjd"] = mjd
-    comp_data1_df.sort_values(by=["Delta_x", "Delta_y"], ascending=False, inplace=True)
-    if data_df.empty:
-        data_df = comp_data1_df
+        #write Radius, ratio and Angle also to database
+        data_df['radius'] = np.sqrt(data_df['Delta_x'] ** 2 + data_df['Delta_y'] ** 2) * scale
+
+        # Function to calculate 'theta'
+        def calculate_theta(row):
+            if (row['Delta_y'] > 0 and row['Delta_x'] > 0) or (row['Delta_y'] > 0 and row['Delta_x'] < 0):
+                return np.arctan(row['Delta_x'] / row['Delta_y']) / np.pi * 180
+            elif (row['Delta_y'] < 0 and row['Delta_x'] > 0):
+                return np.arctan(row['Delta_x'] / row['Delta_y']) / np.pi * 180 + 180
+            elif (row['Delta_y'] < 0 and row['Delta_x'] < 0):
+                return np.arctan(row['Delta_x'] / row['Delta_y']) / np.pi * 180 - 180
+            return 0
+
+        # Apply function to calculate 'theta'
+        data_df['theta'] = data_df.apply(calculate_theta, axis=1)
+
+        # Calculate 'ratio'
+        data_df['ratio'] = data_df.apply(lambda row: row['Minor_axis'] / row['Major_axis'] if row['Major_axis'] > 0 else 0,
+                                     axis=1)
     else:
-        data_df = pd.concat([data_df, comp_data1_df], axis=0, ignore_index=True)
-    os.makedirs("tmp",exist_ok=True)
+        #will assume that the file is a .mod file
+        flux = np.array([])
+        radius = np.array([])
+        theta = np.array([])
+        maj= np.array([])
+        ratio = np.array([])
+        pa = np.array([])
+        typ_obj = np.array([])
 
-    #write Radius, ratio and Angle also to database
-    data_df['radius'] = np.sqrt(data_df['Delta_x'] ** 2 + data_df['Delta_y'] ** 2) * scale
+        with open(filename, "r") as file:
+            for line in file:
+                if not line.startswith("!"):
+                    linepart=line.split()
+                    flux = np.append(flux,float(linepart[0].replace("v","")))
+                    radius = np.append(radius,float(linepart[1].replace("v","")))
+                    theta = np.append(theta,float(linepart[2].replace("v","")))
+                    #other parameters might not be there, try
+                    try:
+                        maj = np.append(maj,float(linepart[3].replace("v","")))
+                        ratio = np.append(ratio,float(linepart[4].replace("v","")))
+                        pa = np.append(pa,float(linepart[5].replace("v","")))
+                        typ_obj = np.append(typ_obj,1) # in this case it is a gaussian model component
+                    except:
+                        maj = np.append(maj,0)
+                        ratio = np.append(ratio,0)
+                        pa = np.append(pa,0)
+                        typ_obj = np.append(typ_obj,0) #in this case it is a clean component
+        #import completed now calcualte additional parameters:
+        delta_x=radius*np.sin(theta/180*np.pi)/scale
+        delta_y=radius*np.cos(theta/180*np.pi)/scale
+        min=ratio*maj
 
-    # Function to calculate 'theta'
-    def calculate_theta(row):
-        if (row['Delta_y'] > 0 and row['Delta_x'] > 0) or (row['Delta_y'] > 0 and row['Delta_x'] < 0):
-            return np.arctan(row['Delta_x'] / row['Delta_y']) / np.pi * 180
-        elif (row['Delta_y'] < 0 and row['Delta_x'] > 0):
-            return np.arctan(row['Delta_x'] / row['Delta_y']) / np.pi * 180 + 180
-        elif (row['Delta_y'] < 0 and row['Delta_x'] < 0):
-            return np.arctan(row['Delta_x'] / row['Delta_y']) / np.pi * 180 - 180
-        return 0
-
-    # Apply function to calculate 'theta'
-    data_df['theta'] = data_df.apply(calculate_theta, axis=1)
-
-    # Calculate 'ratio'
-    data_df['ratio'] = data_df.apply(lambda row: row['Minor_axis'] / row['Major_axis'] if row['Major_axis'] > 0 else 0,
-                                 axis=1)
+        #create data_df
+        data_df = pd.DataFrame({'ratio': ratio, 'Minor_axis': min, 'Major_axis': maj, 'theta': theta, 'Delta_y': delta_y,
+                                'Delta_x': delta_x ,"Flux": flux, "PA": pa, "Typ_obj": typ_obj})
 
     return data_df
 

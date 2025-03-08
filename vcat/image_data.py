@@ -201,10 +201,9 @@ class ImageData(object):
 
         #handle model loading
         self.model_file_path = model
-        #TODO check if the next two lines might cause any errors!
         if self.model_file_path=="":
             self.model_file_path=self.fits_file
-        elif not isinstance(model, pd.DataFrame) or not is_fits_file(model):
+        elif not isinstance(model, pd.DataFrame) and not is_fits_file(model): #Careful, this may not work for CASA style .fits files!
             #this means it is a .mod file -> will create .fits file from it
             os.makedirs(model_save_dir + "mod_files_model/", exist_ok=True)
             new_model_fits=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz"
@@ -216,8 +215,37 @@ class ImageData(object):
                                mod_files=[model], uvf_files=[uvf_file], do_selfcal=True)
 
             else:
-                #TODO copy the clean .fits file and write the model info to the header and store it as model_file_path
-                raise Exception("Can currently only load .mod file, when .uvf file and difmap_path is specified.")
+                #copy the clean .fits file and write the model info to the header and store it as model_file_path
+                #get model first:
+                model_df = getComponentInfo(model,scale=self.scale)
+
+                #now modify fits file
+                f=fits.open(self.fits_file)
+                # FITS column names
+                fits_columns = f[1].data.names
+
+                # Manually map DataFrame columns to FITS structure
+                column_mapping = {
+                    "FLUX": "Flux",
+                    "DELTAX": "Delta_x",
+                    "DELTAY": "Delta_y",
+                    "MAJOR AX": "Major_axis",
+                    "MINOR AX": "Minor_axis",
+                    "POSANGLE": "PA",
+                    "TYPE OBJ": "Typ_obj",
+                }
+
+                # Ensure correct order and match dtype
+                new_data_array = np.array(
+                    [tuple(df[column_mapping[col]] for col in fits_columns) for _, df in model_df.iterrows()],
+                    dtype=f[1].data.dtype  # Ensure the same dtype as the original FITS table
+                )
+
+                # Overwrite the FITS table with the new structured array
+                f[1].data = new_data_array
+                f[1].header['XTENSION'] = 'BINTABLE'
+                f.writeto(new_model_fits+".fits",overwrite=True)
+                f.close()
 
             self.model_file_path = new_model_fits + ".fits"
             model = self.model_file_path
@@ -323,7 +351,7 @@ class ImageData(object):
 
         if model!="" and not is_casa_model:
             #TODO basic checks if file is valid
-            self.model=getComponentInfo(model)
+            self.model=getComponentInfo(model, scale=self.scale)
             #write .mod file from .fits input
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
@@ -348,17 +376,17 @@ class ImageData(object):
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_u", exist_ok=True)
             #try to import model which is attached to the main .fits file
-            model_i = getComponentInfo(fits_file)
+            model_i = getComponentInfo(fits_file, scale=self.scale)
             if not isinstance(self.model, pd.DataFrame) or not isinstance(self.model, str) or self.model==None:
                 self.model = model_i
             self.model_i = model_i
             self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(model_i, self.stokes_i_mod_file, freq=self.freq)
             #load stokes q and u clean models
-            self.model_q=getComponentInfo(stokes_q_path)
+            self.model_q=getComponentInfo(stokes_q_path, scale=self.scale)
             self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(self.model_q, self.stokes_q_mod_file, freq=self.freq)
-            self.model_u=getComponentInfo(stokes_u_path)
+            self.model_u=getComponentInfo(stokes_u_path, scale=self.scale)
             self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(self.model_u, self.stokes_u_mod_file, freq=self.freq)
         except:
@@ -524,7 +552,10 @@ class ImageData(object):
                     f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                     f[0].data[0, 0, :, :] = new_image_i
                     new_stokes_i_fits = self.model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
-                    f[1].header['XTENSION'] = 'BINTABLE'
+                    try:
+                        f[1].header['XTENSION'] = 'BINTABLE' #This is a bug fix that is needed for some .fits files, otherwise writeto throws an error
+                    except:
+                        pass
                     #modify header parameters to new npix and pixelsize
                     f[0].header["NAXIS1"]=npix
                     f[0].header["NAXIS2"]=npix
@@ -540,7 +571,10 @@ class ImageData(object):
                         f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                         f[0].data[0, 0, :, :] = new_image_q
                         new_stokes_q_fits = self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
-                        f[1].header['XTENSION'] = 'BINTABLE'
+                        try:
+                            f[1].header['XTENSION'] = 'BINTABLE'  # This is a bug fix that is needed for some .fits files, otherwise writeto throws an error
+                        except:
+                            pass
                         # modify header parameters to new npix and pixelsize
                         f[0].header["NAXIS1"] = npix
                         f[0].header["NAXIS2"] = npix
@@ -559,7 +593,10 @@ class ImageData(object):
                         f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                         f[0].data[0, 0, :, :] = new_image_u
                         new_stokes_u_fits = self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
-                        f[1].header['XTENSION'] = 'BINTABLE'
+                        try:
+                            f[1].header['XTENSION'] = 'BINTABLE'  # This is a bug fix that is needed for some .fits files, otherwise writeto throws an error
+                        except:
+                            pass
                         # modify header parameters to new npix and
                         # pixelsize
                         f[0].header["NAXIS1"] = npix
@@ -600,7 +637,10 @@ class ImageData(object):
                             f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                             f[0].data[0, 0, :, :] = new_image_model
                             new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
-                            f[1].header['XTENSION'] = 'BINTABLE'
+                            try:
+                                f[1].header['XTENSION'] = 'BINTABLE'  # This is a bug fix that is needed for some .fits files, otherwise writeto throws an error
+                            except:
+                                pass
                             f[0].header["NAXIS1"] = npix
                             f[0].header["NAXIS2"] = npix
                             f[0].header["CDELT1"] = -pixel_size / self.scale

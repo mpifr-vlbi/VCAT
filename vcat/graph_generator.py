@@ -80,7 +80,7 @@ class KinematicPlot(object):
         dates=[]
 
         for ind,uvf in enumerate(uvf_files):
-            df=getComponentInfo(modelfit_files[ind])
+            df=getComponentInfo(modelfit_files[ind],scale=self.clean_image.scale)
             freq=get_freq(modelfit_files[ind])
             write_mod_file(df,"modelfit.mod",freq,adv=True)
             chi_square=get_model_chi_square_red(uvf,"modelfit.mod",difmap_path)
@@ -476,10 +476,10 @@ class FitsImage(object):
 
         # Read modelfit files in
         if (overplot_gauss == True) or (overplot_clean == True):
-            model_df = getComponentInfo(self.model_image_file)
+            model_df = getComponentInfo(self.model_image_file,scale=self.clean_image.scale)
 
             # sort in gauss and clean components
-            model_gauss_df = model_df #model_df[model_df["Major_axis"] > 0.].reset_index()
+            model_gauss_df = model_df
             model_clean_df = model_df[model_df["Major_axis"] == 0.].reset_index()
 
             # Overplot clean components
