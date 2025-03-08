@@ -89,7 +89,27 @@ class ImageCube(object):
 
     #print out some basic details
     def __str__(self):
-        return f"ImageCube with {self.shape[1]} frequencies and {self.shape[0]} epochs."
+        print_freqs=[]
+        for freq in self.freqs:
+            print_freqs.append("{:.0f}".format(freq * 1e-9) + " GHz")
+        if self.shape[1]==1 and self.shape[0]==1:
+            line1 = f"ImageCube for source {self.name} with {self.shape[1]} frequency and {self.shape[0]} epoch.\n"
+            line2 = f"Frequency [GHz]: " + ", ".join(print_freqs) + "\n"
+            line3 = f"Epoch: " + ", ".join(self.dates)
+        elif self.shape[1]==1:
+            line1 = f"ImageCube for source {self.name} with {self.shape[1]} frequency and {self.shape[0]} epochs.\n"
+            line2 = f"Frequency [GHz]: " + ", ".join(print_freqs) + "\n"
+            line3 = f"Epochs: " + ", ".join(self.dates)
+        elif self.shape[0]==1:
+            line1 = f"ImageCube for source {self.name} with {self.shape[1]} frequencies and {self.shape[0]} epoch.\n"
+            line2 = f"Frequencies [GHz]: " + ", ".join(print_freqs) + "\n"
+            line3 = f"Epoch: " + ", ".join(self.dates)
+        else:
+            line1= f"ImageCube for source {self.name} with {self.shape[1]} frequencies and {self.shape[0]} epochs.\n"
+            line2 = f"Frequencies [GHz]: " + ", ".join(print_freqs) + "\n"
+            line3 = f"Epochs: " + ", ".join(self.dates)
+
+        return line1+line2+line3
 
     def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files="",**kwargs):
         #sort input files
@@ -97,8 +117,10 @@ class ImageCube(object):
         uvf_files=sort_uvf_by_date_and_frequency(uvf_files)
         stokes_q_files=sort_fits_by_date_and_frequency(stokes_q_files)
         stokes_u_files=sort_fits_by_date_and_frequency(stokes_u_files)
-        model_fits_files=sort_fits_by_date_and_frequency(model_fits_files)
-
+        try:
+            model_fits_files=sort_fits_by_date_and_frequency(model_fits_files)
+        except:
+            warning.warn("model_fits_files need to be .fits file! Will continue assuming the .mod files are sorted by date and frequency, ascending!")
 
         #initialize image array
         images=[]

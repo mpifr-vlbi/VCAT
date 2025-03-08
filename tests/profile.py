@@ -8,7 +8,9 @@ data=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
                stokes_u="../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.ucln",
               difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
-data.plot()
+print(data)
+
+data.plot(plot_mode="lin_pol")
 
 data.plot(plot_line=[(5,-5),(-10,10)])
 x,y=data.get_profile((5,-5),(-10,10))

@@ -10,6 +10,8 @@ images=[dataC,dataQ]
 
 im_cube=ImageCube(images)
 
+print(im_cube)
+
 #plot it
 im_cube.plot(mode="epoch",xlim=[10,-10])
 

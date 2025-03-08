@@ -349,15 +349,15 @@ class ImageData(object):
                                             self.evpa)
         self.evpa_average = np.average(integrate_evpa)
 
-        if model!="" and not is_casa_model:
+        if not is_casa_model:
             #TODO basic checks if file is valid
-            self.model=getComponentInfo(model, scale=self.scale)
+            self.model=getComponentInfo(self.model_file_path, scale=self.scale)
             #write .mod file from .fits input
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
             self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(self.model, self.model_mod_file, freq=self.freq)
-        elif model!="" and is_casa_model:
+        else:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
@@ -369,16 +369,12 @@ class ImageData(object):
             write_mod_file_from_casa(self.file_path,channel="q", export=self.stokes_q_mod_file)
             self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file_from_casa(self.file_path,channel="u", export=self.stokes_u_mod_file)
-        else:
-            self.model=None
         try:
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_u", exist_ok=True)
             #try to import model which is attached to the main .fits file
             model_i = getComponentInfo(fits_file, scale=self.scale)
-            if not isinstance(self.model, pd.DataFrame) or not isinstance(self.model, str) or self.model==None:
-                self.model = model_i
             self.model_i = model_i
             self.stokes_i_mod_file=model_save_dir+"mod_files_clean/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             write_mod_file(model_i, self.stokes_i_mod_file, freq=self.freq)
@@ -397,9 +393,12 @@ class ImageData(object):
 
         for ind,comp in self.model.iterrows():
             component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
-                    comp["PA"],comp["Flux"],comp["Date"],comp["mjd"],comp["Year"],freq=self.freq,noise=self.noise)
+                    comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,
+                                beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,freq=self.freq,noise=self.noise)
             self.components.append(component)
-        
+
+        print(self.components)
+
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
             os.makedirs(model_save_dir+"residual_maps", exist_ok=True)
@@ -425,7 +424,7 @@ class ImageData(object):
             flux_q=total_flux_from_mod(self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             flux_u=total_flux_from_mod(self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
-            self.frac_pol = image_data.integrated_pol_flux_clean / image_data.integrated_pol_flux_clean
+            self.frac_pol = self.integrated_pol_flux_clean / self.integrated_flux_clean
         except:
             self.integrated_pol_flux_clean=0
             self.frac_pol = 0
@@ -470,15 +469,34 @@ class ImageData(object):
 
     #print function for ImageData
     def __str__(self):
+        output=["\n"]
         try:
             freq_ghz="{:.1f}".format(self.freq*1e-9)
-            line1= f"Image of the source {self.name} at frequency {freq_ghz} GHz on {self.date} \n"
-            line2= f"Total cleaned flux: {self.integrated_flux_clean*1000:.3f} mJy \n"
-            line3= f"Image Noise: {self.noise*1000:.3f} mJy using method '{self.noise_method}'\n"
-            line4= f"Pol Flux: {self.integrated_pol_flux_clean*1000:.3f} mJy ({self.frac_pol*100:.2f}%)\n"
-            line5= f"Average EVPA direction: {self.evpa_average/np.pi*180:.2f}"
+            output.append(f"Image of the source {self.name} at frequency {freq_ghz} GHz on {self.date} \n")
+            output.append(f"    Total cleaned flux: {self.integrated_flux_clean*1000:.3f} mJy \n")
+            output.append(f"    Image Noise: {self.noise*1000:.3f} mJy using method '{self.noise_method}'\n")
 
-            return line1+line2+line3+line4+line5
+            #polarization info
+            if np.sum(self.lin_pol)!=0 and np.sum(self.evpa)!=0:
+                #print polarization info if pol data was loaded
+                output.append("Polarization information:\n")
+                output.append(f"    Pol Flux: {self.integrated_pol_flux_clean*1000:.3f} mJy ({self.frac_pol*100:.2f}%)\n")
+                output.append(f"    Pol Noise: {self.pol_noise*1000:.3f} mJy using method '{self.noise_method}'\n")
+                output.append(f"    Average EVPA direction: {self.evpa_average/np.pi*180:.2f}°\n")
+            else:
+                output.append("No polarization data loaded.\n")
+
+            #model info
+            if self.model_file_path!=self.fits_file:
+                output.append("Model information: \n")
+            else:
+                output.append("No model loaded. Clean model info: \n")
+            model_flux = total_flux_from_mod(self.model_mod_file)
+            num_comps = len(self.model)
+            output.append(f"    Model Flux: {model_flux*1000:.3f} mJy \n")
+            output.append(f"    Number of Components: {num_comps}")
+
+            return "".join(output)
         except:
             return "No data loaded yet."
 

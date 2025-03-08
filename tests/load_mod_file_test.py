@@ -3,20 +3,23 @@ import matplotlib.pyplot as plt
 
 dataC=ImageData("../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.fits",
         uvf_file="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.uvf")
-        #model="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.mod")
-        #difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
+#        model="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.modelfits"
+#        difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
 dataQ=ImageData("../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.fits",
         uvf_file="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.uvf")
-        #model="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.mod")
+        #model="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.modelfits",
         #difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
+
+print(dataC,dataQ)
 
 images=[dataC,dataQ]
 
 im_cube=ImageCube(images)
+print(im_cube)
 
 #plot it
-im_cube.plot(mode="epoch",xlim=[10,-10],overplot_clean=True)
+im_cube.plot(mode="epoch",xlim=[10,-10],overplot_gauss=True)
 
 #regrid it
 im_cube=im_cube.regrid(mode="all",npix=1024,pixel_size=0.1,useDIFMAP=True)
