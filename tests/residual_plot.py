@@ -8,4 +8,5 @@ data=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
                stokes_u="../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.ucln",
               difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
+print(data)
 data.plot(plot_mode="residual",do_colorbar=True)

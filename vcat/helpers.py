@@ -205,7 +205,14 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
         elif delta_y[ind]<0 and delta_x[ind]<0:
             theta.append(np.arctan(delta_x[ind] / delta_y[ind]) / np.pi * 180 - 180)
         else:
-            theta.append(0)
+            if delta_x[ind] > 0 and delta_y[ind]==0:
+                theta.append(90)
+            elif delta_x[ind] < 0 and delta_y[ind]==0:
+                theta.append(-90)
+            elif delta_x[ind] == 0 and delta_y[ind] < 0:
+                theta.append(180)
+            else:
+                theta.append(0)
         if maj[ind]>0:
             ratio.append(min[ind]/maj[ind])
         else:

@@ -391,13 +391,14 @@ class ImageData(object):
         #save modelfit (or clean) components as Component objects
         self.components=[]
 
-        for ind,comp in self.model.iterrows():
-            component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
-                    comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,
-                                beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,freq=self.freq,noise=self.noise)
-            self.components.append(component)
 
-        print(self.components)
+        if self.model_file_path!=self.fits_file:
+            #only do this if a model was specified explicitely
+            for ind,comp in self.model.iterrows():
+                component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
+                        comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,
+                                    beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,freq=self.freq,noise=self.noise)
+                self.components.append(component)
 
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
