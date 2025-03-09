@@ -18,6 +18,7 @@ import matplotlib.ticker as ticker
 from numpy import linalg
 import scipy.ndimage
 import scipy.signal
+from scipy.interpolate import RegularGridInterpolator,griddata
 
 # takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list
@@ -827,6 +828,31 @@ def is_fits_file(filename):
             return True  # Successfully opened, it's a FITS file
     except Exception:
         return False
+
+def convert_image_to_polar(X,Y,Z,nrad="",ntheta=361):
+    X, Y = np.meshgrid(X, Y)
+
+    r_max = np.sqrt((X.max() - X.min()) ** 2 + (Y.max() - Y.min()) ** 2) / 2 /np.sqrt(2)-10
+    if nrad=="":
+        nrad=int(len(X)/2)
+    r = np.linspace(0, r_max, nrad)
+    theta = np.linspace(0, 2 * np.pi, ntheta)
+    R, Theta = np.meshgrid(r, theta)
+
+    # Convert Polar back to Cartesian
+    X_polar = R * np.cos(Theta)
+    Y_polar = R * np.sin(Theta)
+
+    # Flatten for interpolation
+    points = np.column_stack((X.ravel(), Y.ravel()))
+    values = Z.ravel()
+    polar_points = np.column_stack((X_polar.ravel(), Y_polar.ravel()))
+
+    # Interpolate
+    Z_polar = griddata(points, values, polar_points, method='cubic')
+    Z_polar = Z_polar.reshape(R.shape)
+
+    return R, -Theta/np.pi*180+90, Z_polar
 
 
 

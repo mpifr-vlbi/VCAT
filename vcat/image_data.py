@@ -1377,33 +1377,75 @@ class ImageData(object):
         return x_values, intensity_profile
 
 
+    def plot_polar(self):
+        #TODO move it to FitsImage and make it more sophisticated
+        R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
+        from matplotlib.colors import LogNorm
 
+        plt.imshow(Z_polar.T, extent=[Theta.min(), Theta.max(), R.min(), R.max()], origin="lower", aspect="auto",
+                   norm=LogNorm())
+        plt.show()
 
-
-    def get_ridgeline(self,angle_for_slices=0,
+    def get_ridgeline(self,method="slices",angle_for_slices=0,auto_rotate=True,
                       cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",chi_sq_val=100.0,err_FWHM=0.1):
-        #TODO CONVERT IT TO Jy/px
-        image_data=self.Z
 
-        if j_len=="":
-            j_len=len(self.Y)/2-10
+        if method=="slices":
+            #this is Lucas method with an additional option to auto_rotate.
+            image=self.copy()
 
-        ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
-                                                 self.X,self.Y,angle_for_slices=angle_for_slices,cut_radial=cut_radial,
-                                                 cut_final=cut_final,width=width,j_len=j_len,chi_sq_val=chi_sq_val,err_FWHM=err_FWHM)
+            if auto_rotate:
+                #TODO this doesn't really work yet!
+                #convert image to polar coordinates
+                R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
+                #Integrate over the radius to find jet direction:
+                integrated_jet=np.zeros(len(Theta[:,0]))
+                for i in range(len(R[0])):
+                    integrated_jet+=Z_polar[:,i]*R[:,i] #correct for rdTheta in integration
+                plt.plot(Theta[:,0],integrated_jet)
+                plt.show()
+                #find maximum flux
+                max_ind=np.argmax(integrated_jet)
+                jet_direction=Theta[:,0][max_ind]
+                print(f"Automatically determined jet direction {jet_direction}°.")
+                image=image.rotate(-jet_direction)
+            else:
+                print("Will assume the jet was already rotated to position angle 0°.")
 
-        #set new ridgeline
-        self.ridgeline=ridgeline
+            # TODO CONVERT IT TO Jy/px
+            image_data = image.Z
 
-        if counterjet:
-            counter_ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
-                                                 self.X,self.Y,counterjet=True,angle_for_slices=angle_for_slices,cut_radial=cut_radial,
-                                                 cut_final=cut_final,width=width,j_len=j_len,chi_sq_val=chi_sq_val,err_FWHM=err_FWHM)
-            self.counter_ridgeline=counter_ridgeline
+            #if not j_len given, will use full image - 10 pixels at the edge
+            if j_len=="":
+                j_len=len(self.Y)/2-10
 
-            return ridgeline, counter_ridgeline
+            #get ridgeline
+            ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
+                                                     self.X,self.Y,angle_for_slices=angle_for_slices,cut_radial=cut_radial,
+                                                     cut_final=cut_final,width=width,j_len=j_len,chi_sq_val=chi_sq_val,err_FWHM=err_FWHM)
+            image.ridgeline=ridgeline
 
-        return ridgeline
+            if counterjet:
+                counter_ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
+                                                     self.X,self.Y,counterjet=True,angle_for_slices=angle_for_slices,cut_radial=cut_radial,
+                                                     cut_final=cut_final,width=width,j_len=j_len,chi_sq_val=chi_sq_val,err_FWHM=err_FWHM)
+
+                image.counter_ridgeline=counter_ridgeline
+
+            if auto_rotate:
+                # rotate image back
+                image.rotate(jet_direction)
+
+            # set new ridgeline
+            self.ridgeline = image.ridgeline
+            self.counter_ridgeline = image.counter_ridgeline
+
+            return self.ridgeline, self.counter_ridgeline
+
+        elif method=="polar":
+            #TODO Needs to be implemented
+            return self.ridgeline, self.counter_ridgeline
+        else:
+            raise Exception("Please select valid ridgeline method ('polar', 'slices').")
 
     def get_noise_from_shift(self,shift_factor=20):
 

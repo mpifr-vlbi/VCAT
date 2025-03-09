@@ -8,18 +8,18 @@ data=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
                stokes_u="../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.ucln",
               difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
-data.plot()
+#data.plot()
 
-data_new=data.rotate(-64,useDIFMAP=True)
+#data=data.rotate(-64,useDIFMAP=True)
 
-data_new.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
+data.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
 
 #do ridgeline fit
-ridgeline,counter_ridgeline=data_new.get_ridgeline(j_len=200,counterjet=True)
+ridgeline,counter_ridgeline=data.get_ridgeline(j_len=200,counterjet=True)
 
 #rotate the image back for plotting
-data_new.rotate(+64,useDIFMAP=True)
-data_new.plot(plot_mode="stokes_i",plot_ridgeline=True,plot_counter_ridgeline=True,counter_ridgeline_color="yellow")
+#data_new.rotate(+64,useDIFMAP=True)
+data.plot(plot_mode="stokes_i",plot_ridgeline=True,plot_counter_ridgeline=True,counter_ridgeline_color="yellow")
 
 ridgeline.plot(mode="open_angle")
 ridgeline.plot(mode="intensity")
@@ -28,5 +28,5 @@ ridgeline.plot(mode="ridgeline")
 counter_ridgeline.plot(mode="ridgeline")
 
 #get jet to counterjet profile:
-data_new.jet_to_counterjet_profile()
+data.jet_to_counterjet_profile()
 
