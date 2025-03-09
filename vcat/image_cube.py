@@ -165,7 +165,7 @@ class ImageCube(object):
                     image.masking(mask_type=mask_type_i,args=args_i)
                     images.append(image)
         else:
-            raise Exception("Please specify valid shift mode ('all', 'epoch', 'freq')!")
+            raise Exception("Please specify valid masking mode ('all', 'epoch', 'freq')!")
 
         return ImageCube(image_data_list=images)
 
@@ -998,6 +998,32 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=final_images)
 
-    def rotate(self,angle):
-        #TODO implement
-        pass
+    def rotate(self,mode="all",angle,useDIFMAP=True):
+        images = []
+
+        if mode == "all":
+            for image in self.images.flatten():
+                new_image = image.rotate(angle,useDIFMAP=useDIFMAP)
+                images.append(new_image)
+        elif mode == "freq":
+            for i in range(len(self.freqs)):
+                # check if parameters were input per frequency or for all frequencies
+                angle_i = angle[i] if isinstance(angle, list) else angle
+
+                image_select = self.images[:, i]
+                for image in image_select:
+                    new_image=image.rotate(angle_i,useDIFMAP=useDIFMAP)
+                    images.append(new_image)
+        elif mode == "epoch":
+            for i in range(len(self.dates)):
+                # check if parameters were input per frequency or for all frequencies
+                angle_i = angle[i] if isinstance(angle, list) else angle
+
+                image_select = self.images[i, :]
+                for image in image_select:
+                    new_image = image.rotate(angle_i, useDIFMAP=useDIFMAP)
+                    images.append(new_image)
+        else:
+            raise Exception("Please specify valid rotate mode ('all', 'epoch', 'freq')!")
+
+        return ImageCube(image_data_list=images)
