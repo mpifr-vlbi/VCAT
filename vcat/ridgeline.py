@@ -5,6 +5,9 @@ from scipy import integrate
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+from vcat.helpers import closest_index
+
+
 class Ridgeline(object):
 
     def __init__(self):
@@ -20,6 +23,102 @@ class Ridgeline(object):
         self.dist_int=[]
         self.intensity=[]
         self.intensity_err=[]
+
+    def get_ridgeline_polar(self,r,theta,polar_image,beam,error,chi_sq_val=100,error_flux_slice=0.1,maxfev=10000):
+
+        # TODO use actual beam width at angle instead of self.beam_maj
+        beam = beam[0]
+
+        #find roughly the jet direction:
+        integrated_jet = np.zeros(len(theta[:, 0]))
+        for i in range(len(r[0])):
+            integrated_jet += polar_image[:, i] * r[:, i]  # correct for rdTheta in integration
+        # find maximum flux
+        max_ind = np.argmax(integrated_jet)
+        jet_direction = theta[:, 0][max_ind]
+
+        #define wrapped gaussian to use (closed on the circle
+        def wrapped_gaussian(theta, A, mu, sigma,baseline):
+            """
+            A periodic Gaussian that is wrapped around the theta boundary [0, 2pi].
+            """
+            theta=theta/180*np.pi
+            theta_wrapped = (theta + 180) % 360 - 180
+
+            return A * np.exp(-0.5 * ((theta_wrapped - mu) / sigma) ** 2) +baseline
+
+        for i in range(len(r[0])):
+            theta_slice=theta[:,i]
+            slice_to_fit=polar_image[:,i]
+
+            #fit gaussian to slice
+            #start gaussian
+            a0=slice_to_fit[closest_index(theta_slice, jet_direction)]-np.min(slice_to_fit)
+            try:
+                popt, pcov = curve_fit(wrapped_gaussian,theta_slice,slice_to_fit,p0=[a0,jet_direction/180*np.pi,10/180*np.pi,np.min(slice_to_fit)],maxfev=maxfev)
+
+                #extract fit parameters
+                perr = np.sqrt(np.diag(pcov))
+                amplitude=popt[0]
+                amplitude_err=perr[0]
+                theta0=popt[1]
+                width=popt[2]*r[0][i] #correct for r*dphi
+                width_err=perr[2]*r[0][i] #correct for r*dphi
+                FWHM=width*2*np.sqrt(2*np.log(2))
+                err_FWHM=width_err*2*np.sqrt(2*np.log(2))
+                baseline=popt[3]
+                slice_fitted = wrapped_gaussian(theta_slice, *popt)
+
+                #append X/Y positions
+                self.X_ridg.append(r[0][i]*np.sin(theta0))
+                self.Y_ridg.append(r[0][i]*np.cos(theta0))
+
+                #integrate gaussian
+                gauss = lambda x: wrapped_gaussian(x,*popt)
+                a = integrate.quad(gauss, -180, +180)
+
+                #calculate chi_square of fit
+                chi_sq = 0.0
+                for z in range(len(slice_to_fit)):
+                    chi_sq += (slice_to_fit[z] - slice_fitted[z]) ** 2 / ((slice_to_fit[z]*error) ** 2.0)
+                chi_sq_red = float(chi_sq / (len(slice_to_fit) - 4))
+
+                # print('The chi_square_red is = ' + str(chi_sq_red))
+                #TODO something is not 100% correctly working with the chi_square values here!!!
+                if (chi_sq_red < chi_sq_val):
+                    if ((FWHM ** 2 - beam ** 2) > 0.0):
+                        self.width.append(width)
+                        # print('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
+                        self.width_err.append(width_err)
+
+                        self.intensity.append(amplitude*r[0][i])
+                        self.intensity_err.append(amplitude_err*r[0][i])
+                        self.dist.append(r[0][i])
+                        self.dist_int.append(r[0][i])
+                        self.open_angle.append(2.0 * np.arctan(0.5 * np.sqrt(FWHM ** 2 - beam ** 2) / (
+                                r[0][i])) * 180.0 / np.pi)
+                        self.open_angle_err.append(err_FWHM * FWHM * 4 * r[0][i] * FWHM / (
+                                np.sqrt(FWHM ** 2 - beam ** 2) * (
+                                4.0 * r[0][i] ** 2 + FWHM ** 2 - beam ** 2)))
+                    else:
+                        self.dist_int.append(r[0][i])
+                        self.intensity.append(amplitude*r[0][i])
+                        self.intensity_err.append(amplitude_err*r[0][i])
+
+
+                # plot every slice for diagnostics
+                # slice_fitted = wrapped_gaussian(theta_slice,*popt)
+                # plt.plot(theta_slice,wrapped_gaussian(theta_slice,a0,jet_direction/180*np.pi,10/180*np.pi,np.min(slice_to_fit)))
+                # plt.plot(theta_slice,slice_to_fit)
+                # plt.plot(theta_slice,slice_fitted)
+                # plt.show()
+
+            except:
+                #fit did not work, do nothing
+                pass
+
+        return self
+
 
     def get_ridgeline_luca(self,image_data,noise,error,pixel_size,beam,X_ra,Y_dec,counterjet=False,angle_for_slices=0,cut_radial=5.0,
                            cut_final=10.0,width=40,j_len=100,chi_sq_val=100.0,err_FWHM=0.1,error_flux_slice=0.1):
@@ -179,7 +278,7 @@ class Ridgeline(object):
                     self.dist_int.append(cont * pixel_size)
                     self.intensity.append(a[0])
                     self.intensity_err.append(a[0]*error_flux_slice)
-            if (chi_sq_red > chi_sq_val):
+            else:
                 cont += 1
 
         return self

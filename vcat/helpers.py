@@ -852,7 +852,9 @@ def convert_image_to_polar(X,Y,Z,nrad="",ntheta=361):
     Z_polar = griddata(points, values, polar_points, method='cubic')
     Z_polar = Z_polar.reshape(R.shape)
 
-    return R, -Theta/np.pi*180+90, Z_polar
+    Theta = -Theta / np.pi * 180 + 90
+    Theta = np.where(Theta < -180, Theta + 360, Theta)
+    return R, Theta, Z_polar
 
 
 

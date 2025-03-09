@@ -1394,15 +1394,14 @@ class ImageData(object):
             image=self.copy()
 
             if auto_rotate:
-                #TODO this doesn't really work yet!
                 #convert image to polar coordinates
                 R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
                 #Integrate over the radius to find jet direction:
                 integrated_jet=np.zeros(len(Theta[:,0]))
                 for i in range(len(R[0])):
                     integrated_jet+=Z_polar[:,i]*R[:,i] #correct for rdTheta in integration
-                plt.plot(Theta[:,0],integrated_jet)
-                plt.show()
+                #plt.plot(Theta[:,0],integrated_jet)
+                #plt.show()
                 #find maximum flux
                 max_ind=np.argmax(integrated_jet)
                 jet_direction=Theta[:,0][max_ind]
@@ -1411,7 +1410,7 @@ class ImageData(object):
             else:
                 print("Will assume the jet was already rotated to position angle 0°.")
 
-            # TODO CONVERT IT TO Jy/px
+            # TODO need to CONVERT IT TO Jy/px????
             image_data = image.Z
 
             #if not j_len given, will use full image - 10 pixels at the edge
@@ -1443,6 +1442,14 @@ class ImageData(object):
 
         elif method=="polar":
             #TODO Needs to be implemented
+            #convert image to polar coordinates
+            # convert image to polar coordinates
+            R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
+
+            ridgeline=Ridgeline().get_ridgeline_polar(R,Theta,Z_polar,[self.beam_maj,self.beam_min,self.beam_pa],self.error)
+
+            self.ridgeline=ridgeline
+
             return self.ridgeline, self.counter_ridgeline
         else:
             raise Exception("Please select valid ridgeline method ('polar', 'slices').")
