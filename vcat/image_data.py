@@ -746,9 +746,9 @@ class ImageData(object):
         return plot
 
 
-    def align(self,image_data2,masked_shift=True,method="cross_correlation",auto_mask='',beam_arg="common", auto_regrid=False,useDIFMAP=True):
+    def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,useDIFMAP=True,comp_ids=""):
 
-        if (self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp:
+        if ((self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp):
             if auto_regrid:
                 # if this is selected will automatically convolve with common beam and regrid
                 print("Automatically regridding image to minimum pixelsize, smallest FOV and common beam")
@@ -776,13 +776,15 @@ class ImageData(object):
 
 
             else:
-                warnings.warn("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
-                return self
-
+                if not (method=="modelcomp" or method=="model_comp" or method=="model"):
+                    warnings.warn("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
+                    return self
+                else:
+                    image_self=self.copy()
         else:
             image_self=self.copy()
 
-        if method=="cross_correlation":
+        if method=="cross_correlation" or method=="crosscorrelation":
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
 
                 shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
@@ -802,6 +804,67 @@ class ImageData(object):
             shift=[y_-y_ind,x_-x_ind]
             print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
                                                                  shift[0] * image_self.scale * image_self.degpp))
+        elif method=="modelcomp" or method=="model_comp" or method=="model":
+            #get models of both images
+            comps1=image_self.components
+            ref_comps=image_data2.components
+
+            if comp_ids=="":
+                raise Exception("Please specify valid component IDs with 'comp_ids=...'")
+            else:
+                if comp_ids=="all":
+                    #find all possible component ids
+                    comp_ids=[]
+                    for comp in image_self.components:
+                        comp_ids.append(comp.component_number)
+                    for comp in image_data2.components:
+                        comp_ids.append(comp.component_number)
+
+                    comp_ids=np.unique(comp_ids)
+
+                comp_ids = [comp_ids] if isinstance(comp_ids,int) else comp_ids
+                x_shifts=[]
+                y_shifts=[]
+                for comp_id in comp_ids:
+                    #get component from comps1:
+                    found=False
+                    for comp in comps1:
+                        if comp.component_number==comp_id:
+                            align_comp=comp
+                            found=True
+                    if not found:
+                        align_comp=""
+                    found=False
+                    for ref_comp in ref_comps:
+                        if ref_comp.component_number==comp_id:
+                            align_comp_ref=ref_comp
+                            found=True
+                    if not found:
+                        align_comp_ref=""
+
+                    if align_comp!="" and align_comp_ref!="":
+                        #this means a component with the given comp_id was found in both images
+                        #calculate shift:
+                        x1=align_comp.x*image_self.scale
+                        x_ref=align_comp_ref.x*image_data2.scale
+                        y1=align_comp.y*image_self.scale
+                        y_ref=align_comp_ref.y*image_data2.scale
+
+                        x_shifts.append(x1-x_ref)
+                        y_shifts.append(y_ref-y1)
+                    else:
+                        warnings.warn(f"Did no find component with id {comp_id} in both images, skipping it", UserWarning)
+
+                #take mean shift if multiple components were used
+                if len(y_shifts)==0:
+                    warnings.warn("No matching components found, will not apply a shift.")
+                    return self
+                else:
+                    shift=[np.mean(y_shifts)/image_self.scale/image_self.degpp,np.mean(x_shifts)/image_self.scale/image_self.degpp]
+                    print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
+                                                                       shift[0] * image_self.scale * image_self.degpp))
+
+
         else:
             warning.warn("Please use valid align method ('cross_correlation','brightest').",UserWarning)
 

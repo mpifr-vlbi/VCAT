@@ -1,19 +1,26 @@
 from vcat import ImageCube, ImageData, FitsImage, MultiFitsImage
 import matplotlib.pyplot as plt
 
-dataC=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
-        uvf_file="../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.uvf",
-        model="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.modelfits",
+dataC=ImageData("../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.fits",
+        uvf_file="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.uvf",
+        model="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.modelfits",
         difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
 dataQ=ImageData("../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.fits",
-        uvf_file="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.uvf")
-        #model="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.modelfits",
-        #difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
+        uvf_file="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.uvf",
+        model="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.modelfits",
+        difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
 print(dataC,dataQ)
 
 images=[dataC,dataQ]
+
+
+#test model component alignment
+dataC.components[0].component_number=1
+dataQ.components[0].component_number=1
+
+dataC.align(dataQ)
 
 im_cube=ImageCube(images)
 print(im_cube)
