@@ -1424,7 +1424,7 @@ class ImageData(object):
         elif image=="rm":
             image_data=self.rm
 
-        intensity_profile=profile_line(image_data, (x_ind1,y_ind1), (x_ind2,y_ind2))
+        intensity_profile=profile_line(image_data, (y_ind1,x_ind1), (y_ind2,x_ind2))
 
         #calculate distance between points
         dist=np.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2)

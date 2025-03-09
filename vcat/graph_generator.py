@@ -532,7 +532,7 @@ class FitsImage(object):
                                 cmap=contour_cmap)
 
             else:
-                self.ax.contour(X, Y, Z, linewidths=contour_width, levels=levs, colors=contour_color,
+                self.ax.contour(X, Y, self.Z, linewidths=contour_width, levels=levs, colors=contour_color,
                             alpha=contour_alpha,
                             cmap=contour_cmap)
 
@@ -697,7 +697,6 @@ class FitsImage(object):
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax,ticks=ticks)
                     cbar.set_label(label,fontsize=self.ax.xaxis.label.get_size())
-                    cbar.ax.set_yticklabels(ticklabels, labelsize=self.ax.yaxis.get_ticklabels()[0].get_size())
             elif vmax <=0.2:
                 ticks = np.array([0.0, 0.025, 0.05, 0.75, 0.1, 0.125, 0.15, 0.175, 0.2])
                 ticklabels = ["0.000", "0.025", "0.050", "0.075", "0.100", "0.125", "0.150", "0.175", "0.200"]
@@ -712,7 +711,6 @@ class FitsImage(object):
                     cax = divider.append_axes("right", size="5%", pad=0.05)
                     cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax,ticks=final_ticks)
                     cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
-                    cbar.ax.set_yticklabels(ticklabels, labelsize=self.ax.yaxis.get_ticklabels()[0].get_size())
             else:
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)

@@ -157,9 +157,10 @@ def getComponentInfo(filename,scale=60*60*1000):
                         ratio = np.append(ratio,0)
                         pa = np.append(pa,0)
                         typ_obj = np.append(typ_obj,0) #in this case it is a clean component
-        #import completed now calcualte additional parameters:
+        #import completed now calculate additional parameters:
         delta_x=radius*np.sin(theta/180*np.pi)/scale
         delta_y=radius*np.cos(theta/180*np.pi)/scale
+        maj=maj/scale
         min=ratio*maj
 
         #create data_df
