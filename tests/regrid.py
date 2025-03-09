@@ -9,8 +9,7 @@ data=ImageData("../dataset_example/0215_pol/Ku/0215+015.icn.fits",
         uvf_file="../dataset_example/0215_pol/Ku/0215+015.uvf",
         difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
-FitsImage(data,plot_mode="lin_pol",plot_evpa=True,overplot_clean=True,plot_mask=True)
-plt.show()
+data.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True,plot_polar=False)
 
 #Test regridding w/o difmap
 print(data.integrated_flux_image)

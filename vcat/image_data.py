@@ -714,6 +714,7 @@ class ImageData(object):
             "plot_line" : "",
             "line_color" : "black",
             "line_width" : 2,
+            "plot_polar": False,
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
@@ -1376,15 +1377,6 @@ class ImageData(object):
 
         return x_values, intensity_profile
 
-
-    def plot_polar(self):
-        #TODO move it to FitsImage and make it more sophisticated
-        R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
-        from matplotlib.colors import LogNorm
-
-        plt.imshow(Z_polar.T, extent=[Theta.min(), Theta.max(), R.min(), R.max()], origin="lower", aspect="auto",
-                   norm=LogNorm())
-        plt.show()
 
     def get_ridgeline(self,method="slices",angle_for_slices=0,auto_rotate=True,
                       cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",start_radius=0,chi_sq_val=100.0,err_FWHM=0.1):

@@ -388,6 +388,7 @@ class ImageCube(object):
             "plot_line" : "",
             "line_color" : "black",
             "line_width" : 2,
+            "plot_polar": False,
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",

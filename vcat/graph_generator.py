@@ -16,7 +16,7 @@ import pexpect
 from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
-from vcat.helpers import get_sigma_levs, getComponentInfo
+from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
 
 
@@ -287,6 +287,7 @@ class FitsImage(object):
                  stokes_i_vmax="", #input vmax for plot
                  fracpol_vmax="", #input vmax for plot
                  linpol_vmax="", #input vmax for plot
+                 plot_polar=False, #choose to plot image in polar coordinates
                  ###HERE STARTS POLARIZATION INPUT
                  plot_evpa=False, #decide whether to plot EVPA or not
                  evpa_width=2, #choose width of EVPA lines
@@ -320,11 +321,14 @@ class FitsImage(object):
         X = self.clean_image.X
         Y = self.clean_image.Y
         Z = self.clean_image.Z
+        self.Z=Z
         unit = self.clean_image.unit
         scale = self.clean_image.scale
         degpp = self.clean_image.degpp
         extent = self.clean_image.extent
         date=self.clean_image.date
+        lin_pol=self.clean_image.lin_pol
+        self.lin_pol=self.clean_image.lin_pol
         self.evpa_width=evpa_width
         # Set beam parameters
         beam_maj = self.clean_image.beam_maj
@@ -340,6 +344,29 @@ class FitsImage(object):
         self.linpol_vmax=linpol_vmax
         self.fracpol_vmax=fracpol_vmax
         self.col=""
+
+        #modify these parameters if polar plot is selected
+        if plot_polar:
+            #currently only support colormap so turn off everything else:
+            contour=False
+            overplot_gauss=False
+            overplot_clean=False
+            plot_mask=False
+            #Convert Stokes I
+            R, Theta, Z_polar = convert_image_to_polar(X,Y, Z)
+            extent=[Theta.min(),Theta.max(),R.min(),R.max()]
+            Z=Z_polar.T
+            self.Z=Z
+
+            #Convert Lin Pol
+            try:
+                R, Theta, lin_pol = convert_image_to_polar(X,Y, lin_pol)
+                lin_pol = lin_pol.T
+                self.lin_pol = lin_pol
+            except:
+                pass
+
+
 
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
@@ -387,17 +414,17 @@ class FitsImage(object):
             contour_color="white"
 
 
-        if (plot_mode=="lin_pol" or plot_mode=="frac_pol") and np.sum(self.clean_image.lin_pol)!=0:
+        if (plot_mode=="lin_pol" or plot_mode=="frac_pol") and np.sum(lin_pol)!=0:
 
             if not isinstance(levs_linpol,list) and not isinstance(levs1_linpol,list):
-                levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
 
 
             if plot_mode=="lin_pol":
-                self.plotColormap(self.clean_image.lin_pol,im_color,levs_linpol,levs1_linpol,extent,
+                self.plotColormap(lin_pol,im_color,levs_linpol,levs1_linpol,extent,
                                   label="Linear Polarized Intensity [Jy/beam]",do_colorbar=self.do_colorbar)
             if plot_mode=="frac_pol":
-                plot_lin_pol = np.array(self.clean_image.lin_pol)
+                plot_lin_pol = np.array(lin_pol)
                 plot_frac_pol = plot_lin_pol / np.array(self.clean_image.Z)
                 plot_frac_pol = np.ma.masked_where((plot_lin_pol < levs1_linpol[0]) | (self.clean_image.Z<levs1[0]),
                                                   plot_frac_pol)
@@ -406,33 +433,77 @@ class FitsImage(object):
                                   label="Fractional Linear Polarization",do_colorbar=self.do_colorbar)
 
         if plot_mode=="residual":
-            self.plotColormap(self.clean_image.residual_map,im_color,levs,levs1,extent,label="Residual Flux Density [Jy/beam]", do_colorbar=self.do_colorbar)
+            if plot_polar:
+                _,_,Z=convert_image_to_polar(X,Y, self.clean_image.residual_map)
+                Z=Z.T
+            else:
+                Z=self.clean_image.residual_map
+            self.plotColormap(Z,im_color,levs,levs1,extent,label="Residual Flux Density [Jy/beam]", do_colorbar=self.do_colorbar)
         if plot_mode=="spix":
             self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
 
         if plot_mode=="rm":
-            rm=np.ma.masked_where((abs(self.clean_image.rm) > 20000),self.clean_image.rm)
+            if plot_polar:
+                _,_,Z=convert_image_to_polar(X,Y, self.clean_image.rm)
+                Z=Z.T
+            else:
+                Z=self.clean_image.rm
+
+            rm=np.ma.masked_where((abs(Z) > 20000),Z)
             self.plotColormap(rm, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
 
         if plot_mode == "turnover_freq" or plot_mode=="turnover":
-            to=np.ma.masked_where(self.clean_image.turnover==0,self.clean_image.turnover)
+            if plot_polar:
+                _,_,Z=convert_image_to_polar(X,Y, self.clean_image.turnover)
+                Z=Z.T
+            else:
+                Z=self.clean_image.turnover
+
+            to=np.ma.masked_where(Z==0,Z)
             self.plotColormap(to, im_color, levs, levs1, extent, label="Turnover Frequency [GHz]", do_colorbar=self.do_colorbar)
         if plot_mode == "turnover_flux":
-            to = np.ma.masked_where(self.clean_image.turnover == 0,self.clean_image.turnover_flux)
+            if plot_polar:
+                _, _, Z_filter = convert_image_to_polar(X,Y, self.clean_image.turnover)
+                Z_filter = Z_filter.T
+                _,_,Z=convert_image_to_polar(X,Y, self.clean_image.turnover_flux)
+                Z=Z.T
+            else:
+                Z_filter=self.clean_image.turnover
+                Z=self.clean_image.turnover_flux
+
+            to=np.ma.masked_where(Z_filter==0,Z)
             self.plotColormap(to, im_color, levs, levs1, extent, label="Turnover Flux [Jy/beam]",
                               do_colorbar=self.do_colorbar)
         if plot_mode == "turnover_error":
-            to = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_error)
+            if plot_polar:
+                _, _, Z_filter = convert_image_to_polar(X,Y, self.clean_image.turnover)
+                Z_filter = Z_filter.T
+                _,_,Z=convert_image_to_polar(X,Y, self.clean_image.turnover_error)
+                Z=Z.T
+            else:
+                Z_filter=self.clean_image.turnover
+                Z=self.clean_image.turnover_error
+
+            to=np.ma.masked_where(Z_filter==0,Z)
             self.plotColormap(to, im_color, levs, levs1, extent, label="Turnover Error [GHz]",
                               do_colorbar=self.do_colorbar)
         if plot_mode == "turnover_chisquare":
-            to = np.ma.masked_where(self.clean_image.turnover == 0, self.clean_image.turnover_chi_sq)
+            if plot_polar:
+                _, _, Z_filter = convert_image_to_polar(X,Y, self.clean_image.turnover)
+                Z_filter = Z_filter.T
+                _,_,Z=convert_image_to_polar(X,Y, self.clean_image.turnover_chi_sq)
+                Z=Z.T
+            else:
+                Z_filter=self.clean_image.turnover
+                Z=self.clean_image.turnover_chi_sq
+
+            to = np.ma.masked_where(Z_filter == 0, Z)
             self.plotColormap(to, im_color, levs, levs1, extent, label=r"Turnover $\chi^2$",
                               do_colorbar=self.do_colorbar)
 
-        if plot_evpa and np.sum(self.clean_image.lin_pol)!=0:
+        if plot_evpa and np.sum(lin_pol)!=0:
             if not isinstance(levs_linpol,list) and not isinstance(levs1_linpol,list):
-                levs_linpol, levs1_linpol = get_sigma_levs(self.clean_image.lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
             self.plotEvpa(self.clean_image.evpa, rotate_evpa, evpa_len, evpa_distance, levs1_linpol, levs1)
 
         # Contour plot
@@ -442,7 +513,13 @@ class FitsImage(object):
             else:
                 contour_color=None
 
-            self.ax.contour(X, Y, Z, linewidths=contour_width, levels=levs, colors=contour_color,
+            if plot_polar:
+                self.ax.contour(R[:,0], Theta[0,:], Z, linewidths=contour_width, levels=levs, colors=contour_color,
+                                alpha=contour_alpha,
+                                cmap=contour_cmap)
+
+            else:
+                self.ax.contour(X, Y, Z, linewidths=contour_width, levels=levs, colors=contour_color,
                             alpha=contour_alpha,
                             cmap=contour_cmap)
 
@@ -471,7 +548,12 @@ class FitsImage(object):
         self.ax.tick_params(axis="x",labelsize=font_size_axis_tick)
 
         if plot_mask:
-            self.plotColormap(self.clean_image.mask,"gray_r",np.zeros(100),[0.00],extent,label="Mask",do_colorbar=self.do_colorbar)
+            if plot_polar:
+                _,_,mask_p=convert_image_to_polar(X,Y,self.clean_image.mask)
+                mask=mask_p.T
+            else:
+                mask=self.clean_image.mask
+            self.plotColormap(mask,"gray_r",np.zeros(100),[0.00],extent,label="Mask",do_colorbar=self.do_colorbar)
 
 
         # Read modelfit files in
@@ -530,8 +612,8 @@ class FitsImage(object):
         if plot_line!="":
             self.ax.plot([plot_line[0][0],plot_line[1][0]],[plot_line[0][1],plot_line[1][1]],linewidth=line_width,c=line_color,zorder=7)
 
-        self.xmin,self.xmax = ra_min, ra_max
-        self.ymin,self.ymax = dec_min, dec_max
+        self.xmin, self.xmax = ra_min, ra_max
+        self.ymin, self.ymax = dec_min, dec_max
 
         self.levs_linpol = levs_linpol
         self.levs1_linpol = levs1_linpol
@@ -539,12 +621,20 @@ class FitsImage(object):
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
         # Plot look tuning
-        self.ax.set_aspect('equal', adjustable='box', anchor='C')
-        self.ax.set_xlim(ra_min, ra_max)
-        self.ax.set_ylim(dec_min, dec_max)
-        self.ax.invert_xaxis()
-        self.ax.set_xlabel('Relative R.A. [' + unit + ']',fontsize=font_size_axis_title)
-        self.ax.set_ylabel('Relative DEC. [' + unit + ']',fontsize=font_size_axis_title)
+        if plot_polar:
+            self.ax.set_xlim(np.min(Theta),np.max(Theta))
+            self.ax.set_ylim(np.min(R),np.max(R))
+            self.ax.set_aspect('auto', adjustable='box', anchor='C')
+            self.ax.set_xlabel("Position Angle [°]")
+            self.ax.set_ylabel("Radius [mas]")
+        else:
+
+            self.ax.set_aspect('equal', adjustable='box', anchor='C')
+            self.ax.set_xlim(ra_min, ra_max)
+            self.ax.set_ylim(dec_min, dec_max)
+            self.ax.invert_xaxis()
+            self.ax.set_xlabel('Relative R.A. [' + unit + ']',fontsize=font_size_axis_title)
+            self.ax.set_ylabel('Relative DEC. [' + unit + ']',fontsize=font_size_axis_title)
         self.fig.tight_layout()
 
 
@@ -763,13 +853,13 @@ class FitsImage(object):
 
         evpa_len=evpa_len*self.clean_image.degpp*self.clean_image.scale
 
-        stokes_i=self.clean_image.Z
+        stokes_i=self.Z
         # plot EVPA
         evpa = evpa + rotate_evpa / 180 * np.pi
 
         # create mask where to plot EVPA (only where stokes i and lin pol have plotted contours)
         mask = np.zeros(np.shape(stokes_i), dtype=bool)
-        mask[:] = (self.clean_image.lin_pol > levs1_linpol[0]) * (stokes_i > levs1_i[0])
+        mask[:] = (self.lin_pol > levs1_linpol[0]) * (stokes_i > levs1_i[0])
         YLoc, XLoc = np.where(mask)
 
         y_evpa = evpa_len * np.cos(evpa[mask])
