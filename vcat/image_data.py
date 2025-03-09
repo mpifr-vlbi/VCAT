@@ -1387,7 +1387,7 @@ class ImageData(object):
         plt.show()
 
     def get_ridgeline(self,method="slices",angle_for_slices=0,auto_rotate=True,
-                      cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",chi_sq_val=100.0,err_FWHM=0.1):
+                      cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",start_radius=0,chi_sq_val=100.0,err_FWHM=0.1):
 
         if method=="slices":
             #this is Lucas method with an additional option to auto_rotate.
@@ -1441,12 +1441,13 @@ class ImageData(object):
             return self.ridgeline, self.counter_ridgeline
 
         elif method=="polar":
-            #TODO Needs to be implemented
+            #TODO Needs to be improved, think about if it is posible to fit counterjet.
             #convert image to polar coordinates
             # convert image to polar coordinates
             R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
 
-            ridgeline=Ridgeline().get_ridgeline_polar(R,Theta,Z_polar,[self.beam_maj,self.beam_min,self.beam_pa],self.error)
+            ridgeline=Ridgeline().get_ridgeline_polar(R,Theta,Z_polar,[self.beam_maj,self.beam_min,self.beam_pa],self.error,
+                                                      start_radius=start_radius)
 
             self.ridgeline=ridgeline
 

@@ -24,7 +24,7 @@ class Ridgeline(object):
         self.intensity=[]
         self.intensity_err=[]
 
-    def get_ridgeline_polar(self,r,theta,polar_image,beam,error,chi_sq_val=100,error_flux_slice=0.1,maxfev=10000):
+    def get_ridgeline_polar(self,r,theta,polar_image,beam,error,chi_sq_val=100,start_radius=0,maxfev=10000):
 
         # TODO use actual beam width at angle instead of self.beam_maj
         beam = beam[0]
@@ -47,7 +47,9 @@ class Ridgeline(object):
 
             return A * np.exp(-0.5 * ((theta_wrapped - mu) / sigma) ** 2) +baseline
 
-        for i in range(len(r[0])):
+        start_i=closest_index(r[0],start_radius)
+
+        for i in range(start_i,len(r[0])):
             theta_slice=theta[:,i]
             slice_to_fit=polar_image[:,i]
 

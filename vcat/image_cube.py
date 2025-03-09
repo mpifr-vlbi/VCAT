@@ -136,9 +136,38 @@ class ImageCube(object):
         #reinitialize instance
         return ImageCube(image_data_list=images)
 
-    def mask(self):
-        #TODO Not sure if we really need this, should probably be done on every image individually....
-        pass
+    def masking(self,mode="all",mask_type="ellipse",args=False):
+        # initialize empty array
+        images = []
+
+        if mode == "all":
+            for image in self.images.flatten():
+                image.masking(mask_type=mask_type,args=args)
+                images.append(image)
+        elif mode == "freq":
+            for i in range(len(self.freqs)):
+                # check if parameters were input per frequency or for all frequencies
+                mask_type_i = mask_type[i] if isinstance(mask_type, list) else mask_type
+                args_i = args[i] if isinstance(mask_type, list) else args
+
+                image_select = self.images[:, i]
+                for image in image_select:
+                    image.masking(mask_type=mask_type_i, args=args_i)
+                    images.append(image)
+        elif mode == "epoch":
+            for i in range(len(self.dates)):
+                # check if parameters were input per epoch or for all epochs
+                mask_type_i = mask_type[i] if isinstance(mask_type, list) else mask_type
+                args_i = args[i] if isinstance(mask_type, list) else args
+
+                image_select = self.images[i, :]
+                for image in image_select:
+                    image.masking(mask_type=mask_type_i,args=args_i)
+                    images.append(image)
+        else:
+            raise Exception("Please specify valid shift mode ('all', 'epoch', 'freq')!")
+
+        return ImageCube(image_data_list=images)
 
     def stack(self,mode="freq", stack_linpol=False):
         """

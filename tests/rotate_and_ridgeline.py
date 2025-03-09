@@ -15,7 +15,11 @@ data=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
 data.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
 
 #do ridgeline fit
-ridgeline,counter_ridgeline=data.get_ridgeline(method="polar",j_len=200,counterjet=True)
+ridgeline,counter_ridgeline=data.get_ridgeline(method="polar",counterjet=True,start_radius=2)
+
+#do alternative ridgeline fit
+ridgeline,counter_ridgeline=data.get_ridgeline(method="slices",j_len=200,counterjet=True)
+
 
 #rotate the image back for plotting
 #data_new.rotate(+64,useDIFMAP=True)
