@@ -219,6 +219,19 @@ class KinematicPlot(object):
 
             self.ax.fill_between(xr,y1,y2,alpha=0.2)
 
+class EvolutionPlot(object):
+    def __init__(self,xlabel="",ylabel="",font_size_axis_title=10):
+
+        super().__init__()
+        self.fig, self.ax = plt.subplots(1, 1)
+        self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
+        self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
+        self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
+
+    def plotEvolution(self,mjds,value,c="black",marker=".",label=""):
+        self.ax.scatter(mjds, value, c=c, marker=marker,label=label)
+
+
         
 class FitsImage(object):
     """Class that generates Matplotlib graph for a VLBI image.

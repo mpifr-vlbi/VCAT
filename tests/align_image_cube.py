@@ -13,9 +13,12 @@ stokes_u_files=glob.glob("../dataset_example/0235+164/**/*.ucn.fits",recursive=T
 #import data
 im_cube=ImageCube().import_files(fits_files=fits_files,uvf_files=uvf_files,stokes_q_files=stokes_q_files,stokes_u_files=stokes_u_files)
 
+
 #plot it
 im_cube.plot(plot_mode="lin_pol",swap_axis=True,plot_evpa=True,shared_colormap="all",shared_colorbar=True)
 
+#plot evolution
+im_cube.plot_evolution("flux")
 
 im_cube=im_cube.align(mode="epoch",useDIFMAP=useDIFMAP)
 print(im_cube)

@@ -7,7 +7,7 @@ import sys
 from vcat.image_data import ImageData
 from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
                           sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit)
-from vcat.graph_generator import MultiFitsImage
+from vcat.graph_generator import MultiFitsImage, EvolutionPlot
 from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
@@ -367,6 +367,57 @@ class ImageCube(object):
             raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
 
         return ImageCube(image_data_list=images)
+
+    #This function generates simply lightcurve-like plots to plot the evolution of flux, lin_pol etc. vs. time
+    def plot_evolution(self, value="flux",show=True, savefig="",
+                       colors=["black","green","blue","red","purple","orange","magenta","brown"], #default colors #TODO find a better solution
+                       markers=[".",".",".",".",".",".",".",".","."], #default markers #TODO find a better solution
+                       **kwargs):
+        #TODO also make ridgeline plot over several epochs possible
+
+        values=[]
+        mjds=[]
+        freqs=[]
+        for i, image in enumerate(self.images.flatten()):
+            mjds.append(image.mjd)
+            freqs.append(image.freq*1e-9)
+            if value=="flux":
+                values.append(image.integrated_flux_clean)
+                ylabel="Flux Density [Jy/beam]"
+            elif value=="linpol" or value=="lin_pol":
+                values.append(image.integrated_pol_flux_clean)
+                ylabel = "Linear Polarized Flux [Jy/beam]"
+            elif value=="frac_pol":
+                values.append(image.frac_pol*100)
+                ylabel = "Fractional Polarization [%]"
+            elif value=="evpa" or value=="evpa_average":
+                values.append(image.evpa_average)
+                ylabel = "Electric Vector Position Angle [°]"
+            elif value=="noise":
+                values.append(image.noise)
+                ylabel = "Image Noise [Jy/beam]"
+            elif value=="pol_noise" or value=="polnoise":
+                values.append(image.pol_noise)
+                ylabel = "Polarization Noise [Jy/beam]"
+            else:
+                raise Exception("Please specify valid plot mode")
+
+        plot=EvolutionPlot(xlabel="MJD [days]",ylabel=ylabel)
+
+        for i,freq in enumerate(np.unique(freqs)):
+            inds=np.where(freqs==freq)[0]
+            print(inds)
+            label="{:.1f}".format(freq)+" GHz"
+            plot.plotEvolution(np.array(mjds)[inds],np.array(values)[inds],c=colors[i],marker=markers[i],label=label)
+
+        plt.legend()
+        plt.tight_layout()
+
+        if savefig!="":
+            plt.savefig(savefig,dpi=300, bbox_inches='tight', transparent=False)
+
+        if show:
+            plt.show()
 
     def plot(self, show=True, savefig="",**kwargs):
         defaults = {
@@ -998,7 +1049,7 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=final_images)
 
-    def rotate(self,mode="all",angle,useDIFMAP=True):
+    def rotate(self,angle,mode="all",useDIFMAP=True):
         images = []
 
         if mode == "all":
@@ -1009,7 +1060,6 @@ class ImageCube(object):
             for i in range(len(self.freqs)):
                 # check if parameters were input per frequency or for all frequencies
                 angle_i = angle[i] if isinstance(angle, list) else angle
-
                 image_select = self.images[:, i]
                 for image in image_select:
                     new_image=image.rotate(angle_i,useDIFMAP=useDIFMAP)
