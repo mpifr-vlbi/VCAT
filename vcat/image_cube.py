@@ -387,7 +387,7 @@ class ImageCube(object):
             elif value=="linpol" or value=="lin_pol":
                 values.append(image.integrated_pol_flux_clean)
                 ylabel = "Linear Polarized Flux [Jy/beam]"
-            elif value=="frac_pol":
+            elif value=="frac_pol" or value=="fracpol":
                 values.append(image.frac_pol*100)
                 ylabel = "Fractional Polarization [%]"
             elif value=="evpa" or value=="evpa_average":
@@ -406,7 +406,6 @@ class ImageCube(object):
 
         for i,freq in enumerate(np.unique(freqs)):
             inds=np.where(freqs==freq)[0]
-            print(inds)
             label="{:.1f}".format(freq)+" GHz"
             plot.plotEvolution(np.array(mjds)[inds],np.array(values)[inds],c=colors[i],marker=markers[i],label=label)
 
@@ -418,6 +417,8 @@ class ImageCube(object):
 
         if show:
             plt.show()
+
+        return plot
 
     def plot(self, show=True, savefig="",**kwargs):
         defaults = {
@@ -481,6 +482,8 @@ class ImageCube(object):
             plot.export(savefig)
         if show:
             plt.show()
+
+        return plot
 
     def regrid(self,npix="", pixel_size="",mode="all",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
         # initialize empty array

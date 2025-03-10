@@ -16,7 +16,7 @@ im_cube=ImageCube(images)
 print(im_cube)
 
 #plot it
-im_cube.plot(mode="epoch",xlim=[10,-10])
+im_cube.plot(mode="freq",xlim=[[10,-10],[5,-5]])
 
 
 #regrid it

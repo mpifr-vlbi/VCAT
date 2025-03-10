@@ -636,6 +636,7 @@ class FitsImage(object):
         if plot_polar:
             self.ax.set_xlim(np.min(Theta),np.max(Theta))
             self.ax.set_ylim(np.min(R),np.max(R))
+            self.ax.invert_xaxis()
             self.ax.set_aspect('auto', adjustable='box', anchor='C')
             self.ax.set_xlabel("Position Angle [°]")
             self.ax.set_ylabel("Radius [mas]")
@@ -955,13 +956,14 @@ class MultiFitsImage(object):
                 kwargs[key] = np.empty(image_cube.shape,dtype=object)
                 kwargs[key] = np.atleast_2d(kwargs[key])
 
-                if not isinstance(value,list) or (key in ["xlim","ylim"] and (len(value)==2 or len(value)==0)):
+                if not isinstance(value,list) or (key in ["xlim","ylim"] and (len(value)==2 and isinstance(value[0],(float,int)) or len(value)==0)):
                     for i in range(len(self.image_cube.dates)):
                         for j in range(len(self.image_cube.freqs)):
                             kwargs[key][i,j] = value
                 elif len(value)==len(self.image_cube.freqs):
-                    for i in range(len(self.image_cube.freqs)):
-                        kwargs[key][:,i]=value[i]
+                    for i in range(len(self.image_cube.dates)):
+                        for j in range(len(self.image_cube.freqs)):
+                            kwargs[key][i,j]=value[j]
                 else:
                     raise Exception(f"Please provide valid {key} parameter.")
         elif mode=="epoch":
@@ -970,13 +972,14 @@ class MultiFitsImage(object):
             for key, value in kwargs.items():
                 kwargs[key] = np.empty(image_cube.shape, dtype=object)
                 kwargs[key] = np.atleast_2d(kwargs[key])
-                if not isinstance(value,list) or (key in ["xlim","ylim"] and (len(value)==2 or len(value)==0)):
+                if not isinstance(value,list) or (key in ["xlim","ylim"] and (len(value)==2 and isinstance(value[0],(float,int)) or len(value)==0)):
                     for i in range(len(self.image_cube.dates)):
                         for j in range(len(self.image_cube.freqs)):
                             kwargs[key][i, j] = value
                 elif len(value) == len(self.image_cube.dates):
                     for i in range(len(self.image_cube.dates)):
-                        kwargs[key][i, :] = value[i]
+                        for j in range(len(self.image_cube.freqs)):
+                            kwargs[key][i, j] = value[i]
                 else:
                     raise Exception(f"Please provide valid {key} parameter.")
 
@@ -1007,7 +1010,7 @@ class MultiFitsImage(object):
             else:
                 index = np.unravel_index(np.argmin(noises), noises.shape)
 
-            plot=image_cube.images[index].plot(plot_mode=kwargs["plot_mode"][0,0],show=False)
+            plot=image_cube.images[index].plot(plot_mode=kwargs["plot_mode"][0,0],im_colormap=True, im_color=kwargs["im_color"][0,0],show=False)
 
             for i in range(len(self.image_cube.dates)):
                 for j in range(len(self.image_cube.freqs)):
@@ -1021,7 +1024,7 @@ class MultiFitsImage(object):
                     kwargs["fracpol_vmax"][i,j]=plot.fracpol_vmax
 
             col=plot.col
-            plt.close()
+            plt.close(plot.fig)
 
         elif shared_colormap=="epoch":
             col=[]
@@ -1034,7 +1037,7 @@ class MultiFitsImage(object):
                 else:
                     index = np.argmin(noises)
 
-                plot = images[index].plot(plot_mode=kwargs["plot_mode"][i, 0], show=False)
+                plot = images[index].plot(plot_mode=kwargs["plot_mode"][i, 0], im_colormap=True, im_color=kwargs["im_color"][i,0], show=False)
 
                 for j in range(len(self.image_cube.freqs)):
                     # get levs:
@@ -1047,7 +1050,7 @@ class MultiFitsImage(object):
                     kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
 
                 col.append(plot.col)
-                plt.close()
+                plt.close(plot.fig)
 
 
         elif shared_colormap=="freq":
@@ -1061,7 +1064,7 @@ class MultiFitsImage(object):
                 else:
                     index = np.argmin(noises)
 
-                plot = images[index].plot(plot_mode=kwargs["plot_mode"][0,j], show=False)
+                plot = images[index].plot(plot_mode=kwargs["plot_mode"][0,j], im_colormap=True, im_color=kwargs["im_color"][0,j], show=False)
 
                 for i in range(len(self.image_cube.dates)):
                     # get levs:
@@ -1074,7 +1077,7 @@ class MultiFitsImage(object):
                     kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
 
                 col.append(plot.col)
-                plt.close()
+                plt.close(plot.fig)
 
         elif shared_colormap=="individual":
             pass
@@ -1169,6 +1172,8 @@ class MultiFitsImage(object):
                 shared_colorbar_label = r"Turnover $\chi^2$"
             else:
                 shared_colorbar_label = "Flux Density [Jy/beam]"
+
+
 
         # check if colorbar should be plotted and is shared between plots:
         if shared_colormap == "all" and shared_colorbar:
