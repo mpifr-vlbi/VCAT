@@ -12,7 +12,7 @@ data=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
 
 #data=data.rotate(-64,useDIFMAP=True)
 
-data.plot(plot_mode="lin_pol",overplot_clean=True,plot_mask=True)
+data.plot(plot_mode="stokes_i",im_colormap=True,contour=True,overplot_clean=True,plot_mask=True,plot_polar=True)
 
 #do ridgeline fit
 ridgeline,counter_ridgeline=data.get_ridgeline(method="polar",counterjet=True,start_radius=2)

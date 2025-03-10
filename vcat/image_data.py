@@ -1441,7 +1441,7 @@ class ImageData(object):
         return x_values, intensity_profile
 
 
-    def get_ridgeline(self,method="slices",angle_for_slices=0,auto_rotate=True,
+    def get_ridgeline(self,method="slices",angle_for_slices=0,auto_rotate=True,jet_angle="",
                       cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",start_radius=0,chi_sq_val=100.0,err_FWHM=0.1):
 
         if method=="slices":
@@ -1462,6 +1462,8 @@ class ImageData(object):
                 jet_direction=Theta[:,0][max_ind]
                 print(f"Automatically determined jet direction {jet_direction}°.")
                 image=image.rotate(-jet_direction)
+            elif jet_angle!="":
+                image=image.rotate(-jet_angle)
             else:
                 print("Will assume the jet was already rotated to position angle 0°.")
 
@@ -1470,7 +1472,7 @@ class ImageData(object):
 
             #if not j_len given, will use full image - 10 pixels at the edge
             if j_len=="":
-                j_len=len(self.Y)/2-10
+                j_len=int(len(self.Y)/2-10)
 
             #get ridgeline
             ridgeline=Ridgeline().get_ridgeline_luca(image_data,self.noise,self.error,self.degpp*self.scale,[self.beam_maj,self.beam_min,self.beam_pa],
@@ -1488,7 +1490,8 @@ class ImageData(object):
             if auto_rotate:
                 # rotate image back
                 image.rotate(jet_direction)
-
+            elif jet_angle!="":
+                image = image.rotate(jet_angle)
             # set new ridgeline
             self.ridgeline = image.ridgeline
             self.counter_ridgeline = image.counter_ridgeline

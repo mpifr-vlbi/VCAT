@@ -87,7 +87,7 @@ class Ridgeline(object):
 
                 # print('The chi_square_red is = ' + str(chi_sq_red))
                 #TODO something is not 100% correctly working with the chi_square values here!!!
-                if (chi_sq_red < chi_sq_val):
+                if not (chi_sq_red < chi_sq_val):
                     if ((FWHM ** 2 - beam ** 2) > 0.0):
                         self.width.append(width)
                         # print('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
@@ -132,7 +132,6 @@ class Ridgeline(object):
 
         # Find the position of the maximum and create the box for the analysis
         max_index = np.unravel_index(np.nanargmax(image_data, axis=None), image_data.shape)
-        max = image_data[max_index[0], max_index[1]]
 
         position_y = max_index[0]
         position_x = max_index[1]
@@ -325,36 +324,37 @@ class Ridgeline(object):
         if show:
             plt.show()
 
-    def plot(self,mode="",savefig="",fit=True,start_fit=5,skip_fit=3,avg_fit=3,show=True):
+    def plot(self,mode="",savefig="",fit=True,start_fit=5,skip_fit=3,avg_fit=3,fig="",ax="",show=True):
 
-        fig, ax = plt.subplots()
+        if fig=="" and ax=="":
+            fig, ax = plt.subplots()
 
         if mode=="open_angle":
-            plt.errorbar(self.dist, self.open_angle, yerr=self.open_angle_err, fmt='o', markersize=5.0)
-            plt.xscale('log')
-            plt.yscale('log')
-            plt.ylabel('Opening angle [deg]')
-            plt.xlabel('Distance [mas]')
-            plt.title('Opening angle')
+            ax.errorbar(self.dist, self.open_angle, yerr=self.open_angle_err, fmt='o', markersize=5.0)
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_ylabel('Opening angle [deg]')
+            ax.set_xlabel('Distance [mas]')
+            ax.set_title('Opening angle')
             if savefig!="":
                 plt.savefig(savefig, dpi=300, bbox_inches='tight')
             if show:
                 plt.show()
 
         elif mode=="intensity":
-            plt.errorbar(self.dist_int, self.intensity, yerr=self.intensity_err, fmt='o', markersize=5.0)
-            plt.xscale('log')
-            plt.yscale('log')
-            plt.ylabel('Intensity [Jy/beam]')
-            plt.xlabel('Distance [mas]')
-            plt.title('Intensity Jet')
+            ax.errorbar(self.dist_int, self.intensity, yerr=self.intensity_err, fmt='o', markersize=5.0)
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_ylabel('Intensity [Jy/beam]')
+            ax.set_xlabel('Distance [mas]')
+            ax.set_title('Intensity Jet')
             if savefig!="":
                 plt.savefig(savefig, dpi=300, bbox_inches='tight')
             if show:
                 plt.show()
 
         elif mode=="width":
-            plt.errorbar(self.dist, self.width, yerr=self.width_err, fmt='o', markersize=5.0)
+            ax.errorbar(self.dist, self.width, yerr=self.width_err, fmt='o', markersize=5.0)
 
             if fit==True:
                 # -- Fitting function --
@@ -373,13 +373,13 @@ class Ridgeline(object):
                 #print(popt)
                 #print(perr)
 
-                plt.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='red', markersize=7.0)
+                ax.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='red', markersize=7.0)
                 xpoint = np.linspace(self.dist[0], self.dist[len(self.dist) - 1], 1000)
                 a = float(popt[0])
                 b = float(popt[1])
-                plt.text(xpoint[1], self.width[len(self.width) - 2], f'$y = {a:.2f} \cdot x^{{{b:.2f}}}$', fontsize=12,
+                ax.text(xpoint[1], self.width[len(self.width) - 2], f'$y = {a:.2f} \cdot x^{{{b:.2f}}}$', fontsize=12,
                          bbox=dict(facecolor='red', alpha=0.5))
-                plt.plot(xpoint, func(xpoint, *popt), color='red')
+                ax.plot(xpoint, func(xpoint, *popt), color='red')
 
                 # -- Fitting arrays for: take an average value every avg_fit points --
 
@@ -428,30 +428,30 @@ class Ridgeline(object):
                 #print('Valori fit media')
                 #print(dist_fit)
                 #print(width_fit)
-                plt.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='purple', markersize=7.0)
+                ax.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='purple', markersize=7.0)
                 a = float(popt[0])
                 b = float(popt[1])
-                plt.text(xpoint[80], self.width[len(self.width) - 2], f'$y = {a:.2f} \cdot x^{{{b:.2f}}}$', fontsize=12,
+                ax.text(xpoint[80], self.width[len(self.width) - 2], f'$y = {a:.2f} \cdot x^{{{b:.2f}}}$', fontsize=12,
                          bbox=dict(facecolor='purple', alpha=0.5))
-                plt.plot(xpoint, func(xpoint, *popt), color='purple')
+                ax.plot(xpoint, func(xpoint, *popt), color='purple')
 
-            plt.xscale('log')
-            plt.yscale('log')
-            plt.ylabel('Jet width [mas]')
-            plt.xlabel('Distance [mas]')
-            plt.title('Collimation profile')
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_ylabel('Jet width [mas]')
+            ax.set_xlabel('Distance [mas]')
+            ax.set_title('Collimation profile')
             if savefig!="":
                 plt.savefig(savefig, dpi=300, bbox_inches='tight')
             if show:
                 plt.show()
 
         elif mode=="ridgeline":
-            plt.plot(self.X_ridg, self.Y_ridg)
-            plt.ylabel('Relative Dec. [mas]')
-            plt.xlabel('Relative R.A. [mas]')
-            plt.axis("equal")
-            plt.gca().invert_xaxis()
-            plt.title('Ridgeline')
+            ax.plot(self.X_ridg, self.Y_ridg)
+            ax.set_ylabel('Relative Dec. [mas]')
+            ax.set_xlabel('Relative R.A. [mas]')
+            ax.axis("equal")
+            ax.invert_xaxis()
+            ax.set_title('Ridgeline')
             if savefig != "":
                 plt.savefig(savefig, dpi=300, bbox_inches='tight')
             if show:

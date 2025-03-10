@@ -361,7 +361,6 @@ class FitsImage(object):
         #modify these parameters if polar plot is selected
         if plot_polar:
             #currently only support colormap so turn off everything else:
-            contour=False
             overplot_gauss=False
             overplot_clean=False
             plot_mask=False
@@ -527,7 +526,7 @@ class FitsImage(object):
                 contour_color=None
 
             if plot_polar:
-                self.ax.contour(R[:,0], Theta[0,:], Z, linewidths=contour_width, levels=levs, colors=contour_color,
+                self.ax.contour(Theta[:,0],R[0,:], Z, linewidths=contour_width, levels=levs, colors=contour_color,
                                 alpha=contour_alpha,
                                 cmap=contour_cmap)
 

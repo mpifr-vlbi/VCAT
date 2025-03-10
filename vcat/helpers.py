@@ -855,6 +855,14 @@ def convert_image_to_polar(X,Y,Z,nrad="",ntheta=361):
 
     Theta = -Theta / np.pi * 180 + 90
     Theta = np.where(Theta < -180, Theta + 360, Theta)
+
+    #roll it to start with -180 and end with +180 in theta
+    Theta=np.flip(Theta,axis=0)
+    ind=np.argmin(Theta[:,0])
+    Theta=np.roll(Theta,shift=-ind,axis=0)
+    Z_polar=np.flip(Z_polar,axis=0)
+    Z_polar=np.roll(Z_polar,shift=-ind,axis=0)
+
     return R, Theta, Z_polar
 
 
