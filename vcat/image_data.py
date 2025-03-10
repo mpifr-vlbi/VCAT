@@ -655,7 +655,8 @@ class ImageData(object):
                             new_image_model = interpolator(f[0].data[0, 0, :, :])(points).reshape(npix,npix)
                             f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                             f[0].data[0, 0, :, :] = new_image_model
-                            new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                            new_model_fits = self.model_save_dir + "mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                    self.freq / 1e9).replace(".", "_") + "GHz.fits"
                             try:
                                 f[1].header['XTENSION'] = 'BINTABLE'  # This is a bug fix that is needed for some .fits files, otherwise writeto throws an error
                             except:
@@ -748,7 +749,7 @@ class ImageData(object):
 
     def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,useDIFMAP=True,comp_ids=""):
 
-        if ((self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp):
+        if ((self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp) or auto_regrid:
             if auto_regrid:
                 # if this is selected will automatically convolve with common beam and regrid
                 print("Automatically regridding image to minimum pixelsize, smallest FOV and common beam")
@@ -801,7 +802,7 @@ class ImageData(object):
             x_ind,y_ind = np.unravel_index(np.argmax(image_data2.Z), image_data2.Z.shape)
             x_,y_ = np.unravel_index(np.argmax(image_self.Z), image_self.Z.shape)
 
-            shift=[y_-y_ind,x_-x_ind]
+            shift=[y_ind-y_,x_ind-x_]
             print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
                                                                  shift[0] * image_self.scale * image_self.degpp))
         elif method=="modelcomp" or method=="model_comp" or method=="model":
@@ -1043,7 +1044,8 @@ class ImageData(object):
 
                     with fits.open(self.model_file_path) as f:
                         f[0].data[0, 0, :, :] = new_image_model
-                        new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                        new_model_fits = self.model_save_dir + "mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                    self.freq / 1e9).replace(".", "_") + "GHz.fits"
                         f[1].header['XTENSION'] = 'BINTABLE'
                         f[1].data["DELTAX"] += shift_x_deg
                         f[1].data["DELTAY"] += shift_y_deg
@@ -1092,7 +1094,7 @@ class ImageData(object):
             #try to restore modelfit if it is there
             try:
                 if not self.model_file_path==self.fits_file:
-                    new_model_fits=self.model_mod_file.replace(".mod","_convolved")
+                    new_model_fits=self.model_mod_file.replace(".mod","")
 
                     fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                         bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
@@ -1342,7 +1344,8 @@ class ImageData(object):
 
                         with fits.open(self.model_file_path) as f:
                             f[0].data[0, 0, :, :] = new_image_model
-                            new_model_fits = self.model_file_path.replace(".fits", "_convolved.fits")
+                            new_model_fits = self.model_save_dir + "mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                    self.freq / 1e9).replace(".", "_") + "GHz.fits"
                             f[1].header['XTENSION'] = 'BINTABLE'
                             new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
                             f[1].data['DELTAX'] = new_x

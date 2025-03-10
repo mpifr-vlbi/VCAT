@@ -877,7 +877,7 @@ class ImageCube(object):
             image_copy.spix_vmin=spix_vmin
             image_copy.spix_vmax=spix_vmax
             if plot:
-                image_copy.plot(plot_mode="spix",im_colormap=True,contour=False)
+                image_copy.plot(plot_mode="spix",im_colormap=True,do_colorbar=True)
 
             spec_ind_maps.append(image_copy)
 
@@ -952,7 +952,7 @@ class ImageCube(object):
             image_copy.rm_vmin=rm_vmin
             image_copy.rm_vmax=rm_vmax
             if plot:
-                image_copy.plot(plot_mode="rm",im_colormap=True, contour=False)
+                image_copy.plot(plot_mode="rm",im_colormap=True,do_colorbar=True)
 
             rm_maps.append(image_copy)
 

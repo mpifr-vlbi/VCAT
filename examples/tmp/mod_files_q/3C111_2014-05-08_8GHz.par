@@ -1,8 +1,8 @@
-! Command file created by the difmap on Thu Mar  6 02:40:39 2025
+! Command file created by the difmap on Mon Mar 10 16:05:52 2025
 mapunits mas
 multi_model false
 get tmp/mod_files_q/3C111_2014-05-08_8GHz
-mapsize 1024,0.1, 1024,0.1
+mapsize 2048,0.04, 2048,0.04
 select Q, 1, 8
 uvtaper 0, 0
 uvrange 0, 0
@@ -24,7 +24,6 @@ string rflags; rflags=""
 string pflags; pflags=""
 string tflags; tflags=""
 selfflag true, 3, 4
-shift 5, 10
 scangap 3600
 float levs(1)
 levs(1:1) = 0
