@@ -1613,16 +1613,23 @@ class ImageData(object):
 
     def set_core_component(self,id):
 
-        found=False
+        core_ind=""
         for ind, comp in enumerate(self.components):
             if comp.component_number==id:
                 self.components[ind].is_core=True
-                found=True
+                core_ind=ind
             else:
                 self.components[ind].is_core=False
 
-        if not found:
+        if core_ind=="":
             warnings.warn(f"No component with ID {id} found, no core currently set!",UserWarning)
+        else:
+            #recalculate core distances for every component
+            for i, comp in enumerate(self.components):
+                self.components[i].delta_x_est = comp.x - self.components[core_ind].x
+                self.components[i].delta_y_est = comp.y - self.components[core_ind].y
+                self.components[i].distance_to_core = np.sqrt(
+                    self.components[i].delta_x_est ** 2 + self.components[i].delta_y_est ** 2)
 
     def get_component(self,id):
         for comp in self.components:

@@ -1136,3 +1136,16 @@ class ImageCube(object):
             plot.plot_spectral_fit(fit)
             plot.set_scale("log", "log")
             plt.show()
+
+        return fit
+
+    def fit_coreshift(self,id,plot=False):
+        cc=self.get_comp_collection(id)
+        fit=cc.get_coreshift()
+
+        if plot:
+            plot=KinematicPlot()
+            plot.plot_coreshift_fit(fit)
+            plt.show()
+
+        return fit
