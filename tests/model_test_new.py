@@ -12,16 +12,15 @@ dataU=ImageData("../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.fits",
         model="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.mfit")
 dataW=ImageData("../dataset_example/3C111_W_2014_05_08/3C111_W_2014_05_08.fits",
         model="../dataset_example/3C111_W_2014_05_08/3C111_W_2014_05_08.mfit")
-dataX=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.modelfits",
+dataX=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
         model="../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.mfit")
 
-
-print(dataC.components)
 
 data=[dataC,dataQ,dataU,dataW,dataX]
 
 im_cube=ImageCube(data)
 
+im_cube.plot(overplot_gauss=True,plot_comp_ids=True)
 
 #choose the first component collection as a test
 cc=im_cube.get_comp_collection(1)

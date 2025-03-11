@@ -7,7 +7,7 @@ import sys
 from vcat.image_data import ImageData
 from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
                           sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit)
-from vcat.graph_generator import MultiFitsImage, EvolutionPlot
+from vcat.graph_generator import MultiFitsImage, EvolutionPlot, KinematicPlot
 from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
 
@@ -449,6 +449,7 @@ class ImageCube(object):
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
+            "plot_comp_ids": False,
             "overplot_clean": False,
             "plot_mask": False,
             "xlim": [],
@@ -1121,3 +1122,17 @@ class ImageCube(object):
             component_collections.append(ComponentCollection(components=comps,name="Component "+str(id)))
 
         return component_collections
+
+    def update_comp_collections(self):
+        self.comp_collections=self.get_comp_collections()
+
+    def fit_comp_spectrum(self,id,fluxerr=False,fit_free_ssa=False,plot=False):
+        cc=self.get_comp_collection(id)
+        fit=cc.fit_comp_spectrum(fluxerr=fluxerr,fit_free_ssa=fit_free_ssa)
+
+        if plot:
+            plot=KinematicPlot()
+            plot.plot_spectrum(cc, "black")
+            plot.plot_spectral_fit(fit)
+            plot.set_scale("log", "log")
+            plt.show()

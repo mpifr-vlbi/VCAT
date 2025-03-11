@@ -289,6 +289,7 @@ class FitsImage(object):
                  plot_beam=True, #choose whether to plot beam or not
                  overplot_gauss=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
+                 plot_comp_ids=False, #plot component ids
                  overplot_clean=False, #choose whether to plot clean components
                  plot_mask=False, #choose whether to plot mask
                  xlim=[], #xplot limits, e.g. [5,-5]
@@ -605,7 +606,15 @@ class FitsImage(object):
 
                 for j in range(len(g_x)):
                     # plot component
-                    component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
+                    if plot_comp_ids:
+                        for i,comp in enumerate(self.clean_image.components):
+                            if comp.flux==g_flux[j]:
+                                comp_id=comp.component_number
+                        component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale, id=comp_id)
+                    else:
+                        component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
+
+
                     #calculate noise at the position of the component
                     try:
                         component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
@@ -826,7 +835,7 @@ class FitsImage(object):
                 cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
-    def plotComponent(self,x,y,maj,min,pos,scale):
+    def plotComponent(self,x,y,maj,min,pos,scale,id=""):
 
         # Plotting ellipses
         comp = Ellipse([x * scale, y * scale], maj * scale, min * scale,angle= -pos + 90,
@@ -852,7 +861,8 @@ class FitsImage(object):
         line1=self.ax.plot([maj1_x * scale, maj2_x * scale], [maj1_y * scale, maj2_y * scale], color=self.component_color, lw=0.5)
         line2=self.ax.plot([min1_x * scale, min2_x * scale], [min1_y * scale, min2_y * scale], color=self.component_color, lw=0.5)
 
-
+        if id!="":
+            self.ax.text(maj1_x*scale,maj1_y*scale,str(id),fontsize=10)
         return [ellipse,line1,line2]
 
 
@@ -1122,6 +1132,7 @@ class MultiFitsImage(object):
                                         plot_beam=kwargs["plot_beam"][image_i,image_j],
                                         overplot_gauss=kwargs["overplot_gauss"][image_i,image_j],
                                         component_color=kwargs["component_color"][image_i,image_j],
+                                        plot_comp_ids=kwargs["plot_comp_ids"][image_i,image_j],
                                         overplot_clean=kwargs["overplot_clean"][image_i,image_j],
                                         plot_mask=kwargs["plot_mask"][image_i,image_j],
                                         xlim=kwargs["xlim"][image_i,image_j],

@@ -752,6 +752,7 @@ class ImageData(object):
             "plot_beam": True,
             "overplot_gauss": False,
             "component_color": "black",
+            "plot_comp_ids": False,
             "overplot_clean": False,
             "plot_mask": False,
             "xlim": [],
@@ -1586,6 +1587,55 @@ class ImageData(object):
 
         return comp_ids, core_comp_id
 
+    def change_component_ids(self,old_ids,new_ids):
 
+        #handle single value input
+        if isinstance(old_ids,int) and isinstance(new_ids,int):
+            old_ids=[old_ids]
+            new_ids=[new_ids]
+
+        old_ids=np.array(old_ids)
+        new_ids=np.array(new_ids)
+
+        if len(np.unique(old_ids)) != len(old_ids) or len(np.unique(new_ids)) != len(new_ids):
+            raise Exception("Component number specified more than one time in old_ids or new_ids!")
+
+        #set new component ids
+        for ind,comp in enumerate(self.components):
+            if comp.component_number in old_ids:
+                i=int(np.where(np.array(old_ids)==comp.component_number)[0][0])
+                self.components[ind].component_number=new_ids[i]
+            else:
+                if comp.component_number in new_ids:
+                    #in that case we will reset the component id to avoid duplication
+                    self.components[ind].component_number=-1
+
+
+    def set_core_component(self,id):
+
+        found=False
+        for ind, comp in enumerate(self.components):
+            if comp.component_number==id:
+                self.components[ind].is_core=True
+                found=True
+            else:
+                self.components[ind].is_core=False
+
+        if not found:
+            warnings.warn(f"No component with ID {id} found, no core currently set!",UserWarning)
+
+    def get_component(self,id):
+        for comp in self.components:
+            if comp.component_number==id:
+                return comp
+
+        raise Exception(f"Component with ID {id} not found.")
+
+    def get_core_component(self):
+        for comp in self.components:
+            if comp.is_core:
+                return comp
+
+        raise Exception(f"No core component defined.")
 
 
