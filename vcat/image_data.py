@@ -62,6 +62,10 @@ class ImageData(object):
                  counter_ridgeline="",
                  stokes_q="",
                  stokes_u="",
+                 comp_ids=[], #list of integers to assign as component number (from top to bottom .mod file or .fits header)
+                 auto_identify=True, #If true and no comp_ids provided will automatically name them from 0 to one
+                 core_comp_id=0, #Set comp id of the core component
+                 redshift=0, #provide redshift
                  model_save_dir="tmp/",
                  is_casa_model=False,
                  noise_method="Histogram Fit", #choose noise method
@@ -394,11 +398,35 @@ class ImageData(object):
 
         if self.model_file_path!=self.fits_file:
             #only do this if a model was specified explicitely
-            for ind,comp in self.model.iterrows():
+            core_id=0
+            for ind,comp in self.model.reset_index().iterrows():
+                #use provided comp_id
+                try:
+                    comp_id=comp_ids[ind]
+                except:
+                    #assign automatic comp_id
+                    if auto_identify:
+                        comp_id=ind
+                    else:
+                        comp_id=-1
+
+                #check if component is the core component
+                if comp_id==core_comp_id:
+                    is_core=True
+                    core_id=ind
+                else:
+                    is_core=False
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
-                        comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,
-                                    beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,freq=self.freq,noise=self.noise)
+                        comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
+                                    redshift=redshift, is_core=is_core,beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,
+                                    freq=self.freq,noise=self.noise)
                 self.components.append(component)
+
+            #set distance to core for every component
+            for i,comp in enumerate(self.components):
+                self.components[i].delta_x_est=comp.x-self.components[core_id].x
+                self.components[i].delta_y_est=comp.y-self.components[core_id].y
+                self.components[i].distance_to_core=np.sqrt(self.components[i].delta_x_est**2+self.components[i].delta_y_est**2)
 
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
@@ -417,13 +445,16 @@ class ImageData(object):
         #calculate cleaned flux density from mod files
         #first stokes I
         try:
-            self.integrated_flux_clean=total_flux_from_mod(self.model_save_dir+"mod_files_clean/"  + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            self.integrated_flux_clean=total_flux_from_mod(self.model_save_dir+"mod_files_clean/"  + self.name + "_" +
+                                                           self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
         except:
             self.integrated_flux_clean = 0
         #and then polarization
         try:
-            flux_q=total_flux_from_mod(self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
-            flux_u=total_flux_from_mod(self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_q=total_flux_from_mod(self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" +
+                                       "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
+            flux_u=total_flux_from_mod(self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" +
+                                       "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
             self.frac_pol = self.integrated_pol_flux_clean / self.integrated_flux_clean
         except:
@@ -688,6 +719,8 @@ class ImageData(object):
                          model_save_dir=self.model_save_dir,
                          model=new_model_fits,
                          correct_rician_bias=self.correct_rician_bias,
+                         comp_ids=self.get_model_info()[0],
+                         core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
         else:
             #Using DIFMAP
@@ -1147,6 +1180,8 @@ class ImageData(object):
                          model_save_dir=self.model_save_dir,
                          model=new_model_fits,
                          correct_rician_bias=self.correct_rician_bias,
+                         comp_ids=self.get_model_info()[0],
+                         core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
 
 
@@ -1371,6 +1406,8 @@ class ImageData(object):
                          model_save_dir=self.model_save_dir,
                          model=new_model_fits,
                          correct_rician_bias=self.correct_rician_bias,
+                         comp_ids=self.get_model_info()[0],
+                         core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
 
         else:
@@ -1386,6 +1423,8 @@ class ImageData(object):
                          model_save_dir=self.model_save_dir,
                          model=self.model_file_path,
                          correct_rician_bias=self.correct_rician_bias,
+                         comp_ids=self.get_model_info()[0],
+                         core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
 
             rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
@@ -1535,8 +1574,17 @@ class ImageData(object):
     def jet_to_counterjet_profile(self,savefig="",show=True):
         self.ridgeline.jet_to_counterjet_profile(self.counter_ridgeline,savefig=savefig,show=show)
 
+    def get_model_info(self):
+        #helper method to get current state of the model
+        comp_ids=[]
+        core_comp_id=0
+        if self.components!=[]:
+            for comp in self.components:
+                comp_ids.append(comp.component_number)
+                if comp.is_core:
+                    core_comp_id=comp.component_number
 
-
+        return comp_ids, core_comp_id
 
 
 

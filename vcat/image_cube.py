@@ -10,6 +10,8 @@ from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
 from vcat.graph_generator import MultiFitsImage, EvolutionPlot
 from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
+
+from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
 import warnings
 import scipy.optimize as opt
@@ -86,6 +88,9 @@ class ImageCube(object):
                         self.noises[i,j]=image.noise
 
         self.shape=self.images.shape
+
+        #assign component collections
+        self.comp_collections=self.get_comp_collections()
 
     #print out some basic details
     def __str__(self):
@@ -1080,3 +1085,39 @@ class ImageCube(object):
             raise Exception("Please specify valid rotate mode ('all', 'epoch', 'freq')!")
 
         return ImageCube(image_data_list=images)
+
+    def get_core_comp_collection(self):
+        for cc in self.comp_collections:
+            if cc.components[0].is_core:
+                return cc
+
+        raise Exception(f"No component collection with id {comp_id} found.")
+
+    def get_comp_collection(self,comp_id):
+        for cc in self.comp_collections:
+            if cc.ids[0]==comp_id:
+                return cc
+
+        raise Exception(f"No component collection with id {comp_id} found.")
+
+    def get_comp_collections(self):
+        #find avaialable component ids
+        comp_ids=[]
+        for image in self.images.flatten():
+            for comp in image.components:
+                comp_ids.append(comp.component_number)
+
+        comp_ids=np.unique(comp_ids)
+
+        #create a ComponentCollection for every component ID
+        component_collections=[]
+        for id in comp_ids:
+            comps=[]
+            for image in self.images.flatten():
+                for comp in image.components:
+                    if comp.component_number==id:
+                        comps.append(comp)
+
+            component_collections.append(ComponentCollection(components=comps,name="Component "+str(id)))
+
+        return component_collections

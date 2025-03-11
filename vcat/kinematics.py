@@ -95,6 +95,14 @@ class Component():
             self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb / min_for_tb   #Kovalev et al. 2005
         self.scale = scale
 
+    def __str__(self):
+        line1=f"Component with ID {self.component_number} at frequency {self.freq*1e-9:.1f} GHz\n"
+        line2=f"x: {self.x*self.scale:.2f}mas, y:{self.y*self.scale:.2f}mas\n"
+        line3=f"Maj: {self.maj*self.scale:.2f}mas, Min: {self.min*self.scale:.2f}, PA: {self.pos}°\n"
+        line4=f"Flux: {self.flux} Jy, Distance to Core: {self.distance_to_core*self.scale:.2f} mas\n"
+
+        return line1+line2+line3+line4
+
     def set_distance_to_core(self, core_x, core_y):
         self.delta_x_est = self.x - core_x
         self.delta_y_est = self.y - core_y
@@ -146,6 +154,10 @@ class ComponentCollection():
             self.tbs_lower_limit.append(comp.tb_lower_limit)
             self.freqs.append(comp.freq)
             self.ids.append(comp.component_number)
+
+    def __str__(self):
+        line1=f"Component Collection of ID {self.ids[0]} with {len(self.year)} components.\n"
+        return line1
 
     def length(self):
         return len(self.components)
