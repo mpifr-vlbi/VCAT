@@ -18,6 +18,7 @@ import colormaps as cmaps
 import matplotlib.ticker as ticker
 from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
+from vcat.helpers import closest_index
 
 
 #optimized draw on Agg backend
@@ -66,10 +67,25 @@ class KinematicPlot(object):
         self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)
         self.ax.set_yscale("log")
     
-    def plot_spectrum(self,component_collection,color):
-        if component_collection.length() > 0:
-            self.ax.scatter(np.array(component_collection.freqs)*1e-9,component_collection.fluxs,
-                    c=color,label=component_collection.name,marker=".")
+    def plot_spectrum(self,component_collection,color,epochs=""):
+
+        if epochs=="":
+            epochs=component_collection.epochs_distinct
+        elif isinstance(epochs,(float,int)):
+            epochs=[epochs]
+        elif not isinstance(epochs, list):
+            raise Exception("Invalid input for 'epochs'.")
+
+        for epoch in epochs:
+            epoch_ind=closest_index(component_collection.epochs_distinct,epoch)
+
+            freqs=component_collection.freqs[epoch_ind,:].flatten()
+            fluxs=component_collection.fluxs[epoch_ind,:].flatten()
+
+            if len(fluxs) > 0:
+                self.ax.scatter(np.array(freqs)*1e-9,fluxs,
+                        c=color,label=component_collection.name,marker=".")
+
         self.ax.set_xlabel("Frequency [GHz]",fontsize=font_size_axis_title)
         self.ax.set_ylabel("Flux Density [Jy]",fontsize=font_size_axis_title)
 

@@ -1096,7 +1096,7 @@ class ImageCube(object):
 
     def get_comp_collection(self,comp_id):
         for cc in self.comp_collections:
-            if cc.ids[0]==comp_id:
+            if cc.ids[0,0]==comp_id:
                 return cc
 
         raise Exception(f"No component collection with id {comp_id} found.")
@@ -1126,26 +1126,45 @@ class ImageCube(object):
     def update_comp_collections(self):
         self.comp_collections=self.get_comp_collections()
 
-    def fit_comp_spectrum(self,id,fluxerr=False,fit_free_ssa=False,plot=False):
-        cc=self.get_comp_collection(id)
-        fit=cc.fit_comp_spectrum(fluxerr=fluxerr,fit_free_ssa=fit_free_ssa)
+    def fit_comp_spectrum(self,id,epoch="",fluxerr=False,fit_free_ssa=False,plot=False):
 
-        if plot:
-            plot=KinematicPlot()
-            plot.plot_spectrum(cc, "black")
-            plot.plot_spectral_fit(fit)
-            plot.set_scale("log", "log")
-            plt.show()
+        if epoch=="":
+            epochs=Time(self.dates).decimalyear
+        elif isinstance(epoch,str):
+            epochs=Time(np.array(epoch)).decimalyear
+        elif not isinstance(epoch, list):
+            raise Exception("Invalid input for 'epoch'.")
+
+
+        cc=self.get_comp_collection(id)
+        fit=cc.fit_comp_spectrum(epochs=epochs,fluxerr=fluxerr,fit_free_ssa=fit_free_ssa)
+
+        for i in range(len(epochs)):
+            if plot:
+                plot=KinematicPlot()
+                plot.plot_spectrum(cc, "black", epochs=epochs[i])
+                plot.plot_spectral_fit(fit[i])
+                plot.set_scale("log", "log")
+                plt.show()
 
         return fit
 
-    def fit_coreshift(self,id,plot=False):
-        cc=self.get_comp_collection(id)
-        fit=cc.get_coreshift()
+    def fit_coreshift(self,id,epoch="",plot=False):
 
-        if plot:
-            plot=KinematicPlot()
-            plot.plot_coreshift_fit(fit)
-            plt.show()
+        if epoch=="":
+            epochs=Time(self.dates).decimalyear
+        elif isinstance(epoch,str):
+            epochs=Time(np.array(epoch)).decimalyear
+        elif not isinstance(epoch, list):
+            raise Exception("Invalid input for 'epoch'.")
+
+        cc=self.get_comp_collection(id)
+        fit=cc.get_coreshift(epochs=epochs)
+
+        for i in range(len(epochs)):
+            if plot:
+                plot=KinematicPlot()
+                plot.plot_coreshift_fit(fit[i])
+                plt.show()
 
         return fit

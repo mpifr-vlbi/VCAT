@@ -22,23 +22,10 @@ im_cube=ImageCube(data)
 
 im_cube.plot(overplot_gauss=True,plot_comp_ids=True)
 
+fit=im_cube.fit_comp_spectrum(id=1,plot=True)
+
 #choose the first component collection as a test
-cc=im_cube.get_comp_collection(1)
-print(cc)
-
-for comp in cc.components:
-    print(comp)
-
-#fit the spectrum
-fit=cc.fit_comp_spectrum()
-
-#plot the spectrum
-plot=KinematicPlot()
-
-plot.plot_spectrum(cc,"black")
-plot.plot_spectral_fit(fit)
-plot.set_scale("log","log")
-plt.show()
+print(fit)
 
 
 """
@@ -60,9 +47,4 @@ for i in range(len(cc.components)):
 
 
 #now calculate core shift
-fit_result=cc.get_coreshift()
-plot=KinematicPlot()
-
-plot.plot_coreshift_fit(fit_result)
-plt.show()
-
+fit_result=im_cube.fit_coreshift(id=1,plot=True)

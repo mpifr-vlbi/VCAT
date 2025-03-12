@@ -7,6 +7,7 @@ from sympy import Ellipse, Point, Line
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
 import sys
 from scipy.optimize import curve_fit
+from vcat.helpers import closest_index
 
 
 class Component():
@@ -121,151 +122,230 @@ class Component():
                 "freq": self.freq, "tb": self.tb, "scale": self.scale}
 
 class ComponentCollection():
-    def __init__(self, components=[], name=""):
-        self.components = components
+    def __init__(self, components=[], name="",date_tolerance=1):
+
+        #set redshift and scale (Assumes this is the same for all components)
         if len(components) > 0:
             self.redshift = components[0].redshift
             self.scale = components[0].scale
         else:
             self.redshift = 0
             self.scale = 1
-        self.name = name
-        self.mjds = []
-        self.year = []
-        self.dist = []
-        self.dist_err = []
-        self.time = []
-        self.xs = []
-        self.ys = []
-        self.fluxs = []
-        self.tbs = []
-        self.tbs_lower_limit= []
-        self.freqs = []
-        self.ids = []
 
+        self.name = name
+
+        years=np.array([])
         for comp in components:
-            self.year.append(comp.year)
-            self.dist.append(comp.distance_to_core * self.scale)
-            self.dist_err.append(comp.maj*0.1 * self.scale) #TODO fix this!
-            self.xs.append(comp.delta_x_est)
-            self.ys.append(comp.delta_y_est)
-            self.fluxs.append(comp.flux)
-            self.tbs.append(comp.tb)
-            self.tbs_lower_limit.append(comp.tb_lower_limit)
-            self.freqs.append(comp.freq)
-            self.ids.append(comp.component_number)
+            years=np.append(years,comp.year)
+
+        sort_inds=np.argsort(years)
+        #sort components by date
+        components = np.array(components)[sort_inds]
+
+        year_prev=0
+        freqs=[]
+        epochs=[]
+        for comp in components:
+            if comp.freq not in freqs:
+                freqs.append(comp.freq)
+            if abs(comp.year-year_prev)>=date_tolerance/365.25:
+                year_prev = comp.year
+                epochs.append(year_prev)
+
+        freqs=np.sort(freqs)
+        epochs=np.sort(epochs)
+
+        self.n_epochs=len(epochs)
+        self.n_freqs=len(freqs)
+        self.epochs_distinct=epochs
+        self.freqs_distinct=freqs
+
+        #create empty component grids
+        self.components=np.empty((self.n_epochs,self.n_freqs),dtype=object)
+        self.mjds = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.year = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.dist = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.dist_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.xs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.ys = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.fluxs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.tbs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.tbs_lower_limit= np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.freqs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.ids = np.empty((self.n_epochs,self.n_freqs),dtype=int)
+
+        for i, year in enumerate(epochs):
+            for j, freq in enumerate(freqs):
+                for comp in components:
+                    if comp.year-year >=0 and (comp.year-year)<=date_tolerance/365.25 and comp.freq==freq:
+                        self.components[i,j]=comp
+                        self.year[i,j]=comp.year
+                        self.dist[i,j]=comp.distance_to_core * self.scale
+                        self.dist_err[i,j]=comp.maj*0.1 * self.scale #TODO fix this!
+                        self.xs[i,j]=comp.delta_x_est
+                        self.ys[i,j]=comp.delta_y_est
+                        self.fluxs[i,j]=comp.flux
+                        self.tbs[i,j]=comp.tb
+                        self.tbs_lower_limit[i,j]=comp.tb_lower_limit
+                        self.freqs[i,j]=comp.freq
+                        self.ids[i,j]=comp.component_number
+
 
     def __str__(self):
-        line1=f"Component Collection of ID {self.ids[0]} with {len(self.year)} components.\n"
-        return line1
+        line1=f"Component Collection of ID {self.ids[0][0]} with {len(self.year.flatten())} components.\n"
+        line2=f"{len(self.ids[0,:].flatten())} Frequencies and {len(self.ids[:,0].flatten())} epochs.\n"
+        return line1+line2
 
     def length(self):
         return len(self.components)
 
-    def get_speed2d(self,cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
-        
+    def get_speed2d(self,freqs="",cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
+
         #we use the one dimensional function for x and y separately
         dist=self.dist
 
         #do x_fit
         self.dist=self.delta_x_est
-        x_fit=self.get_speed(cosmo=cosmo)
+        x_fits=self.get_speed(freqs=freqs,cosmo=cosmo)
 
         #do y_fit
         self.dist=self.delta_y_est
-        y_fit=self.get_speed(cosmo=cosmo)
+        y_fits=self.get_speed(freqs=freqs,cosmo=cosmo)
 
         #reset dist
         self.dist=dist
 
-        return x_fit, y_fit
-            
+        return x_fits, y_fits
 
-        
-    def get_speed(self,cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
-        if self.length() > 2:
+    def get_speed(self,freqs="",cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
 
-            def reduced_chi2(fit, x, y, yerr, N, n):
-                return 1. / (N - n) * np.sum(((y - fit) / yerr) ** 2.)
 
-            t_mid = (np.min(self.year) + np.max(self.year)) / 2.
-            time = np.array(self.year) - t_mid
+        if freqs=="":
+            freqs=self.freqs_distinct
+        elif isinstance(freqs,(float,int)):
+            freqs=[freqs]
+        elif not isinstance(freqs, list):
+            try:
+                freqs = freqs.tolist()
+            except:
+                raise Exception("Invalid input for 'freqs'.")
 
-            linear_fit, cov_matrix = np.polyfit(time, self.dist, 1, cov='scaled')  # ,w=1./dist_err)
+        results=[]
+        for freq in freqs:
+            freq_ind=closest_index(self.freqs_distinct,freq*1e9)
 
-            speed = linear_fit[0]
-            speed_err = np.sqrt(cov_matrix[0, 0])
-            y0 = linear_fit[1] - t_mid*speed
-            y0_err = np.sqrt(cov_matrix[1, 1])
-            beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
-                    cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
-            beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
-                    cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
-            d_crit = np.sqrt(1 + beta_app ** 2)
-            d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
-            dist_0_est = linear_fit[1] - speed * t_mid
-            t_0 = - linear_fit[1] / speed + t_mid
-            sum_x = time / np.array(self.dist_err) ** 2
-            sum_x2 = time ** 2 / np.array(self.dist_err) ** 2
-            sum_err = 1. / np.array(self.dist_err) ** 2
-            Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
-            t_0_err = np.sqrt((cov_matrix[1, 1] / speed ** 2) + (linear_fit[1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
-                              2 * linear_fit[1] / speed ** 3 * np.sum(sum_x) / Delta)
-            red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[1], time, self.dist, self.dist_err, len(time),
-                                       len(linear_fit))
+            #check if there is enough data to perform a fit
+            if len(self.year[:,freq_ind].flatten()) > 2:
 
-        else:
-            speed = 0
-            speed_err = 0
-            y0 = 0
-            y0_err = 0
-            beta_app = 0
-            beta_app_err = 0
-            d_crit = 0
-            d_crit_err = 0
-            dist_0_est = 0
-            t_0 = 0
-            t_0_err = 0
-            red_chi_sqr = 0
+                year=self.year[:,freq_ind].flatten()
+                dist=self.dist[:,freq_ind].flatten()
+                dist_err=self.dist_err[:,freq_ind].flatten()
 
-        return {"name": self.name, "speed": float(speed), "speed_err": float(speed_err), "y0": y0, "y0_err": y0_err,
-                "beta_app": float(beta_app), "beta_app_err": float(beta_app_err), "d_crit": float(d_crit), "d_crit_err": float(d_crit_err),
-                "dist_0_est": dist_0_est, "t_0": t_0, "t_0_err": t_0_err, "red_chi_sqr": red_chi_sqr}
+                def reduced_chi2(fit, x, y, yerr, N, n):
+                    return 1. / (N - n) * np.sum(((y - fit) / yerr) ** 2.)
+
+                t_mid = (np.min(year) + np.max(year)) / 2.
+                time = np.array(year) - t_mid
+
+                linear_fit, cov_matrix = np.polyfit(time, dist, 1, cov='scaled')  # ,w=1./dist_err)
+
+                speed = linear_fit[0]
+                speed_err = np.sqrt(cov_matrix[0, 0])
+                y0 = linear_fit[1] - t_mid*speed
+                y0_err = np.sqrt(cov_matrix[1, 1])
+                beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
+                        cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
+                        cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                d_crit = np.sqrt(1 + beta_app ** 2)
+                d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
+                dist_0_est = linear_fit[1] - speed * t_mid
+                t_0 = - linear_fit[1] / speed + t_mid
+                sum_x = time / np.array(dist_err) ** 2
+                sum_x2 = time ** 2 / np.array(dist_err) ** 2
+                sum_err = 1. / np.array(dist_err) ** 2
+                Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
+                t_0_err = np.sqrt((cov_matrix[1, 1] / speed ** 2) + (linear_fit[1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
+                                  2 * linear_fit[1] / speed ** 3 * np.sum(sum_x) / Delta)
+                red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[1], time, dist, dist_err, len(time),
+                                           len(linear_fit))
+
+            else:
+                speed = 0
+                speed_err = 0
+                y0 = 0
+                y0_err = 0
+                beta_app = 0
+                beta_app_err = 0
+                d_crit = 0
+                d_crit_err = 0
+                dist_0_est = 0
+                t_0 = 0
+                t_0_err = 0
+                red_chi_sqr = 0
+
+            results.append({"name": self.name, "speed": float(speed), "speed_err": float(speed_err), "y0": y0, "y0_err": y0_err,
+                    "beta_app": float(beta_app), "beta_app_err": float(beta_app_err), "d_crit": float(d_crit), "d_crit_err": float(d_crit_err),
+                    "dist_0_est": dist_0_est, "t_0": t_0, "t_0_err": t_0_err, "red_chi_sqr": red_chi_sqr})
+
+        return results
 
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
 
-    def get_coreshift(self):
-        max_i=0
-        max_freq=0
-        for i in range(len(self.freqs)):
-            if self.freqs[i]>max_freq:
-                max_i=i
-                max_freq=self.freqs[max_i]
-        max_freq=max_freq*1e-9
-        freqs = np.array(self.freqs)*1e-9
-        
-        #calculate core shifts:
-        coreshifts=[]
-        coreshift_err=[]
-        for i,comp in enumerate(self.components):
-            coreshifts.append((self.dist[max_i]-self.dist[i])*1e3)#in uas
-            coreshift_err.append(np.sqrt(self.dist_err[max_i]**2+self.dist_err[i]**2)*1e3)
-        
-        #define core shift function (Lobanov 1998)
-        def delta_r(nu,k_r,r0,ref_freq):
-            return r0*((nu/ref_freq)**(-1/k_r)-1)
+    def get_coreshift(self, epochs=""):
 
-        params, covariance = curve_fit(lambda nu, k_r, r0: delta_r(nu,k_r,r0,max_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
+        if epochs=="":
+            epochs=self.epochs_distinct
+        elif isinstance(epochs,(float,int)):
+            epochs=[epochs]
+        elif not isinstance(epochs, list):
+            try:
+                epochs = epochs.tolist()
+            except:
+                raise Exception("Invalid input for 'epochs'.")
 
-        k_r_fitted, r0_fitted = params
+        results=[]
+        for epoch in epochs:
+            epoch_ind=closest_index(self.epochs_distinct,epoch)
 
-        print(f"Fitted k_r: {k_r_fitted}")
-        print(f"Fitted r0: {r0_fitted}")
+            freqs=self.freqs[epoch_ind,:].flatten()
+            components=self.components[epoch_ind,:].flatten()
+            dist=self.dist[epoch_ind,:].flatten()
+            dist_err=self.dist[epoch_ind,:].flatten()
 
-        return {"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":max_freq,"freqs":freqs,"coreshifts":coreshifts,"coreshift_err":coreshift_err}        
+            max_i=0
+            max_freq=0
+            for i in range(len(freqs)):
+                if freqs[i]>max_freq:
+                    max_i=i
+                    max_freq=freqs[max_i]
+            max_freq=max_freq*1e-9
+            freqs = np.array(freqs)*1e-9
 
-    def fit_comp_spectrum(self,add_data=False,plot_areas=False,plot_all_components=False,comps=False,
+            #calculate core shifts:
+            coreshifts=[]
+            coreshift_err=[]
+            for i,comp in enumerate(components):
+                coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
+                coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
+
+            #define core shift function (Lobanov 1998)
+            def delta_r(nu,k_r,r0,ref_freq):
+                return r0*((nu/ref_freq)**(-1/k_r)-1)
+
+            params, covariance = curve_fit(lambda nu, k_r, r0: delta_r(nu,k_r,r0,max_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
+
+            k_r_fitted, r0_fitted = params
+
+            print(f"Fitted k_r: {k_r_fitted}")
+            print(f"Fitted r0: {r0_fitted}")
+
+            results.append({"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":max_freq,"freqs":freqs,"coreshifts":coreshifts,"coreshift_err":coreshift_err})
+
+        return results
+
+    def fit_comp_spectrum(self,epochs="",add_data=False,plot_areas=False,plot_all_components=False,comps=False,
             exclude_comps=False,ccolor=False,out=True,fluxerr=False,fit_free_ssa=False,plot_fit_summary=False,
             annotate_fit_results=True):
         """
@@ -273,76 +353,98 @@ class ComponentCollection():
         Inputs:
             fluxerr: Fractional Errors (dictionary with {'error': [], 'freq':[]})
         """
-        sys.stdout.write("Fit component spectrum\n")
-        
-        cflux = np.array(self.fluxs)
-        if fluxerr:
-            cfluxerr = fluxerr['error']*cflux.copy()
-            cfreq = fluxerr['freq']
-            cfluxerr = fluxerr['error']
-        else:
-            cfluxerr = 0.15*cflux.copy() #default of 15% error
-            cfreq = np.array(self.freqs)*1e-9 #convert to GHz
-        
-        cid = self.ids
 
-        print("Fit Powerlaw to Comp" + str(cid[0]))
-        pl_x0 = np.array([np.mean(cflux),-1])
-        pl_p,pl_sd,pl_ch2,pl_out = ff.odr_fit(ff.powerlaw,[cfreq,cflux,cfluxerr],pl_x0,verbose=1)
-        
-        #fit Snu
-        print("Fit SSA to Comp " + str(cid[0]))
-        if fit_free_ssa:
-            sn_x0 = np.array([120,np.max(cflux),2.5,-3])
-            beta,sd_beta,chi2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
-        else:
-            sn_x0 = np.array([20,np.max(cflux),-1])
-            sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu_real,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)   
+        if epochs=="":
+            epochs=self.epochs_distinct
+        elif isinstance(epochs,(float,int)):
+            epochs=[epochs]
+        elif not isinstance(epochs, list):
+            try:
+                epochs = epochs.tolist()
+            except:
+                raise Exception("Invalid input for 'epochs'.")
 
-        if np.logical_and(sn_ch2>pl_ch2,pl_out.info<5):
-           sys.stdout.write("Power law fits better\n")
-           CompPL = cid[0]
-           alpha = pl_p[1]
-           alphaE = pl_sd[1]
-           chi2PL = pl_ch2
-           fit = "PL"
-        elif np.logical_and(pl_ch2>sn_ch2,sn_out.info<5):
-            sys.stdout.write('ssa spectrum fits better\n')
-            CompSN = cid[0]
-            num = sn_p[0]
-            Sm = sn_p[1]
-            chi2SN = sn_ch2
-            SmE = sn_sd[1]
-            numE = sn_sd[0]
-            fit = "SN"
-            if fit_free_ssa:
-                athin = sn_p[3]
-                athinE = sn_sd[3]
-                athick = sn_p[2]
-                athickE = sn_sd[2]
+        results=[]
+        for epoch in epochs:
+            print(epoch)
+            epoch_ind=closest_index(self.epochs_distinct,epoch)
+
+            fluxs=self.fluxs[epoch_ind,:].flatten()
+            freqs=self.freqs[epoch_ind,:].flatten()
+            ids=self.ids[epoch_ind,:].flatten()
+
+            sys.stdout.write("Fit component spectrum\n")
+
+            cflux = np.array(fluxs)
+            if fluxerr:
+                cfluxerr = fluxerr['error']*cflux.copy()
+                cfreq = fluxerr['freq']
+                cfluxerr = fluxerr['error']
             else:
-                athin = sn_p[2]
-                athinE = sn_sd[2]
-                athick = 2.5
-                athickE = 0.0
+                cfluxerr = 0.15*cflux.copy() #default of 15% error
+                cfreq = np.array(freqs)*1e-9 #convert to GHz
 
-        else:
-            sys.stdout.write('NO FIT WORKED, use power law\n')
-            CompPL = cid[0]
-            alpha = pl_p[1]
-            alphaE = pl_sd[1]
-            chi2PL = pl_ch2
-            fit = "PL"
+            cid = ids
 
-        #return fit results
-        if fit=="PL":
-            return  {"fit":"PL","alpha":alpha,"alphaE":alphaE,"chi2":chi2PL,"pl_p":pl_p,"pl_sd":pl_sd}
+            print("Fit Powerlaw to Comp" + str(cid[0]))
+            pl_x0 = np.array([np.mean(cflux),-1])
+            pl_p,pl_sd,pl_ch2,pl_out = ff.odr_fit(ff.powerlaw,[cfreq,cflux,cfluxerr],pl_x0,verbose=1)
 
-        if fit=="SN":
-            return {"fit":"SN","athin":athin,"athinE":athinE,
-                "athick":athick,"athickE":athickE,"num":num,"Sm":Sm,
-                "chi2":chi2SN,"SmE":SmE,"numE":numE,"fit_free_ssa":fit_free_ssa,
-                "sn_p":sn_p,"sn_sd":sn_sd}
+            #fit Snu
+            print("Fit SSA to Comp " + str(cid[0]))
+            if fit_free_ssa:
+                sn_x0 = np.array([120,np.max(cflux),2.5,-3])
+                beta,sd_beta,chi2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
+            else:
+                sn_x0 = np.array([20,np.max(cflux),-1])
+                sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu_real,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
+
+            if np.logical_and(sn_ch2>pl_ch2,pl_out.info<5):
+               sys.stdout.write("Power law fits better\n")
+               CompPL = cid[0]
+               alpha = pl_p[1]
+               alphaE = pl_sd[1]
+               chi2PL = pl_ch2
+               fit = "PL"
+            elif np.logical_and(pl_ch2>sn_ch2,sn_out.info<5):
+                sys.stdout.write('ssa spectrum fits better\n')
+                CompSN = cid[0]
+                num = sn_p[0]
+                Sm = sn_p[1]
+                chi2SN = sn_ch2
+                SmE = sn_sd[1]
+                numE = sn_sd[0]
+                fit = "SN"
+                if fit_free_ssa:
+                    athin = sn_p[3]
+                    athinE = sn_sd[3]
+                    athick = sn_p[2]
+                    athickE = sn_sd[2]
+                else:
+                    athin = sn_p[2]
+                    athinE = sn_sd[2]
+                    athick = 2.5
+                    athickE = 0.0
+
+            else:
+                sys.stdout.write('NO FIT WORKED, use power law\n')
+                CompPL = cid[0]
+                alpha = pl_p[1]
+                alphaE = pl_sd[1]
+                chi2PL = pl_ch2
+                fit = "PL"
+
+            #return fit results
+            if fit=="PL":
+                results.append({"fit":"PL","alpha":alpha,"alphaE":alphaE,"chi2":chi2PL,"pl_p":pl_p,"pl_sd":pl_sd})
+
+            if fit=="SN":
+                results.append({"fit":"SN","athin":athin,"athinE":athinE,
+                    "athick":athick,"athickE":athickE,"num":num,"Sm":Sm,
+                    "chi2":chi2SN,"SmE":SmE,"numE":numE,"fit_free_ssa":fit_free_ssa,
+                    "sn_p":sn_p,"sn_sd":sn_sd})
+
+        return results
 
 
 def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,flux,noise):
