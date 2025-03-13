@@ -1447,6 +1447,39 @@ class ImageData(object):
 
         return newImageData
 
+    def get_peak_distance(self):
+        #returns distance between stokes I and lin pol peak
+
+        #find maximum indices for stokes I and lin_pol
+        y_i, x_i = np.unravel_index(np.argmax(self.Z), self.Z.shape)
+        y_pol, x_pol = np.unravel_index(np.argmax(self.lin_pol),self.lin_pol.shape)
+
+        x_dist=self.X[x_pol]-self.X[x_i]
+        y_dist=self.Y[y_pol]-self.Y[y_i]
+
+        return [x_dist, y_dist]
+
+    def center(self,mode="stokes_i",useDIFMAP=True):
+
+        if mode=="stokes_i":
+            ref_image=self.Z
+        elif mode=="lin_pol" or mode=="linpol":
+            ref_image=self.lin_pol
+        else:
+            raise Exception("Please pick valid 'mode' parameter ('stokes_i','lin_pol').")
+
+
+        # find brightest pixel of reference image and center of current image
+        x_ind, y_ind = int(len(self.X)/2),int(len(self.Y)/2)
+        x_, y_ = np.unravel_index(np.argmax(ref_image), ref_image.shape)
+
+        shift = [y_ind - y_, x_ind - x_]
+        print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * self.scale * self.degpp,
+                                                             shift[0] * self.scale * self.degpp))
+
+        return self.shift(-shift[1] * self.scale * self.degpp,
+                          shift[0] * self.scale * self.degpp, useDIFMAP=useDIFMAP)
+
     def get_profile(self,point1,point2,show=True,image="stokes_i"):
 
         #get index of slice ends

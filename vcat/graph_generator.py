@@ -182,7 +182,6 @@ class KinematicPlot(object):
         exponent = -2
         ymin=float('1e{}'.format(exponent)) 
 
-
         if fit_result["fit"]=="PL":
             textstr = '\n'.join((
                 r'$\alpha={:.2f}\pm{:.2f}$'.format(fit_result["alpha"],fit_result["alphaE"])

@@ -1087,6 +1087,15 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
+    def center(self,mode="stokes_i",useDIFMAP=True):
+        images=[]
+
+        for image in self.images.flatten():
+            images.append(image.center(mode=mode,useDIFMAP=useDIFMAP))
+
+        return ImageCube(image_data_list=images)
+
+
     def get_core_comp_collection(self):
         for cc in self.comp_collections:
             if cc.components[0].is_core:
@@ -1166,5 +1175,33 @@ class ImageCube(object):
                 plot=KinematicPlot()
                 plot.plot_coreshift_fit(fit[i])
                 plt.show()
+
+        return fit
+
+    def get_speed(self,id,freq="",plot=False):
+        if freq=="":
+            freq=self.freqs
+        elif not isinstance(epoch, list):
+            raise Exception("Invalid input for 'epoch'.")
+
+        cc=self.get_comp_collection(id)
+        fit=cc.get_speed(freqs=freq)
+
+        if plot:
+            pass#TODO implement plot
+
+        return fit
+
+    def get_speed2d(self,id,freq="",plot=False):
+        if freq=="":
+            freq=self.freqs
+        elif not isinstance(epoch, list):
+            raise Exception("Invalid input for 'epoch'.")
+
+        cc=self.get_comp_collection(id)
+        fit=cc.get_speed2d(freqs=freq)
+
+        if plot:
+            pass#TODO implement plot
 
         return fit
