@@ -1,7 +1,7 @@
 # VCAT/__init__.py
 
 from vcat.image_data import ImageData
-from vcat.graph_generator import FitsImage, MultiFitsImage #probably not needed
+from vcat.graph_generator import FitsImage, MultiFitsImage, KinematicPlot  #probably not needed
 from vcat.image_cube import ImageCube
 import os
 import platform

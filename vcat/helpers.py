@@ -760,9 +760,8 @@ def sort_uvf_by_date_and_frequency(uvf_files):
 def closest_index(lst, target):
     return min(range(len(lst)), key=lambda i: abs(lst[i] - target))
 
-def func_turn(x, i0, turn, alpha0):
+def func_turn(x, i0, turn, alpha0, alphat = 2.5):
     """Turnover frequency function."""
-    alphat = 2.5
     return i0 * (x / turn)**alphat * (1.0 - np.exp(-(turn / x)**(alphat - alpha0)))
 
 def plot_pixel_fit(frequencies, brightness, err_brightness, fitted_func, pixel, popt, peak_brightness):

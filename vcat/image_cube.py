@@ -10,7 +10,7 @@ from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
 from vcat.graph_generator import MultiFitsImage, EvolutionPlot, KinematicPlot
 from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
-
+from functools import partial
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
 import warnings
@@ -18,6 +18,8 @@ import scipy.optimize as opt
 import numpy.ma as ma
 from astropy.constants import c
 from scipy.optimize import curve_fit
+from scipy.interpolate import RegularGridInterpolator
+import matplotlib.animation as animation
 
 class ImageCube(object):
 
@@ -964,9 +966,11 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=rm_maps)
 
-    def get_turnover_map(self,epoch="",ref_image="",sigma_lim=10,max_feval=1000000,specific_pixel=(-1,-1),limit_freq=True):
+    def get_turnover_map(self,epoch="",ref_image="",sigma_lim=10,max_feval=1000000,alphat=2.5,specific_pixel=(-1,-1),limit_freq=True):
         #Largely imported from Luca Ricci's Turnover frequency code
         #TODO basic error handling to check if the files are aligned and regridded and restored.
+        func_turn_fixed= partial(func_turn, alphat=alphat)
+
 
         if isinstance(epoch, list):
             epochs=epoch
@@ -1004,11 +1008,11 @@ class ImageCube(object):
 
                     if len(brightness) == len(images):
                         try:
-                            popt, pcov = curve_fit(func_turn, frequencies, brightness, sigma=err_brightness,
+                            popt, pcov = curve_fit(func_turn_fixed, frequencies, brightness, sigma=err_brightness,
                                                    maxfev=max_feval)
                             perr = np.sqrt(np.diag(pcov))
                             x_vals = np.linspace(lowest_freq,highest_freq,1000)
-                            y_vals = func_turn(x_vals, *popt)
+                            y_vals = func_turn_fixed(x_vals, *popt)
                             peak_idx = np.argmax(y_vals)
                             turnover_freq = x_vals[peak_idx]
                             peak_brightness = y_vals[peak_idx]
@@ -1022,8 +1026,8 @@ class ImageCube(object):
                                 popt_minus = popt - perr  # Parameters with subtracted errors
 
                                 # Perturbed turnover frequencies
-                                y_vals_plus = func_turn(x_vals, *popt_plus)
-                                y_vals_minus = func_turn(x_vals, *popt_minus)
+                                y_vals_plus = func_turn_fixed(x_vals, *popt_plus)
+                                y_vals_minus = func_turn_fixed(x_vals, *popt_minus)
                                 turnover_freq_plus = x_vals[np.argmax(y_vals_plus)]
                                 turnover_freq_minus = x_vals[np.argmax(y_vals_minus)]
 
@@ -1032,11 +1036,11 @@ class ImageCube(object):
                                     turnover_freq_minus - turnover_freq))
                             else:
                                 turnover[i,j] = 0
-                            chi_square[i,j] = np.sum(((np.array(brightness) - func_turn(np.array(frequencies), *popt)) / np.array(err_brightness))**2)
+                            chi_square[i,j] = np.sum(((np.array(brightness) - func_turn_fixed(np.array(frequencies), *popt)) / np.array(err_brightness))**2)
                             # Plot specific pixel
 
                             if (i, j) == specific_pixel:
-                                fitted_func = func_turn(np.array(frequencies), *popt)
+                                fitted_func = func_turn_fixed(np.array(frequencies), *popt)
                                 plot_pixel_fit(frequencies, brightness, err_brightness, fitted_func, specific_pixel,
                                                popt, turnover_freq)
 
@@ -1182,7 +1186,7 @@ class ImageCube(object):
         if freq=="":
             freq=self.freqs
         elif not isinstance(epoch, list):
-            raise Exception("Invalid input for 'epoch'.")
+            raise Exception("Invalid input for 'freq'.")
 
         cc=self.get_comp_collection(id)
         fit=cc.get_speed(freqs=freq)
@@ -1205,3 +1209,89 @@ class ImageCube(object):
             pass#TODO implement plot
 
         return fit
+
+    #TODO not working yet
+    def movie(self,freq="",noise="max",n_frames=50,interval=100,
+              start_mjd="",end_mjd="",fps=20,save="movie",**kwargs):
+
+        if freq=="":
+            freq=[f*1e-9 for f in self.freqs]
+        elif isinstance(freq, (float,int)):
+            freq=[freq]
+        elif isinstance(freq,list):
+            pass
+        else:
+            raise Exception("Please enter valid 'freq' value.")
+
+        print(freq)
+        for f in freq:
+            # create figure environment to plot the data on.
+            fig, ax = plt.subplots()
+
+            ind=closest_index(self.freqs,f*1e9)
+            image_datas=self.images[:,ind].flatten()
+
+            images=[]
+            lin_pols=[]
+            evpas=[]
+            times=[]
+            #Generate interpolator function
+            for image in image_datas:
+                images.append(image.Z)
+                lin_pols.append(image.lin_pol)
+                evpas.append(image.evpa)
+                times.append(image.mjd)
+
+            grid=(times,np.arange(len(images[0])),np.arange(len(images[0][0])))
+
+            #Stokes I
+            interp_i = RegularGridInterpolator(grid, images, method='linear', bounds_error=False,
+                                                  fill_value=None)
+            #Lin Pol
+            interp_linpol = RegularGridInterpolator(grid, lin_pols, method='linear', bounds_error=False,
+                                               fill_value=None)
+            #EVPA
+            interp_evpa = RegularGridInterpolator(grid, evpas, method='linear', bounds_error=False,
+                                               fill_value=None)
+
+            if noise=="max":
+                im_ind=np.argmax(self.noises[:,ind].flatten())
+            if noise=="min":
+                im_ind=np.argmin(self.noises[:,ind].flatten())
+
+            ref_image=self.images[:,ind].flatten()[im_ind]
+
+            if start_mjd=="":
+                start_mjd=np.min(self.images_mjd[:,ind].flatten())
+            if end_mjd=="":
+                end_mjd=np.max(self.images_mjd[:,ind].flatten())
+
+            mjd_frames=np.linspace(start_mjd,end_mjd,n_frames)
+            sys.stdout.write("Creating movie")
+            sys.stdout.write("\n")
+
+            def update(frame):
+                sys.stdout.write(f"\rProgress: {frame/n_frames*100:.1f}%")
+                sys.stdout.flush()
+                ax.cla()
+                #modify ref_image to interpolated values
+                current_mjd=mjd_frames[frame]
+                X,Y=np.meshgrid(np.arange(len(images[0])),np.arange(len(images[0][0])),indexing="ij")
+                query_points=np.array([np.full_like(X,current_mjd,dtype=float),X,Y]).T.reshape(-1,3)
+                ref_image.Z=interp_i(query_points).reshape(len(images[0]), len(images[0][0]))
+                ref_image.stokes_i = ref_image.Z
+                ref_image.lin_pol = interp_linpol(query_points).reshape(len(images[0]), len(images[0][0]))
+                ref_image.evpa = interp_evpa(query_points).reshape(len(images[0]), len(images[0][0]))
+                # TODO interpolate component positions!
+
+                #plot the ref_image
+                ref_image.plot(fig=fig, ax=ax, show=False, **kwargs)
+
+            #create animation
+            ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)
+
+            ani.save(f"{save}{f:.0f}GHz.mp4",writer="ffmpeg",fps=fps)
+            sys.stdout.write("\n")
+            sys.stdout.write(f"Movie for {f:.0f}GHz exported as '{save}{f:.0f}GHz.mp4'\n")
+
+

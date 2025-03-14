@@ -1,7 +1,14 @@
+LICENSE
+README.md
 setup.py
 vcat/__init__.py
+vcat/graph_generator.py
 vcat/helpers.py
-vcat/main.py
+vcat/image_cube.py
+vcat/image_data.py
+vcat/kinematics.py
+vcat/ridgeline.py
+vcat/stacking_helpers.py
 vcat.egg-info/PKG-INFO
 vcat.egg-info/SOURCES.txt
 vcat.egg-info/dependency_links.txt
@@ -18,8 +25,3 @@ vcat/VLBI_map_analysis/modules/fit_functions.py
 vcat/VLBI_map_analysis/modules/jet_calculus.py
 vcat/VLBI_map_analysis/modules/plotSet.py
 vcat/VLBI_map_analysis/modules/plot_functions.py
-vcat/alignment/__init__.py
-vcat/alignment/alignImages_FMP.py
-vcat/alignment/align_imagesEHTim.py
-vcat/alignment/align_imagesEHTim_FMP.py
-vcat/alignment/align_imagesEHTim_final.py

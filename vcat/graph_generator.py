@@ -19,7 +19,7 @@ import matplotlib.ticker as ticker
 from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
 from vcat.helpers import closest_index
-
+from vcat.kinematics import Component
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -621,10 +621,11 @@ class FitsImage(object):
 
                 for j in range(len(g_x)):
                     # plot component
+                    for i,comp in enumerate(self.clean_image.components):
+                        if comp.flux==g_flux[j]:
+                            comp_id=comp.component_number
+
                     if plot_comp_ids:
-                        for i,comp in enumerate(self.clean_image.components):
-                            if comp.flux==g_flux[j]:
-                                comp_id=comp.component_number
                         component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale, id=comp_id)
                     else:
                         component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
@@ -635,6 +636,13 @@ class FitsImage(object):
                         component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
                     except:
                         component_noise=self.clean_image.noise_3sigma
+
+                    #This is needed for the GUI
+                    component = Component(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], g_flux[j], g_date[j],
+                                          g_mjd[j], g_year[j], scale=scale, freq=self.freq, noise=component_noise,
+                                          beam_maj=beam_maj, beam_min=beam_min, beam_pa=beam_pa)
+
+                    self.components.append([component_plot, component])
 
         if plot_ridgeline:
             #plot ridgeline in image
