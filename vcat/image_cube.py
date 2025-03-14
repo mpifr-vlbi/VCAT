@@ -43,6 +43,7 @@ class ImageCube(object):
     def __init__(self,
                  image_data_list=[], #list of ImageData objects
                  date_tolerance=1, #date tolerance to consider "simultaneous" #TODO
+                 freq_tolerance=1, #frequency tolerance to consider the same #TODO
                  ):
         self.freqs=[]
         self.dates=[]
@@ -59,15 +60,17 @@ class ImageCube(object):
                 warnings.warn(f"ImageCube setup for source {self.name} but {image.name} detected in one input file, will skip it.",UserWarning)
                 skip=True
             if not skip:
-                self.freqs.append(image.freq)
-                self.dates.append(image.date)
-                self.mjds.append(image.mjd)
+                if not any(abs(num - image.freq) <= freq_tolerance*1e9 for num in self.freqs):
+                    self.freqs.append(image.freq)
+                if not any(abs(num - image.mjd) <= date_tolerance for num in self.mjds):
+                    self.dates.append(image.date)
+                    self.mjds.append(image.mjd)
                 images.append(image)
 
         image_data_list=images
-        self.freqs=np.sort(np.unique(self.freqs))
-        self.dates=np.sort(np.unique(self.dates))
-        self.mjds=np.sort(np.unique(self.mjds))
+        self.freqs=np.sort(self.freqs)
+        self.dates=np.sort(self.dates)
+        self.mjds=np.sort(self.mjds)
 
         self.images=np.empty((len(self.dates),len(self.freqs)),dtype=object)
         self.images_freq = np.empty((len(self.dates), len(self.freqs)), dtype=float)
@@ -77,10 +80,10 @@ class ImageCube(object):
         self.images_pas = np.empty((len(self.dates), len(self.freqs)), dtype=float)
         self.noises = np.empty((len(self.dates), len(self.freqs)), dtype=float)
 
-        for i,date in enumerate(self.dates):
+        for i,mjd in enumerate(self.mjds):
             for j, freq in enumerate(self.freqs):
                 for image in image_data_list:
-                    if image.date==date and image.freq==freq:
+                    if (abs(image.mjd-mjd)<=date_tolerance) and (abs(image.freq-freq)<=freq_tolerance*1e9):
                         self.images[i,j]=image
                         self.images_mjd[i,j]=image.mjd
                         self.images_freq[i,j]=image.freq
@@ -131,7 +134,10 @@ class ImageCube(object):
 
         #initialize image array
         images=[]
+        sys.stdout.write("Importing images:\n")
         for i in range(len(fits_files)):
+            sys.stdout.write(f"\rProgress: {i / (len(fits_files) - 1) * 100:.1f}%")
+
             fits_file = fits_files[i] if isinstance(fits_files, list) else ""
             uvf_file = uvf_files[i] if isinstance(uvf_files, list) else ""
             stokes_q_file = stokes_q_files[i] if isinstance(stokes_q_files, list) else ""
@@ -140,6 +146,8 @@ class ImageCube(object):
 
             images.append(ImageData(fits_file=fits_file,uvf_file=uvf_file,stokes_q=stokes_q_file,stokes_u=stokes_u_file,model=model_fits_file,**kwargs))
 
+
+        sys.stdout.write(f"\nImported {len(fits_files)} images successfully. \n")
         #reinitialize instance
         return ImageCube(image_data_list=images)
 
@@ -1118,8 +1126,11 @@ class ImageCube(object):
         #find avaialable component ids
         comp_ids=[]
         for image in self.images.flatten():
-            for comp in image.components:
-                comp_ids.append(comp.component_number)
+            try:
+                for comp in image.components:
+                    comp_ids.append(comp.component_number)
+            except:
+                pass
 
         comp_ids=np.unique(comp_ids)
 
@@ -1211,7 +1222,7 @@ class ImageCube(object):
         return fit
 
     #TODO not working yet
-    def movie(self,freq="",noise="max",n_frames=50,interval=100,
+    def movie(self,freq="",noise="max",n_frames=500,interval=200,
               start_mjd="",end_mjd="",fps=20,save="movie",**kwargs):
 
         if freq=="":
@@ -1223,7 +1234,6 @@ class ImageCube(object):
         else:
             raise Exception("Please enter valid 'freq' value.")
 
-        print(freq)
         for f in freq:
             # create figure environment to plot the data on.
             fig, ax = plt.subplots()
@@ -1271,21 +1281,21 @@ class ImageCube(object):
             sys.stdout.write("\n")
 
             def update(frame):
-                sys.stdout.write(f"\rProgress: {frame/n_frames*100:.1f}%")
+                sys.stdout.write(f"\rProgress: {frame/(n_frames-1)*100:.1f}%")
                 sys.stdout.flush()
                 ax.cla()
                 #modify ref_image to interpolated values
                 current_mjd=mjd_frames[frame]
                 X,Y=np.meshgrid(np.arange(len(images[0])),np.arange(len(images[0][0])),indexing="ij")
                 query_points=np.array([np.full_like(X,current_mjd,dtype=float),X,Y]).T.reshape(-1,3)
-                ref_image.Z=interp_i(query_points).reshape(len(images[0]), len(images[0][0]))
+                ref_image.Z=interp_i(query_points).reshape(len(images[0]), len(images[0][0])).T
                 ref_image.stokes_i = ref_image.Z
-                ref_image.lin_pol = interp_linpol(query_points).reshape(len(images[0]), len(images[0][0]))
-                ref_image.evpa = interp_evpa(query_points).reshape(len(images[0]), len(images[0][0]))
+                ref_image.lin_pol = interp_linpol(query_points).reshape(len(images[0]), len(images[0][0])).T
+                ref_image.evpa = interp_evpa(query_points).reshape(len(images[0]), len(images[0][0])).T
                 # TODO interpolate component positions!
 
                 #plot the ref_image
-                ref_image.plot(fig=fig, ax=ax, show=False, **kwargs)
+                ref_image.plot(fig=fig, ax=ax, show=False, title=f"MJD: {current_mjd:.0f}", **kwargs)
 
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)
