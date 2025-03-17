@@ -8,6 +8,7 @@ import vcat.VLBI_map_analysis.modules.fit_functions as ff
 import sys
 from scipy.optimize import curve_fit
 from vcat.helpers import closest_index
+from scipy.interpolate import interp1d
 
 
 class Component():
@@ -122,7 +123,7 @@ class Component():
                 "freq": self.freq, "tb": self.tb, "scale": self.scale}
 
 class ComponentCollection():
-    def __init__(self, components=[], name="",date_tolerance=1):
+    def __init__(self, components=[], name="",date_tolerance=1,freq_tolerance=1):
 
         #set redshift and scale (Assumes this is the same for all components)
         if len(components) > 0:
@@ -146,7 +147,7 @@ class ComponentCollection():
         freqs=[]
         epochs=[]
         for comp in components:
-            if comp.freq not in freqs:
+            if not any(abs(num - comp.freq) <= freq_tolerance * 1e9 for num in freqs):
                 freqs.append(comp.freq)
             if abs(comp.year-year_prev)>=date_tolerance/365.25:
                 year_prev = comp.year
@@ -173,13 +174,19 @@ class ComponentCollection():
         self.tbs_lower_limit= np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.freqs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.ids = np.empty((self.n_epochs,self.n_freqs),dtype=int)
+        self.majs =  np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.mins = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.posas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.delta_x_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.delta_y_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
 
         for i, year in enumerate(epochs):
             for j, freq in enumerate(freqs):
                 for comp in components:
-                    if comp.year-year >=0 and (comp.year-year)<=date_tolerance/365.25 and comp.freq==freq:
+                    if comp.year-year >=0 and (comp.year-year)<=date_tolerance/365.25 and (abs(comp.freq-freq)<=freq_tolerance*1e9):
                         self.components[i,j]=comp
                         self.year[i,j]=comp.year
+                        self.mjds[i,j]=comp.mjd
                         self.dist[i,j]=comp.distance_to_core * self.scale
                         self.dist_err[i,j]=comp.maj*0.1 * self.scale #TODO fix this!
                         self.xs[i,j]=comp.delta_x_est
@@ -189,6 +196,11 @@ class ComponentCollection():
                         self.tbs_lower_limit[i,j]=comp.tb_lower_limit
                         self.freqs[i,j]=comp.freq
                         self.ids[i,j]=comp.component_number
+                        self.majs[i,j]=comp.maj
+                        self.mins[i,j]=comp.min
+                        self.posas[i,j]=comp.pos
+                        self.delta_x_ests[i,j]=comp.delta_x_est
+                        self.delta_y_ests[i,j]=comp.delta_y_est
 
 
     def __str__(self):
@@ -445,6 +457,31 @@ class ComponentCollection():
                     "sn_p":sn_p,"sn_sd":sn_sd})
 
         return results
+
+    def interpolate(self, mjd, freq):
+        freq_ind=closest_index(self.freqs_distinct,freq*1e9)
+
+        #obtain values to interpolate
+        mjds=self.mjds[:,freq_ind].flatten()
+        if mjd<np.min(mjds) or mjd>np.max(mjds):
+            return None
+        year=interp1d(mjds,self.year[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        maj=interp1d(mjds,self.majs[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        min=interp1d(mjds,self.mins[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        pos=interp1d(mjds,self.posas[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        x=interp1d(mjds,self.xs[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        y=interp1d(mjds,self.ys[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        flux=interp1d(mjds,self.fluxs[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        delta_x_est=interp1d(mjds,self.delta_x_ests[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+        delta_y_est=interp1d(mjds,self.delta_y_ests[:,freq_ind].flatten(),kind="linear",fill_value="extrapolate")(mjd)
+
+
+        return Component(x, y, maj, min, pos, flux, "", mjd, year, delta_x_est=delta_x_est, delta_y_est=delta_y_est,
+                         component_number=self.components[:,freq_ind].flatten()[0].component_number,
+                         is_core=self.components[:,freq_ind].flatten()[0].is_core, redshift=0,
+                         scale=self.components[:,freq_ind].flatten()[0].scale,freq=self.freqs_distinct[freq_ind],noise=0,
+                         beam_maj=self.components[:,freq_ind].flatten()[0].beam_maj, beam_min=self.components[:,freq_ind].flatten()[0].beam_min,
+                         beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
 
 
 def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,flux,noise):

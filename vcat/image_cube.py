@@ -49,6 +49,8 @@ class ImageCube(object):
         self.dates=[]
         self.mjds=[]
         self.name=""
+        self.date_tolerance=date_tolerance
+        self.freq_tolerance=freq_tolerance
 
         images=[]
         #go through image data list and extract some info
@@ -95,7 +97,7 @@ class ImageCube(object):
         self.shape=self.images.shape
 
         #assign component collections
-        self.comp_collections=self.get_comp_collections()
+        self.comp_collections=self.get_comp_collections(date_tolerance,freq_tolerance)
 
     #print out some basic details
     def __str__(self):
@@ -131,6 +133,9 @@ class ImageCube(object):
             model_fits_files=sort_fits_by_date_and_frequency(model_fits_files)
         except:
             warning.warn("model_fits_files need to be .fits file! Will continue assuming the .mod files are sorted by date and frequency, ascending!")
+
+        if len(fits_files)==0 and len(model_fits_files)>0:
+            fits_files=model_fits_files
 
         #initialize image array
         images=[]
@@ -1122,7 +1127,7 @@ class ImageCube(object):
 
         raise Exception(f"No component collection with id {comp_id} found.")
 
-    def get_comp_collections(self):
+    def get_comp_collections(self,date_tolerance=1,freq_tolerance=1):
         #find avaialable component ids
         comp_ids=[]
         for image in self.images.flatten():
@@ -1140,10 +1145,10 @@ class ImageCube(object):
             comps=[]
             for image in self.images.flatten():
                 for comp in image.components:
-                    if comp.component_number==id:
+                    if comp.component_number==id and comp.component_number!=-1:
                         comps.append(comp)
 
-            component_collections.append(ComponentCollection(components=comps,name="Component "+str(id)))
+            component_collections.append(ComponentCollection(components=comps,name="Component "+str(id),date_tolerance=date_tolerance,freq_tolerance=freq_tolerance))
 
         return component_collections
 
@@ -1223,7 +1228,7 @@ class ImageCube(object):
 
     #TODO not working yet
     def movie(self,freq="",noise="max",n_frames=500,interval=200,
-              start_mjd="",end_mjd="",fps=20,save="movie",**kwargs):
+              start_mjd="",end_mjd="",fps=20,save="movie",plot_components=False,title="",**kwargs):
 
         if freq=="":
             freq=[f*1e-9 for f in self.freqs]
@@ -1271,6 +1276,14 @@ class ImageCube(object):
 
             ref_image=self.images[:,ind].flatten()[im_ind]
 
+            #get levs
+            plot=ref_image.plot(show=False,**kwargs)
+            plt.close()
+            levs_linpol = plot.levs_linpol
+            levs1_linpol = plot.levs1_linpol
+            levs = plot.levs
+            levs1 = plot.levs1
+
             if start_mjd=="":
                 start_mjd=np.min(self.images_mjd[:,ind].flatten())
             if end_mjd=="":
@@ -1292,10 +1305,23 @@ class ImageCube(object):
                 ref_image.stokes_i = ref_image.Z
                 ref_image.lin_pol = interp_linpol(query_points).reshape(len(images[0]), len(images[0][0])).T
                 ref_image.evpa = interp_evpa(query_points).reshape(len(images[0]), len(images[0][0])).T
-                # TODO interpolate component positions!
 
                 #plot the ref_image
-                ref_image.plot(fig=fig, ax=ax, show=False, title=f"MJD: {current_mjd:.0f}", **kwargs)
+                plot=ref_image.plot(fig=fig, ax=ax, show=False, title=f"MJD: {current_mjd:.0f}",
+                               levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,**kwargs)
+
+                #plot_components if necessary:
+                if plot_components:
+                    for cc in self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance):
+                        #interpolate component
+                        comp_interpolated=cc.interpolate(mjd=current_mjd,freq=f)
+                        #try plotting it (comp_interpolated could be None if mjd is out of range)
+                        try:
+                            #plot the interpolated component
+                            plot.plotComponent(comp_interpolated.x,comp_interpolated.y,comp_interpolated.maj,comp_interpolated.min,
+                                               comp_interpolated.pos,comp_interpolated.scale)
+                        except:
+                            pass
 
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)

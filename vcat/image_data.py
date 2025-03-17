@@ -73,6 +73,10 @@ class ImageData(object):
                  error=0.05, #relative error flux densities
                  difmap_path=""):
 
+        if model=="":
+            model_inp=False
+        else:
+            model_inp=True
         self.file_path = fits_file
         self.fits_file = fits_file
         self.lin_pol=lin_pol
@@ -324,6 +328,7 @@ class ImageData(object):
     
         #calculate image noise according to the method selected
         unused, levs_i = get_sigma_levs(self.Z, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for stokes i
+
         try:
             unused, levs_pol = get_sigma_levs(self.lin_pol, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for polarization
         except:
@@ -396,10 +401,10 @@ class ImageData(object):
         self.components=[]
 
 
-        if self.model_file_path!=self.fits_file:
+        if model_inp:
             #only do this if a model was specified explicitely
             core_id=0
-            for ind,comp in self.model.reset_index().iterrows():
+            for ind,comp in self.model.sort_values(by='Flux', ascending=False).reset_index().iterrows():
                 #use provided comp_id
                 try:
                     comp_id=comp_ids[ind]
@@ -416,6 +421,7 @@ class ImageData(object):
                     core_id=ind
                 else:
                     is_core=False
+                    
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
                         comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
                                     redshift=redshift, is_core=is_core,beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,

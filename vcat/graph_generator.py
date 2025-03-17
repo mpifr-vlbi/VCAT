@@ -18,8 +18,9 @@ import colormaps as cmaps
 import matplotlib.ticker as ticker
 from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
-from vcat.helpers import closest_index
+from vcat.helpers import closest_index, get_date, get_freq
 from vcat.kinematics import Component
+import warnings
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -96,7 +97,7 @@ class KinematicPlot(object):
         dates=[]
 
         for ind,uvf in enumerate(uvf_files):
-            df=getComponentInfo(modelfit_files[ind],scale=self.clean_image.scale)
+            df=getComponentInfo(modelfit_files[ind])
             freq=get_freq(modelfit_files[ind])
             write_mod_file(df,"modelfit.mod",freq,adv=True)
             chi_square=get_model_chi_square_red(uvf,"modelfit.mod",difmap_path)
@@ -459,6 +460,8 @@ class FitsImage(object):
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
                                   label="Fractional Linear Polarization",do_colorbar=self.do_colorbar)
+        elif (plot_mode=="lin_pol" or plot_mode=="frac_pol"):
+            warnings.warn("Trying to plot polarization but no polarization loaded!",UserWarning)
 
         if plot_mode=="residual":
             if plot_polar:
@@ -467,10 +470,12 @@ class FitsImage(object):
             else:
                 Z=self.clean_image.residual_map
             self.plotColormap(Z,im_color,levs,levs1,extent,label="Residual Flux Density [Jy/beam]", do_colorbar=self.do_colorbar)
-        if plot_mode=="spix":
+        if plot_mode=="spix" and np.sum(self.clean_image.spix)!=0:
             self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
+        elif plot_mode=="spix":
+            warnings.warn("Trying to plot spectral index but no spectral index available!", UserWarning)
 
-        if plot_mode=="rm":
+        if plot_mode=="rm" and np.sum(self.clean_image.rm)!=0:
             if plot_polar:
                 _,_,Z=convert_image_to_polar(X,Y, self.clean_image.rm)
                 Z=Z.T
@@ -479,6 +484,8 @@ class FitsImage(object):
 
             rm=np.ma.masked_where((abs(Z) > 20000),Z)
             self.plotColormap(rm, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
+        elif plot_mode=="rm":
+            warnings.warn("Trying to plot rotation measure but no rotation measure available!", UserWarning)
 
         if plot_mode == "turnover_freq" or plot_mode=="turnover":
             if plot_polar:
