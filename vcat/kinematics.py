@@ -202,9 +202,15 @@ class ComponentCollection():
                         self.delta_x_ests[i,j]=comp.delta_x_est
                         self.delta_y_ests[i,j]=comp.delta_y_est
 
+        if len(np.unique(self.ids.flatten()))!=1:
+            numbers=np.unique(self.ids.flatten())
+            raise Exception(f"Used components with different ID numbers ({numbers}) as component collection!")
+        else:
+            self.id=np.unique(self.ids.flatten())[0]
+
 
     def __str__(self):
-        line1=f"Component Collection of ID {self.ids[0][0]} with {len(self.year.flatten())} components.\n"
+        line1=f"Component Collection of ID {self.id} with {len(self.year.flatten())} components.\n"
         line2=f"{len(self.ids[0,:].flatten())} Frequencies and {len(self.ids[:,0].flatten())} epochs.\n"
         return line1+line2
 

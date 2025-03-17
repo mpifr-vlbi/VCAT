@@ -1148,9 +1148,38 @@ class ImageCube(object):
                     if comp.component_number==id and comp.component_number!=-1:
                         comps.append(comp)
 
-            component_collections.append(ComponentCollection(components=comps,name="Component "+str(id),date_tolerance=date_tolerance,freq_tolerance=freq_tolerance))
+            if id!=-1:
+                component_collections.append(ComponentCollection(components=comps,name="Component "+str(id),date_tolerance=date_tolerance,freq_tolerance=freq_tolerance))
 
         return component_collections
+
+    def import_component_association(self,file):
+
+        df=pd.read_csv(file)
+
+        for i in range(len(self.images)):
+            for j in range(len(self.images[0])):
+                image = self.images[i, j]
+                for k, comp in enumerate(image.components):
+                    x = comp.x
+                    y = comp.y
+                    flux = comp.flux
+                    mjd = comp.mjd
+
+                    # Find the closest component in the dataframe
+                    df['distance'] = np.sqrt(
+                        (df['x'] - x) ** 2 +
+                        (df['y'] - y) ** 2 +
+                        (df['flux'] - flux) ** 2 +
+                        (df['mjd'] - mjd) ** 2
+                    )
+                    closest_row = df.loc[df['distance'].idxmin()]
+
+                    # Assign new component number and is_core with type casting
+                    self.images[i, j].components[k].is_core = bool(closest_row["is_core"])
+                    self.images[i, j].components[k].component_number = int(closest_row["component_number"])
+
+        self.update_comp_collections()
 
     def update_comp_collections(self):
         self.comp_collections=self.get_comp_collections()
@@ -1226,9 +1255,11 @@ class ImageCube(object):
 
         return fit
 
-    #TODO not working yet
+
     def movie(self,freq="",noise="max",n_frames=500,interval=200,
               start_mjd="",end_mjd="",fps=20,save="movie",plot_components=False,title="",**kwargs):
+
+        #TODO sanity check if all images have same dimensions, otherwise it will crash
 
         if freq=="":
             freq=[f*1e-9 for f in self.freqs]
