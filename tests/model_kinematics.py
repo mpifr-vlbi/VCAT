@@ -19,5 +19,5 @@ im_cube.import_component_association("../dataset_example/0506+056_kinematic/comp
 #do kinematic fit
 im_cube.get_speed(order=3,show_plot=True)
 
-#im_cube.movie(plot_components=True,xlim=[5,-5],ylim=[-7,3])
+im_cube.movie(plot_components=True,fill_components=True,n_frames=100,interval=300,xlim=[5,-5],ylim=[-7,3])
 

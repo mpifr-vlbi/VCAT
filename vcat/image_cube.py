@@ -20,6 +20,8 @@ from astropy.constants import c
 from scipy.optimize import curve_fit
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.animation as animation
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 
 class ImageCube(object):
 
@@ -1296,7 +1298,7 @@ class ImageCube(object):
             plot = KinematicPlot()
             for ind, cc in enumerate(ccs):
 
-                fit_x,fit_y=cc.get_speed2d(freqs=freq,order=order)
+                fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order)
 
                 tmin = np.min(cc.year.flatten())
                 tmax = np.max(cc.year.flatten())
@@ -1316,8 +1318,9 @@ class ImageCube(object):
 
         return fits
 
-    def movie(self,freq="",noise="max",n_frames=500,interval=200,
-              start_mjd="",end_mjd="",fps=20,save="movie",plot_components=False,title="",**kwargs):
+    def movie(self,freq="",noise="max",n_frames=500,interval=50,
+              start_mjd="",end_mjd="",fps=20,save="",plot_components=False,fill_components=False,
+              component_cmap="hot_r",title="",**kwargs):
 
         #TODO sanity check if all images have same dimensions, otherwise it will crash
 
@@ -1408,17 +1411,28 @@ class ImageCube(object):
                         comp_interpolated=cc.interpolate(mjd=current_mjd,freq=f)
                         #try plotting it (comp_interpolated could be None if mjd is out of range)
                         try:
+                            #check if we want to colorcode the component flux
+                            if fill_components:
+                                colormap=cm.get_cmap(component_cmap)
+                                flux_color=colormap(colors.Normalize(vmin=np.min(cc.fluxs),vmax=np.max(cc.fluxs))(comp_interpolated.flux))
+                            else:
+                                flux_color=""
                             #plot the interpolated component
                             plot.plotComponent(comp_interpolated.x,comp_interpolated.y,comp_interpolated.maj,comp_interpolated.min,
-                                               comp_interpolated.pos,comp_interpolated.scale)
+                                               comp_interpolated.pos,comp_interpolated.scale,fillcolor=flux_color)
                         except:
                             pass
 
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)
 
-            ani.save(f"{save}{f:.0f}GHz.mp4",writer="ffmpeg",fps=fps)
+            if save=="":
+                save=f"movie_{f:.0f}GHz.mp4"
+            elif ".mp4" not in save:
+                save=save+".mp4"
+
+            ani.save(save,writer="ffmpeg",fps=round(1/interval*1000))
             sys.stdout.write("\n")
-            sys.stdout.write(f"Movie for {f:.0f}GHz exported as '{save}{f:.0f}GHz.mp4'\n")
+            sys.stdout.write(f"Movie for {f:.0f}GHz exported as '{save}'\n")
 
 

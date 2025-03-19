@@ -893,13 +893,17 @@ class FitsImage(object):
                 cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
-    def plotComponent(self,x,y,maj,min,pos,scale,id=""):
+    def plotComponent(self,x,y,maj,min,pos,scale,fillcolor="",id=""):
 
-        # Plotting ellipses
-        comp = Ellipse([x * scale, y * scale], maj * scale, min * scale,angle= -pos + 90,
+        if fillcolor=="":
+            # Plotting ellipses
+            comp = Ellipse([x * scale, y * scale], maj * scale, min * scale,angle= -pos + 90,
                        fill=False, zorder=2, color=self.component_color, lw=0.5)
-        ellipse=self.ax.add_artist(comp)
-
+            ellipse=self.ax.add_artist(comp)
+        else:
+            comp = Ellipse([x * scale, y * scale], maj * scale, min * scale, angle=-pos + 90,
+                           fill=True, zorder=4, facecolor=fillcolor,edgecolor=self.component_color, lw=0.5)
+            ellipse = self.ax.add_artist(comp)
         #deal with point like components
         if maj==0 and min==0:
             maj=0.1/scale
@@ -916,8 +920,8 @@ class FitsImage(object):
         min2_x = x + np.sin(-np.pi / 180 * (pos + 90)) * min * 0.5
         min2_y = y - np.cos(-np.pi / 180 * (pos + 90)) * min * 0.5
 
-        line1=self.ax.plot([maj1_x * scale, maj2_x * scale], [maj1_y * scale, maj2_y * scale], color=self.component_color, lw=0.5)
-        line2=self.ax.plot([min1_x * scale, min2_x * scale], [min1_y * scale, min2_y * scale], color=self.component_color, lw=0.5)
+        line1=self.ax.plot([maj1_x * scale, maj2_x * scale], [maj1_y * scale, maj2_y * scale], zorder=2, color=self.component_color, lw=0.5)
+        line2=self.ax.plot([min1_x * scale, min2_x * scale], [min1_y * scale, min2_y * scale], zorder=2, color=self.component_color, lw=0.5)
 
         if id!="":
             self.ax.text(maj1_x*scale,maj1_y*scale,str(id),fontsize=10)

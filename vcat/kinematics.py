@@ -270,6 +270,7 @@ class ComponentCollection():
                 else:
                     linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled')
 
+                #TODO check and update those parameters for order>1!!!!
                 speed = linear_fit[0]
                 speed_err = np.sqrt(cov_matrix[0, 0])
                 y0 = linear_fit[-1] - t_mid*speed
