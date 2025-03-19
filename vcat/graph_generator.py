@@ -144,6 +144,34 @@ class KinematicPlot(object):
         self.ax.set_xscale(x)
         self.ax.set_yscale(y)
 
+    def plot_kinematic_fit(self,x_min,x_max,fit_params,color,t_mid=0,label=""):
+        fit=np.poly1d(fit_params)
+        x_values=np.linspace(x_min,x_max,1000)
+        self.ax.plot(x_values,fit(x_values-t_mid),color,label=label)
+
+    def plot_kinematic_2d_fit(self,x_min,x_max,fit_params_x,fit_params_y,color,t_mid=0,label=""):
+
+        fit_x = np.poly1d(fit_params_x)
+        fit_y = np.poly1d(fit_params_y)
+        x_values = np.linspace(x_min, x_max, 1000)
+        x_cor = x_values - t_mid
+        """
+        #calculate derivative to get speed > alternative version to calculate distance to core from 2d fit
+        derivative_params_x=[]
+        derivative_params_y=[]
+        for ind in range(1,len(fit_params_x)-1):
+            derivative_params_x.append((ind+1)*fit_params_x[ind])
+            derivative_params_y.append((ind+1)*fit_params_y[ind])
+        derivative_params_x.append(fit_params_x[0])
+        derivative_params_y.append(fit_params_y[0])
+        fit_x_speed=np.poly1d(derivative_params_x)
+        fit_y_speed=np.poly1d(derivative_params_y)
+        #calculate distance to core (projected on current velocity vector)
+        distance=(fit_x(x_cor)*fit_x_speed(x_cor)+fit_y(x_cor)*fit_y_speed(x_cor))/np.sqrt(fit_x_speed(x_cor)**2+fit_y_speed(x_cor)**2)
+        """
+        distance=np.sqrt(fit_x(x_cor)**2+fit_y(x_cor)**2)
+        self.ax.plot(x_values,distance,color=color,label=label)
+
     def plot_linear_fit(self,x_min,x_max,slope,y0,color,label=""):
         def y(x):
             return slope*x+y0

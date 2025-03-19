@@ -217,25 +217,25 @@ class ComponentCollection():
     def length(self):
         return len(self.components)
 
-    def get_speed2d(self,freqs="",cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
+    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
 
         #we use the one dimensional function for x and y separately
         dist=self.dist
 
         #do x_fit
-        self.dist=self.delta_x_est
-        x_fits=self.get_speed(freqs=freqs,cosmo=cosmo)
+        self.dist=self.delta_x_ests*self.scale
+        x_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo)
 
         #do y_fit
-        self.dist=self.delta_y_est
-        y_fits=self.get_speed(freqs=freqs,cosmo=cosmo)
+        self.dist=self.delta_y_ests*self.scale
+        y_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo)
 
         #reset dist
         self.dist=dist
 
         return x_fits, y_fits
 
-    def get_speed(self,freqs="",cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
+    def get_speed(self,freqs="",order=1,weighted_fit=False, cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
 
 
         if freqs=="":
@@ -265,27 +265,30 @@ class ComponentCollection():
                 t_mid = (np.min(year) + np.max(year)) / 2.
                 time = np.array(year) - t_mid
 
-                linear_fit, cov_matrix = np.polyfit(time, dist, 1, cov='scaled')  # ,w=1./dist_err)
+                if weighted_fit:
+                    linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled', w=1./dist_err)
+                else:
+                    linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled')
 
                 speed = linear_fit[0]
                 speed_err = np.sqrt(cov_matrix[0, 0])
-                y0 = linear_fit[1] - t_mid*speed
-                y0_err = np.sqrt(cov_matrix[1, 1])
+                y0 = linear_fit[-1] - t_mid*speed
+                y0_err = np.sqrt(cov_matrix[-1, -1])
                 beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
                         cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
                 beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
                         cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
                 d_crit = np.sqrt(1 + beta_app ** 2)
                 d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
-                dist_0_est = linear_fit[1] - speed * t_mid
-                t_0 = - linear_fit[1] / speed + t_mid
+                dist_0_est = linear_fit[-1] - speed * t_mid
+                t_0 = - linear_fit[-1] / speed + t_mid
                 sum_x = time / np.array(dist_err) ** 2
                 sum_x2 = time ** 2 / np.array(dist_err) ** 2
                 sum_err = 1. / np.array(dist_err) ** 2
                 Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
-                t_0_err = np.sqrt((cov_matrix[1, 1] / speed ** 2) + (linear_fit[1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
-                                  2 * linear_fit[1] / speed ** 3 * np.sum(sum_x) / Delta)
-                red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[1], time, dist, dist_err, len(time),
+                t_0_err = np.sqrt((cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
+                                  2 * linear_fit[-1] / speed ** 3 * np.sum(sum_x) / Delta)
+                red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[-1], time, dist, dist_err, len(time),
                                            len(linear_fit))
 
             else:
@@ -301,10 +304,14 @@ class ComponentCollection():
                 t_0 = 0
                 t_0_err = 0
                 red_chi_sqr = 0
+                linear_fit=0
+                cov_matrix=0
+                t_mid=0
 
             results.append({"name": self.name, "speed": float(speed), "speed_err": float(speed_err), "y0": y0, "y0_err": y0_err,
                     "beta_app": float(beta_app), "beta_app_err": float(beta_app_err), "d_crit": float(d_crit), "d_crit_err": float(d_crit_err),
-                    "dist_0_est": dist_0_est, "t_0": t_0, "t_0_err": t_0_err, "red_chi_sqr": red_chi_sqr})
+                    "dist_0_est": dist_0_est, "t_0": t_0, "t_0_err": t_0_err, "red_chi_sqr": red_chi_sqr,
+                    "t_mid": t_mid, "linear_fit": linear_fit, "cov_matrix": cov_matrix})
 
         return results
 

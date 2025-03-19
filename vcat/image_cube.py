@@ -1228,9 +1228,8 @@ class ImageCube(object):
 
         return fit
 
-    def get_speed(self,id="",freq="",show_plot=False, colors=["black","red","blue","orange"]):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=["black","red","blue","orange"]):
 
-        #TODO enable for multiple ids
         if freq=="":
             freq=self.freqs
         elif not isinstance(epoch, list):
@@ -1252,40 +1251,70 @@ class ImageCube(object):
             plot = KinematicPlot()
             for ind,cc in enumerate(ccs):
 
-                fit=cc.get_speed(freqs=fr)
+                fit=cc.get_speed(freqs=fr,order=order)
 
-                if show_plot:
-                    for f in fit:
-                        tmin=np.min(cc.year.flatten())
-                        tmax=np.max(cc.year.flatten())
+                for f in fit:
+                    tmin=np.min(cc.year.flatten())
+                    tmax=np.max(cc.year.flatten())
 
-                        ind = ind % len(colors)
-                        color=colors[ind]
 
-                        plot.plot_kinematics(cc,color=color)
-                        plot.plot_linear_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
-                                             f["speed"],f["y0"],color=color,label=cc.name)
+                    ind = ind % len(colors)
+                    color=colors[ind]
 
-                fits.append(fit[0])
-            plt.show()
+                    plot.plot_kinematics(cc,color=color)
+                    plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
+                                         f["linear_fit"],color=color,label=cc.name,t_mid=f["t_mid"])
+
+                    fits.append(f)
+
+            if show_plot:
+                plt.legend()
+                plt.show()
 
         return fits
 
-    def get_speed2d(self,id,freq="",plot=False):
+    def get_speed2d(self,id="",order=1,freq="",show_plot=False,colors=["black","red","blue","orange"]):
 
-        #TODO enable for multiple ids
-        if freq=="":
-            freq=self.freqs
+        if freq == "":
+            freq = self.freqs
         elif not isinstance(epoch, list):
-            raise Exception("Invalid input for 'epoch'.")
+            raise Exception("Invalid input for 'freq'.")
 
-        cc=self.get_comp_collection(id)
-        fit=cc.get_speed2d(freqs=freq)
+        if id == "":
+            # do it for all components
+            ccs = self.get_comp_collections(date_tolerance=self.date_tolerance, freq_tolerance=self.freq_tolerance)
+        elif isinstance(id, list):
+            ccs = []
+            for i in id:
+                ccs.append(self.get_comp_collection(i))
+        else:
+            raise Exception("Invalid input for 'id'.")
 
-        if plot:
-            pass#TODO implement plot
+        fits = []
+        for fr in freq:
+            # One plot per frequency with all components
+            plot = KinematicPlot()
+            for ind, cc in enumerate(ccs):
 
-        return fit
+                fit_x,fit_y=cc.get_speed2d(freqs=freq,order=order)
+
+                tmin = np.min(cc.year.flatten())
+                tmax = np.max(cc.year.flatten())
+
+                ind = ind % len(colors)
+                color = colors[ind]
+
+                plot.plot_kinematics(cc,color=color)
+                plot.plot_kinematic_2d_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
+                                         fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
+                                           color=color,label=cc.name,t_mid=fit_x[0]["t_mid"])
+
+                fits.append([fit_x[0],fit_y[0]])
+            if show_plot:
+                plt.legend()
+                plt.show()
+
+        return fits
 
     def movie(self,freq="",noise="max",n_frames=500,interval=200,
               start_mjd="",end_mjd="",fps=20,save="movie",plot_components=False,title="",**kwargs):
