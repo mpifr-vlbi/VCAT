@@ -361,8 +361,9 @@ class ImageCube(object):
 
         if mode=="all":
             for ind, image in enumerate(self.images.flatten()):
-                sys.stdout.write(f"\rProgress: {ind / (len(self.images.flatten()) - 1) * 100:.1f}%")
-                sys.stdout.flush()
+                if len(self.images.flatten())>1:
+                    sys.stdout.write(f"\rProgress: {ind / (len(self.images.flatten()) - 1) * 100:.1f}%")
+                    sys.stdout.flush()
 
                 new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,
                                         pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
@@ -377,8 +378,9 @@ class ImageCube(object):
 
                 image_select=self.images[:,i].flatten()
                 for ind2,image in enumerate(image_select):
-                    sys.stdout.write(f"\rProgress: {(i+1)*ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
-                    sys.stdout.flush()
+                    if len(self.images.flatten()) > 1:
+                        sys.stdout.write(f"\rProgress: {(i+1)*ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
+                        sys.stdout.flush()
 
                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
@@ -392,8 +394,9 @@ class ImageCube(object):
 
                 image_select=self.images[i,:].flatten()
                 for ind2, image in enumerate(image_select):
-                    sys.stdout.write(f"\rProgress: {(i + 1) * ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
-                    sys.stdout.flush()
+                    if len(self.images.flatten()) > 1:
+                        sys.stdout.write(f"\rProgress: {(i + 1) * ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
+                        sys.stdout.flush()
                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
         else:
