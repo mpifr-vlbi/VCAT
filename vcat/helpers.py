@@ -19,6 +19,7 @@ from numpy import linalg
 import scipy.ndimage
 import scipy.signal
 from scipy.interpolate import RegularGridInterpolator,griddata
+import warnings
 
 # takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list
@@ -60,7 +61,9 @@ def get_sigma_levs(image,  # 2d array/list
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
 
-    elif noise_method=="box":
+    if noise_method=="box" or (noise_method=="Histogram Fit" and levs1[0]<=0):
+        if (noise_method=="Histogram Fit" and levs1[0]<=0):
+            warnings.warn("Could not do Histogram Fit for noise, will do 'box' method", UserWarning)
         #determine image rms from box at the bottom left corner with size of 1/10th of the image dimension
         noise = 1.8*np.std(image[0:round(len(image)/10),0:round(len(image[0])/10)]) #factor 1.8 from self-cal errors
         levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)

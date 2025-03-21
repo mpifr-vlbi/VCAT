@@ -4,15 +4,8 @@ from astropy.io import fits
 import os
 from astropy.time import Time
 import sys
-from vcat.image_data import ImageData
-from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
-                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit)
-from vcat.graph_generator import MultiFitsImage, EvolutionPlot, KinematicPlot
-from vcat.image_data import ImageData
 import matplotlib.pyplot as plt
 from functools import partial
-from vcat.kinematics import ComponentCollection
-from vcat.stacking_helpers import stack_fits, stack_pol_fits
 import warnings
 import scipy.optimize as opt
 import numpy.ma as ma
@@ -22,6 +15,13 @@ from scipy.interpolate import RegularGridInterpolator
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+from vcat.image_data import ImageData
+from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
+                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit)
+from vcat.graph_generator import MultiFitsImage, EvolutionPlot, KinematicPlot
+from vcat.image_data import ImageData
+from vcat.kinematics import ComponentCollection
+from vcat.stacking_helpers import stack_fits, stack_pol_fits
 
 class ImageCube(object):
 
