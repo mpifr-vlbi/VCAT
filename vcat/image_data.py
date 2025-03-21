@@ -786,7 +786,6 @@ class ImageData(object):
 
         return plot
 
-
     def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,useDIFMAP=True,comp_ids=""):
 
         if ((self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp) or auto_regrid:
@@ -912,7 +911,6 @@ class ImageData(object):
 
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
-
 
     def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         """
@@ -1191,7 +1189,6 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
 
-
     def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         #for shifting we can just use the restore option with shift parameters, not specifying a beam
         try:
@@ -1279,7 +1276,6 @@ class ImageData(object):
 
         if mask_type == 'reset':
             self.mask=np.zeros_like(self.Z)
-
 
     def rotate(self,angle,useDIFMAP=True,reshape=False,order=1):
 
@@ -1522,7 +1518,6 @@ class ImageData(object):
 
         return x_values, intensity_profile
 
-
     def get_ridgeline(self,method="slices",angle_for_slices=0,auto_rotate=True,jet_angle="",
                       cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",start_radius=0,chi_sq_val=100.0,err_FWHM=0.1):
 
@@ -1648,7 +1643,6 @@ class ImageData(object):
                 if comp.component_number in new_ids:
                     #in that case we will reset the component id to avoid duplication
                     self.components[ind].component_number=-1
-
 
     def set_core_component(self,id):
 

@@ -375,7 +375,6 @@ def PXPERBEAM(b_maj,b_min,px_inc):
     PXPERBEAM = beam_area/(px_inc**2)
     return PXPERBEAM
 #
-
 def Jy2JyPerBeam(jpp,b_maj,b_min,px_inc):
     """Converts Jy/px to Jy/beam
         Args:
@@ -496,7 +495,6 @@ def get_model_chi_square_red(uvf_file,mod_file,difmap_path):
     os.system("rm -rf difmap.log")
     return chi_sq_red
 
-
 def format_scientific(number):
     # Format number in scientific notation
     sci_str = "{:.0e}".format(number)
@@ -608,7 +606,7 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
             _pos = posas[beam_ind]
         else:
             print('could not derive max beam, defaulting to common beam.\n')
-            return common_beam(majs,mins,posas,arg="common")
+            return get_common_beam(majs,mins,posas,arg="common")
         sys.stdout.write(' Will use max beam.\n')
     elif arg=='median':
         _maj = np.median(majs)
@@ -688,7 +686,6 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
     sys.stdout.write("{} beam calculated: {}\n".format(arg,common_beam))
     return common_beam
 
-
 def elliptical_gaussian_kernel(size_x, size_y, sigma_x, sigma_y, theta):
     """Generate an elliptical Gaussian kernel with rotation."""
     y, x = np.meshgrid(np.linspace(-size_y//2, size_y//2, size_y), np.linspace(-size_x//2, size_x//2, size_x))
@@ -708,11 +705,9 @@ def convolve_with_elliptical_gaussian(image, sigma_x, sigma_y, theta):
     convolved = scipy.signal.fftconvolve(image, kernel, mode='same')
     return convolved
 
-
 def get_frequency(filepath):
     with fits.open(filepath) as hdu_list:
         return float(hdu_list[0].header["CRVAL3"])
-
 
 def sort_fits_by_date_and_frequency(fits_files):
     if fits_files!="":
@@ -755,7 +750,6 @@ def sort_uvf_by_date_and_frequency(uvf_files):
         return uvf_files.tolist()
     else:
         return uvf_files
-
 
 def closest_index(lst, target):
     return min(range(len(lst)), key=lambda i: abs(lst[i] - target))
@@ -863,6 +857,3 @@ def convert_image_to_polar(X,Y,Z,nrad="",ntheta=361):
     Z_polar=np.roll(Z_polar,shift=-ind,axis=0)
 
     return R, Theta, Z_polar
-
-
-

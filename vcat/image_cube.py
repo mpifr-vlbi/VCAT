@@ -343,6 +343,7 @@ class ImageCube(object):
 
         # get beam(s)
         if beam_maj==-1 and beam_min==-1 and beam_posa==-1:
+            sys.stdout.write("Determining common beam...\n")
             beams=self.get_common_beam(mode=mode, arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
         else:
             if isinstance(beam_maj,list) and isinstance(beam_min,list) and isinstance(beam_posa,list):
@@ -355,9 +356,14 @@ class ImageCube(object):
 
         #initialize empty array
         images = []
+        sys.stdout.write("Modifying images")
+        sys.stdout.write("\n")
 
         if mode=="all":
-            for image in self.images.flatten():
+            for ind, image in enumerate(self.images.flatten()):
+                sys.stdout.write(f"\rProgress: {ind / (len(self.images.flatten()) - 1) * 100:.1f}%")
+                sys.stdout.flush()
+
                 new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,
                                         pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
                 images.append(new_image)
@@ -370,7 +376,10 @@ class ImageCube(object):
                 pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select=self.images[:,i].flatten()
-                for image in image_select:
+                for ind2,image in enumerate(image_select):
+                    sys.stdout.write(f"\rProgress: {(i+1)*ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
+                    sys.stdout.flush()
+
                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
         elif mode=="epoch":
@@ -382,11 +391,16 @@ class ImageCube(object):
                 pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select=self.images[i,:].flatten()
-                for image in image_select:
+                for ind2, image in enumerate(image_select):
+                    sys.stdout.write(f"\rProgress: {(i + 1) * ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
+                    sys.stdout.flush()
                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
         else:
             raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
+
+        sys.stdout.write("\n")
+        sys.stdout.write(f"Image modifications completed.\n")
 
         return ImageCube(image_data_list=images)
 

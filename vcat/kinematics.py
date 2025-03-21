@@ -202,11 +202,13 @@ class ComponentCollection():
                         self.delta_x_ests[i,j]=comp.delta_x_est
                         self.delta_y_ests[i,j]=comp.delta_y_est
 
-        if len(np.unique(self.ids.flatten()))!=1:
+        if len(np.unique(self.ids.flatten()))>1:
             numbers=np.unique(self.ids.flatten())
             raise Exception(f"Used components with different ID numbers ({numbers}) as component collection!")
-        else:
+        elif len(np.unique(self.ids.flatten()))==1:
             self.id=np.unique(self.ids.flatten())[0]
+        else:
+            self.id=-1
 
 
     def __str__(self):
