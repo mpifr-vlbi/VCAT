@@ -60,6 +60,8 @@ def get_sigma_levs(image,  # 2d array/list
         levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
+    elif not noise_method=="box":
+        raise Exception("Please define valid noise method ('Histogram Fit', 'box', 'DIFMAP', 'Image RMS')")
 
     if noise_method=="box" or (noise_method=="Histogram Fit" and levs1[0]<=0):
         if (noise_method=="Histogram Fit" and levs1[0]<=0):
@@ -70,8 +72,7 @@ def get_sigma_levs(image,  # 2d array/list
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
 
-    else:
-        raise Exception("Please define valid noise method ('Histogram Fit', 'box', 'DIFMAP', 'Image RMS')")
+
 
     return levs, levs1
 
