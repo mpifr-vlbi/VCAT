@@ -1373,6 +1373,17 @@ class ImageCube(object):
             #Lin Pol
             interp_linpol = RegularGridInterpolator(grid, lin_pols, method='linear', bounds_error=False,
                                                fill_value=None)
+
+            #check for EVPA rotations >90 and wrap them (otherwise the EVPAs might be spinning around like crazy)
+            for i, evpa in enumerate(evpas):
+                if i>0:
+                    if evpa-evpas[i-1]>90:
+                        for j in range(j,len(evpas)):
+                            evpas[j]-=180
+                    if evpa-evpas[i-1]<-90:
+                        for j in range(j,len(evpas)):
+                            evpas[j]+=180
+
             #EVPA
             interp_evpa = RegularGridInterpolator(grid, evpas, method='linear', bounds_error=False,
                                                fill_value=None)
