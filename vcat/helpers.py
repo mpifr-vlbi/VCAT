@@ -28,26 +28,29 @@ def get_sigma_levs(image,  # 2d array/list
                    noise=0,
                    ):
     if noise_method=="Histogram Fit":
-        Z1 = image.flatten()
-        bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins="auto")
-        bin_widths = np.diff(bin_borders)
-        bin_centers = bin_borders[:-1] + bin_widths / 2.
-        bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
+        try:
+            Z1 = image.flatten()
+            bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins="auto")
+            bin_widths = np.diff(bin_borders)
+            bin_centers = bin_borders[:-1] + bin_widths / 2.
+            bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
 
-        t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), 0.001)
-        fit_t = fitting.LevMarLSQFitter()
-        t = fit_t(t_init, bin_centers, bin_heights, weights=1. / bin_heights_err)
-        noise = t.stddev.value
+            t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), 0.001)
+            fit_t = fitting.LevMarLSQFitter()
+            t = fit_t(t_init, bin_centers, bin_heights, weights=1. / bin_heights_err)
+            noise = t.stddev.value
 
-        # Set contourlevels to mean value + 3 * rms_noise * 2 ** x
-        levs1 = t.mean.value + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * noise * np.logspace(0, 100, 100,
+            # Set contourlevels to mean value + 3 * rms_noise * 2 ** x
+            levs1 = t.mean.value + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * noise * np.logspace(0, 100, 100,
                                                                                                             endpoint=False,
                                                                                                             base=2)
-        levs = t.mean.value + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * noise * np.logspace(0, 100, 100,
+            levs = t.mean.value + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * noise * np.logspace(0, 100, 100,
                                                                                                            endpoint=False,
                                                                                                            base=2)
-        levs = np.flip(levs)
-        levs = np.concatenate((levs, levs1))
+            levs = np.flip(levs)
+            levs = np.concatenate((levs, levs1))
+        except:
+            levs1=[0]
 
     elif noise_method=="Image RMS":
         Z1 = image.flatten()
@@ -63,6 +66,7 @@ def get_sigma_levs(image,  # 2d array/list
     elif not noise_method=="box":
         raise Exception("Please define valid noise method ('Histogram Fit', 'box', 'DIFMAP', 'Image RMS')")
 
+    #If someting went wrong with the Histogram Fit, we will  use the box method per default
     if noise_method=="box" or (noise_method=="Histogram Fit" and levs1[0]<=0):
         if (noise_method=="Histogram Fit" and levs1[0]<=0):
             warnings.warn("Could not do Histogram Fit for noise, will do 'box' method", UserWarning)
