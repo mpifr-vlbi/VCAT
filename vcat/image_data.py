@@ -788,6 +788,9 @@ class ImageData(object):
 
     def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,useDIFMAP=True,comp_ids=""):
 
+        if self==image_data2:
+            return self
+
         if ((self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp) or auto_regrid:
             if auto_regrid:
                 # if this is selected will automatically convolve with common beam and regrid
@@ -840,8 +843,6 @@ class ImageData(object):
             #find brightest pixel of reference image and image
             x_ind,y_ind = np.unravel_index(np.argmax(image_data2.Z), image_data2.Z.shape)
             x_,y_ = np.unravel_index(np.argmax(image_self.Z), image_self.Z.shape)
-
-            print("ref",x_ind,y_ind,"self:",x_,y_)
 
             shift=[y_ind-y_,x_ind-x_]
             print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,

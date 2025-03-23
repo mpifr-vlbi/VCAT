@@ -647,7 +647,6 @@ class ImageCube(object):
                 ref_image=images[0]
             # align images
             for image in images:
-                ref_image.plot()
                 images_new.append(image.align(ref_image,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
 
         elif mode=="freq":
