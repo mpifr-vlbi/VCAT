@@ -1382,12 +1382,14 @@ class ImageCube(object):
             #check for EVPA rotations >90 and wrap them (otherwise the EVPAs might be spinning around like crazy)
             for i, evpa in enumerate(evpas):
                 if i>0:
-                    if evpa-evpas[i-1]>90:
-                        for j in range(j,len(evpas)):
-                            evpas[j]-=180
-                    if evpa-evpas[i-1]<-90:
-                        for j in range(j,len(evpas)):
-                            evpas[j]+=180
+                    for k in range(len(evpa)):
+                        for j in range(len(evpa[0])):
+                            if evpa[k][j]-evpas[i-1][k][j]>90:
+                                for ind in range(j,len(evpas)):
+                                    evpas[ind][k][j]-=180
+                            if evpa[k][j]-evpas[i-1][k][j]<-90:
+                                for ind in range(j,len(evpas)):
+                                    evpas[ind][k][j]+=180
 
             #EVPA
             interp_evpa = RegularGridInterpolator(grid, evpas, method='linear', bounds_error=False,
