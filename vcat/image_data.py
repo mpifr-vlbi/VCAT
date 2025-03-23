@@ -841,6 +841,8 @@ class ImageData(object):
             x_ind,y_ind = np.unravel_index(np.argmax(image_data2.Z), image_data2.Z.shape)
             x_,y_ = np.unravel_index(np.argmax(image_self.Z), image_self.Z.shape)
 
+            print("ref",x_ind,y_ind,"self:",x_,y_)
+
             shift=[y_ind-y_,x_ind-x_]
             print('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
                                                                  shift[0] * image_self.scale * image_self.degpp))

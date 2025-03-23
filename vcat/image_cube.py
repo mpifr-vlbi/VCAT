@@ -529,6 +529,8 @@ class ImageCube(object):
         # initialize empty array
         images = []
 
+        sys.stdout.write("Regridding Images")
+
         if mode=="all":
             for image in self.images.flatten():
                 new_image=image.regrid(npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
@@ -596,7 +598,7 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def align(self,mode="epoch",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",
+    def align(self,mode="all",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",
               ref_freq="",ref_epoch="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001):
 
         # get beam(s)
@@ -645,6 +647,7 @@ class ImageCube(object):
                 ref_image=images[0]
             # align images
             for image in images:
+                print(ref_image)
                 images_new.append(image.align(ref_image,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
 
         elif mode=="freq":
