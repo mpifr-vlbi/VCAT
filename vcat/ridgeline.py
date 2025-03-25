@@ -4,7 +4,7 @@ from astropy.modeling import models, fitting
 from scipy import integrate
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-
+import logging
 from vcat.helpers import closest_index
 
 

@@ -20,6 +20,7 @@ import scipy.ndimage
 import scipy.signal
 from scipy.interpolate import RegularGridInterpolator,griddata
 import warnings
+import logging
 
 # takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list

@@ -11,6 +11,7 @@ import pexpect
 from pexpect import replwrap  
 import os
 from numpy import linalg
+import logging
 
 def stack_images(image_array, #input images to be stacked
         weighted=False, #choose whether to use the weighted option

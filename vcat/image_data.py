@@ -27,6 +27,7 @@ from astropy.modeling import models, fitting
 from scipy import integrate
 from vcat.ridgeline import Ridgeline
 from skimage.measure import profile_line
+import logging
 
 warnings.simplefilter('ignore', ErfaWarning)
 
@@ -756,10 +757,10 @@ class ImageData(object):
             "line_width" : 2,
             "plot_polar": False,
             "plot_beam": True,
-            "overplot_gauss": False,
+            "plot_model": False,
             "component_color": "black",
             "plot_comp_ids": False,
-            "overplot_clean": False,
+            "plot_clean": False,
             "plot_mask": False,
             "xlim": [],
             "ylim": [],
@@ -794,7 +795,7 @@ class ImageData(object):
         if ((self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp) or auto_regrid:
             if auto_regrid:
                 # if this is selected will automatically convolve with common beam and regrid
-                print("Automatically regridding image to minimum pixelsize, smallest FOV and common beam")
+                logging.info("Automatically regridding image to minimum pixelsize, smallest FOV and common beam")
 
                 #determin common image parameters
                 pixel_size=np.min([self.degpp*self.scale,image_data2.degpp*image_data2.scale])
@@ -1581,7 +1582,6 @@ class ImageData(object):
         elif method=="polar":
             #TODO Needs to be improved, think about if it is posible to fit counterjet.
             #convert image to polar coordinates
-            # convert image to polar coordinates
             R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
 
             ridgeline=Ridgeline().get_ridgeline_polar(R,Theta,Z_polar,[self.beam_maj,self.beam_min,self.beam_pa],self.error,

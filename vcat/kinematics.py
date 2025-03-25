@@ -9,6 +9,7 @@ import sys
 from scipy.optimize import curve_fit
 from vcat.helpers import closest_index
 from scipy.interpolate import interp1d
+import logging
 
 
 class Component():

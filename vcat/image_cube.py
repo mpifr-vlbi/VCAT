@@ -22,6 +22,7 @@ from vcat.graph_generator import MultiFitsImage, EvolutionPlot, KinematicPlot
 from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
+import logging
 
 class ImageCube(object):
 
@@ -481,10 +482,10 @@ class ImageCube(object):
             "line_width" : 2,
             "plot_polar": False,
             "plot_beam": True,
-            "overplot_gauss": False,
+            "plot_model": False,
             "component_color": "black",
             "plot_comp_ids": False,
-            "overplot_clean": False,
+            "plot_clean": False,
             "plot_mask": False,
             "xlim": [],
             "ylim": [],

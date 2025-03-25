@@ -21,6 +21,7 @@ import vcat.VLBI_map_analysis.modules.fit_functions as ff
 from vcat.helpers import closest_index, get_date, get_freq
 from vcat.kinematics import Component
 import warnings
+import logging
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -296,9 +297,9 @@ class FitsImage(object):
         plot_counter_ridgeline: Choose to plot counter ridgeline
         counter_ridgeline_color= Choose color for counter ridgeline
         plot_beam: Choose whether to plot the beam or not
-        overplot_gauss: Choose whether to overplot modelfit components (if available in image_data)
+        plot_gauss: Choose whether to plot modelfit components (if available in image_data)
         component_color: Choose color to plot components
-        overplot_clean: Choose whether to overplot clean components (if available in image_data)
+        plot_clean: Choose whether to plot clean components (if available in image_data)
         xlim: Choose X-plot limits
         ylim: Choose Y-plot limits
         plot_evpa: Choose whether to plot EVPAs or not
@@ -331,10 +332,10 @@ class FitsImage(object):
                  line_color="black",
                  line_width=2, #width of the line
                  plot_beam=True, #choose whether to plot beam or not
-                 overplot_gauss=False, #choose whether to plot modelfit components
+                 plot_model=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
                  plot_comp_ids=False, #plot component ids
-                 overplot_clean=False, #choose whether to plot clean components
+                 plot_clean=False, #choose whether to plot clean components
                  plot_mask=False, #choose whether to plot mask
                  xlim=[], #xplot limits, e.g. [5,-5]
                  ylim=[], #yplot limits
@@ -406,8 +407,8 @@ class FitsImage(object):
         #modify these parameters if polar plot is selected
         if plot_polar:
             #currently only support colormap so turn off everything else:
-            overplot_gauss=False
-            overplot_clean=False
+            plot_gauss=False
+            plot_clean=False
             plot_mask=False
             #Convert Stokes I
             R, Theta, Z_polar = convert_image_to_polar(X,Y, Z)
@@ -619,31 +620,31 @@ class FitsImage(object):
             self.plotColormap(mask,"gray_r",np.zeros(100),[0.00],extent,label="Mask",do_colorbar=self.do_colorbar)
 
 
-        # Read modelfit files in
-        if (overplot_gauss == True) or (overplot_clean == True):
-            model_df = getComponentInfo(self.model_image_file,scale=self.clean_image.scale)
+        if plot_clean:
+            model_clean_df = self.clean_image.model_i
 
-            # sort in gauss and clean components
-            model_gauss_df = model_df
-            model_clean_df = model_df[model_df["Major_axis"] == 0.].reset_index()
-
-            # Overplot clean components
-            if overplot_clean == True:
+            try:
                 c_x = model_clean_df["Delta_x"]
                 c_y = model_clean_df["Delta_y"]
                 c_flux = model_clean_df["Flux"]
+            except:
+                warnings.warn("No clean model available!",UserWarning)
+                c_x = []
 
-                for j in range(len(c_x)):
-                    if c_flux[j] < 0.:
-                        self.ax.plot(c_x[j] * scale, c_y[j] * scale, marker='+', color='red', alpha=clean_alpha,
-                                     linewidth=0.2, zorder=2)
-                    else:
-                        self.ax.plot(c_x[j] * scale, c_y[j] * scale, marker='+', color='green', alpha=clean_alpha,
-                                     linewidth=0.2, zorder=2)
 
-            # Overplot Gaussian components
-            if overplot_gauss == True:
+            for j in range(len(c_x)):
+                if c_flux[j] < 0.:
+                    self.ax.plot(c_x[j] * scale, c_y[j] * scale, marker='+', color='red', alpha=clean_alpha,
+                                 linewidth=0.2, zorder=2)
+                else:
+                    self.ax.plot(c_x[j] * scale, c_y[j] * scale, marker='+', color='green', alpha=clean_alpha,
+                                 linewidth=0.2, zorder=2)
 
+        # Read modelfit files in
+        if plot_model:
+            model_gauss_df = self.clean_image.model
+
+            try:
                 g_x = model_gauss_df["Delta_x"]
                 g_y = model_gauss_df["Delta_y"]
                 g_maj = model_gauss_df["Major_axis"]
@@ -652,32 +653,36 @@ class FitsImage(object):
                 g_flux = model_gauss_df["Flux"]
                 g_date = model_gauss_df["Date"]
                 g_mjd = model_gauss_df["mjd"]
+                g_mjd = model_gauss_df["mjd"]
                 g_year = model_gauss_df["Year"]
+            except:
+                warnings.warn("No model available!",UserWarning)
+                g_x = []
 
-                for j in range(len(g_x)):
-                    # plot component
-                    for i,comp in enumerate(self.clean_image.components):
-                        if comp.flux==g_flux[j]:
-                            comp_id=comp.component_number
+            for j in range(len(g_x)):
+                # plot component
+                for i,comp in enumerate(self.clean_image.components):
+                    if comp.flux==g_flux[j]:
+                        comp_id=comp.component_number
 
-                    if plot_comp_ids:
-                        component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale, id=comp_id)
-                    else:
-                        component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
+                if plot_comp_ids:
+                    component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale, id=comp_id)
+                else:
+                    component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
 
 
-                    #calculate noise at the position of the component
-                    try:
-                        component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
-                    except:
-                        component_noise=self.clean_image.noise_3sigma
+                #calculate noise at the position of the component
+                try:
+                    component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
+                except:
+                    component_noise=self.clean_image.noise_3sigma
 
-                    #This is needed for the GUI
-                    component = Component(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], g_flux[j], g_date[j],
-                                          g_mjd[j], g_year[j], scale=scale, freq=self.freq, noise=component_noise,
-                                          beam_maj=beam_maj, beam_min=beam_min, beam_pa=beam_pa)
+                #This is needed for the GUI
+                component = Component(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], g_flux[j], g_date[j],
+                                      g_mjd[j], g_year[j], scale=scale, freq=self.freq, noise=component_noise,
+                                      beam_maj=beam_maj, beam_min=beam_min, beam_pa=beam_pa)
 
-                    self.components.append([component_plot, component])
+                self.components.append([component_plot, component])
 
         if plot_ridgeline:
             #plot ridgeline in image
@@ -904,8 +909,9 @@ class FitsImage(object):
             comp = Ellipse([x * scale, y * scale], maj * scale, min * scale, angle=-pos + 90,
                            fill=True, zorder=4, facecolor=fillcolor,edgecolor=self.component_color, lw=0.5)
             ellipse = self.ax.add_artist(comp)
+
         #deal with point like components
-        if maj==0 and min==0:
+        if maj==0. and min==0.:
             maj=0.1/scale
             min=0.1/scale
 
@@ -1192,10 +1198,10 @@ class MultiFitsImage(object):
                                         line_color=kwargs["line_color"][image_i,image_j],
                                         line_width=kwargs["line_width"][image_i,image_j],  # width of the line
                                         plot_beam=kwargs["plot_beam"][image_i,image_j],
-                                        overplot_gauss=kwargs["overplot_gauss"][image_i,image_j],
+                                        plot_model=kwargs["plot_model"][image_i,image_j],
                                         component_color=kwargs["component_color"][image_i,image_j],
                                         plot_comp_ids=kwargs["plot_comp_ids"][image_i,image_j],
-                                        overplot_clean=kwargs["overplot_clean"][image_i,image_j],
+                                        plot_clean=kwargs["plot_clean"][image_i,image_j],
                                         plot_mask=kwargs["plot_mask"][image_i,image_j],
                                         xlim=kwargs["xlim"][image_i,image_j],
                                         ylim=kwargs["ylim"][image_i,image_j],
