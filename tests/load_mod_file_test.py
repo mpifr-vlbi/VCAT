@@ -26,7 +26,7 @@ im_cube=ImageCube(images)
 print(im_cube)
 
 #plot it
-im_cube.plot(mode="epoch",xlim=[10,-10],overplot_gauss=True)
+im_cube.plot(mode="epoch",xlim=[10,-10],plot_model=True)
 
 #regrid it
 im_cube=im_cube.regrid(mode="all",npix=1024,pixel_size=0.1,useDIFMAP=True)

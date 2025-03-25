@@ -6,7 +6,6 @@ from astropy.time import Time
 import sys
 import matplotlib.pyplot as plt
 from functools import partial
-import warnings
 import scipy.optimize as opt
 import numpy.ma as ma
 from astropy.constants import c
@@ -23,6 +22,10 @@ from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
 import logging
+from tqdm import tqdm
+
+#initialize logger
+logger = logging.getLogger(__name__)
 
 class ImageCube(object):
 
@@ -62,7 +65,7 @@ class ImageCube(object):
             if self.name=="":
                 self.name=image.name
             elif self.name != image.name:
-                warnings.warn(f"ImageCube setup for source {self.name} but {image.name} detected in one input file, will skip it.",UserWarning)
+                logging.warning(f"ImageCube setup for source {self.name} but {image.name} detected in one input file, will skip it.")
                 skip=True
             if not skip:
                 if not any(abs(num - image.freq) <= freq_tolerance*1e9 for num in self.freqs):
@@ -135,17 +138,15 @@ class ImageCube(object):
         try:
             model_fits_files=sort_fits_by_date_and_frequency(model_fits_files)
         except:
-            warning.warn("model_fits_files need to be .fits file! Will continue assuming the .mod files are sorted by date and frequency, ascending!")
+            logging.warning("model_fits_files need to be .fits file! Will continue assuming the .mod files are sorted by date and frequency, ascending!")
 
         if len(fits_files)==0 and len(model_fits_files)>0:
             fits_files=model_fits_files
 
         #initialize image array
         images=[]
-        sys.stdout.write("Importing images:\n")
-        for i in range(len(fits_files)):
-            sys.stdout.write(f"\rProgress: {i / (len(fits_files) - 1) * 100:.1f}%")
-
+        logging.info("Importing images:")
+        for i in tqdm(range(len(fits_files)),desc="Processing"):
             fits_file = fits_files[i] if isinstance(fits_files, list) else ""
             uvf_file = uvf_files[i] if isinstance(uvf_files, list) else ""
             stokes_q_file = stokes_q_files[i] if isinstance(stokes_q_files, list) else ""
@@ -155,7 +156,7 @@ class ImageCube(object):
             images.append(ImageData(fits_file=fits_file,uvf_file=uvf_file,stokes_q=stokes_q_file,stokes_u=stokes_u_file,model=model_fits_file,**kwargs))
 
 
-        sys.stdout.write(f"\nImported {len(fits_files)} images successfully. \n")
+        logging.info(f"Imported {len(fits_files)} images successfully.")
         #reinitialize instance
         return ImageCube(image_data_list=images)
 
@@ -217,9 +218,11 @@ class ImageCube(object):
             new_fits_i = self.images.flatten()[0].model_save_dir + "mod_files_clean/" + self.name + "_stacked.fits"
 
             if len(stokes_i_fits)!=len(stokes_q_fits) or len(stokes_i_fits)!=len(stokes_u_fits):
-                warnings.warn("Polarization data not present or invalid, will only stack Stokes I!",UserWarning)
+                logging.warning("Polarization data not present or invalid, will only stack Stokes I!")
+                logging.info("Stacking images")
                 stack_fits(fits_files=stokes_i_fits,output_file=new_fits_i)
             else:
+                logging.info("Stacking images")
                 stack_fits(fits_files=stokes_i_fits,stokes_q_fits=stokes_q_fits,stokes_u_fits=stokes_u_fits,
                            output_file=new_fits_i)
 
@@ -242,9 +245,11 @@ class ImageCube(object):
                               self.name + "_" + "{:.0f}".format(self.freqs[i]*1e-9).replace(".","_") + "GHz_stacked.fits")
 
                 if len(stokes_i_fits) != len(stokes_q_fits) or len(stokes_i_fits) != len(stokes_u_fits):
-                    warnings.warn("Polarization data not present or invalid, will only stack Stokes I!", UserWarning)
+                    logging.warning("Polarization data not present or invalid, will only stack Stokes I!")
+                    logging.info(f"Stacking images for {self.freqs[i]*1e-9:.1f} GHz.")
                     stack_fits(fits_files=stokes_i_fits, output_file=new_fits_i)
                 else:
+                    logging.info(f"Stacking images for {self.freqs[i] * 1e-9:.1f} GHz.")
                     stack_fits(fits_files=stokes_i_fits, stokes_q_fits=stokes_q_fits, stokes_u_fits=stokes_u_fits,
                                output_file=new_fits_i)
 
@@ -267,9 +272,11 @@ class ImageCube(object):
                               self.name + "_" + self.dates[i] + "_stacked.fits")
 
                 if len(stokes_i_fits) != len(stokes_q_fits) or len(stokes_i_fits) != len(stokes_u_fits):
-                    warnings.warn("Polarization data not present or invalid, will only stack Stokes I!", UserWarning)
+                    logging.warning("Polarization data not present or invalid, will only stack Stokes I!")
+                    logging.info(f"Stacking images for {self.dates[i]}.")
                     stack_fits(fits_files=stokes_i_fits, output_file=new_fits_i)
                 else:
+                    logging.info(f"Stacking images for {self.dates[i]}.")
                     stack_fits(fits_files=stokes_i_fits, stokes_q_fits=stokes_q_fits, stokes_u_fits=stokes_u_fits,
                                output_file=new_fits_i)
 
@@ -344,7 +351,7 @@ class ImageCube(object):
 
         # get beam(s)
         if beam_maj==-1 and beam_min==-1 and beam_posa==-1:
-            sys.stdout.write("Determining common beam...\n")
+            logging.info("Determining common beam...")
             beams=self.get_common_beam(mode=mode, arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
         else:
             if isinstance(beam_maj,list) and isinstance(beam_min,list) and isinstance(beam_posa,list):
@@ -357,17 +364,11 @@ class ImageCube(object):
 
         #initialize empty array
         images = []
-        sys.stdout.write("Modifying images")
-        sys.stdout.write("\n")
+        logging.info("Modifying images")
 
         if mode=="all":
-            for ind, image in enumerate(self.images.flatten()):
-                if len(self.images.flatten())>1:
-                    sys.stdout.write(f"\rProgress: {ind / (len(self.images.flatten()) - 1) * 100:.1f}%")
-                    sys.stdout.flush()
-
-                new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,
-                                        pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
+            for ind, image in enumerate(tqdm(self.images.flatten(),desc="Processing")):
+                new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
                 images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
@@ -378,15 +379,11 @@ class ImageCube(object):
                 pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select=self.images[:,i].flatten()
-                for ind2,image in enumerate(image_select):
-                    if len(self.images.flatten()) > 1:
-                        sys.stdout.write(f"\rProgress: {(i+1)*ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
-                        sys.stdout.flush()
-
-                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
+                for ind2,image in enumerate(tqdm(image_select,desc="Processing")):
+                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
         elif mode=="epoch":
-            for i in range(len(self.dates)):
+            for i in tqdm(range(len(self.dates)),desc="Processing"):
                 # check if parameters were input per frequency or for all frequencies
                 shift_x_i = shift_x[i] if isinstance(shift_x, list) else shift_x
                 shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
@@ -395,16 +392,12 @@ class ImageCube(object):
 
                 image_select=self.images[i,:].flatten()
                 for ind2, image in enumerate(image_select):
-                    if len(self.images.flatten()) > 1:
-                        sys.stdout.write(f"\rProgress: {(i + 1) * ind2 / (len(self.images.flatten()) - 1) * 100:.1f}%")
-                        sys.stdout.flush()
                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
                                         pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
         else:
             raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
 
-        sys.stdout.write("\n")
-        sys.stdout.write(f"Image modifications completed.\n")
+        logging.info(f"Image modifications completed.")
 
         return ImageCube(image_data_list=images)
 
@@ -530,10 +523,10 @@ class ImageCube(object):
         # initialize empty array
         images = []
 
-        sys.stdout.write("Regridding Images")
+        logging.info("Regridding Images")
 
         if mode=="all":
-            for image in self.images.flatten():
+            for image in tqdm(self.images.flatten(),desc="Processing"):
                 new_image=image.regrid(npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
                 images.append(new_image)
         elif mode=="freq":
@@ -543,10 +536,10 @@ class ImageCube(object):
                 pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select = self.images[:, i]
-                for image in image_select:
+                for image in tqdm(image_select,desc="Processing"):
                     images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, weighting=weighting, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
         elif mode=="epoch":
-            for i in range(len(self.dates)):
+            for i in tqdm(range(len(self.dates)),desc="Processing"):
                 # check if parameters were input per frequency or for all frequencies
                 npix_i = npix[i] if isinstance(npix, list) else npix
                 pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
@@ -746,6 +739,9 @@ class ImageCube(object):
         else:
             raise Exception("Please use a valid align mode ('all', 'epoch', 'freq').")
 
+        for im in images_new:
+            for c in im.components:
+                print(c)
         return ImageCube(image_data_list=images_new)
 
     def slice(self,epoch_lim="",freq_lim=""):
@@ -905,7 +901,7 @@ class ImageCube(object):
 
             a = np.log10(spix2/spix1)/np.log10(freq2/freq1)
 
-            sys.stdout.write('\nSpectral index max(alpha)={} - min(alpha)={}\nCutoff {}<alpha<{}\n'.format(ma.amax(a),ma.amin(a),spix_vmin,spix_vmax))
+            logging.info('Spectral index max(alpha)={} - min(alpha)={}\nCutoff {}<alpha<{}'.format(ma.amax(a),ma.amin(a),spix_vmin,spix_vmax))
 
             a[a<spix_vmin]=spix_vmin
             a[a>spix_vmax]=spix_vmax
@@ -1417,12 +1413,11 @@ class ImageCube(object):
                 end_mjd=np.max(self.images_mjd[:,ind].flatten())
 
             mjd_frames=np.linspace(start_mjd,end_mjd,n_frames)
-            sys.stdout.write("Creating movie")
-            sys.stdout.write("\n")
+            logging.info("Creating movie")
+            progress_bar=tqdm(total=n_frames,desc="Processing")
 
             def update(frame):
-                sys.stdout.write(f"\rProgress: {frame/(n_frames-1)*100:.1f}%")
-                sys.stdout.flush()
+                progress_bar.update(1)
                 ax.cla()
                 #modify ref_image to interpolated values
                 current_mjd=mjd_frames[frame]
@@ -1465,7 +1460,6 @@ class ImageCube(object):
                 save=save+".mp4"
 
             ani.save(save,writer="ffmpeg",fps=round(1/interval*1000))
-            sys.stdout.write("\n")
-            sys.stdout.write(f"Movie for {f:.0f}GHz exported as '{save}'\n")
+            logging.info(f"Movie for {f:.0f}GHz exported as '{save}'")
 
 

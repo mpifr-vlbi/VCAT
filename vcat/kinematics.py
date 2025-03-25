@@ -11,6 +11,8 @@ from vcat.helpers import closest_index
 from scipy.interpolate import interp1d
 import logging
 
+#initialize logger
+logger = logging.getLogger(__name__)
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
@@ -367,8 +369,8 @@ class ComponentCollection():
 
             k_r_fitted, r0_fitted = params
 
-            print(f"Fitted k_r: {k_r_fitted}")
-            print(f"Fitted r0: {r0_fitted}")
+            logging.info(f"Fitted k_r: {k_r_fitted}")
+            logging.info(f"Fitted r0: {r0_fitted}")
 
             results.append({"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":max_freq,"freqs":freqs,"coreshifts":coreshifts,"coreshift_err":coreshift_err})
 
@@ -395,14 +397,14 @@ class ComponentCollection():
 
         results=[]
         for epoch in epochs:
-            print(epoch)
+            logging.info(epoch)
             epoch_ind=closest_index(self.epochs_distinct,epoch)
 
             fluxs=self.fluxs[epoch_ind,:].flatten()
             freqs=self.freqs[epoch_ind,:].flatten()
             ids=self.ids[epoch_ind,:].flatten()
 
-            sys.stdout.write("Fit component spectrum\n")
+            logging.info("Fit component spectrum\n")
 
             cflux = np.array(fluxs)
             if fluxerr:
@@ -415,12 +417,12 @@ class ComponentCollection():
 
             cid = ids
 
-            print("Fit Powerlaw to Comp" + str(cid[0]))
+            logging.info("Fit Powerlaw to Comp" + str(cid[0]))
             pl_x0 = np.array([np.mean(cflux),-1])
             pl_p,pl_sd,pl_ch2,pl_out = ff.odr_fit(ff.powerlaw,[cfreq,cflux,cfluxerr],pl_x0,verbose=1)
 
             #fit Snu
-            print("Fit SSA to Comp " + str(cid[0]))
+            logging.info("Fit SSA to Comp " + str(cid[0]))
             if fit_free_ssa:
                 sn_x0 = np.array([120,np.max(cflux),2.5,-3])
                 beta,sd_beta,chi2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
@@ -429,14 +431,14 @@ class ComponentCollection():
                 sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu_real,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
 
             if np.logical_and(sn_ch2>pl_ch2,pl_out.info<5):
-               sys.stdout.write("Power law fits better\n")
+               logging.info("Power law fits better\n")
                CompPL = cid[0]
                alpha = pl_p[1]
                alphaE = pl_sd[1]
                chi2PL = pl_ch2
                fit = "PL"
             elif np.logical_and(pl_ch2>sn_ch2,sn_out.info<5):
-                sys.stdout.write('ssa spectrum fits better\n')
+                logging.info('ssa spectrum fits better\n')
                 CompSN = cid[0]
                 num = sn_p[0]
                 Sm = sn_p[1]
@@ -456,7 +458,7 @@ class ComponentCollection():
                     athickE = 0.0
 
             else:
-                sys.stdout.write('NO FIT WORKED, use power law\n')
+                logging.info('NO FIT WORKED, use power law\n')
                 CompPL = cid[0]
                 alpha = pl_p[1]
                 alphaE = pl_sd[1]

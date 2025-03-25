@@ -20,7 +20,7 @@ data=[dataC,dataQ,dataU,dataW,dataX]
 
 im_cube=ImageCube(data)
 
-im_cube.plot(overplot_gauss=True,plot_comp_ids=True)
+im_cube.plot(plot_model=True,plot_comp_ids=True)
 
 fit=im_cube.fit_comp_spectrum(id=1,plot=True)
 

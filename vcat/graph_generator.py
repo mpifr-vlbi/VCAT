@@ -20,8 +20,9 @@ from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_pola
 import vcat.VLBI_map_analysis.modules.fit_functions as ff
 from vcat.helpers import closest_index, get_date, get_freq
 from vcat.kinematics import Component
-import warnings
 import logging
+
+logger = logging.getLogger(__name__)
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -247,7 +248,7 @@ class KinematicPlot(object):
             
             for jj, SNL in enumerate(sn_low[:2]):
                 if SNL <0:
-                    sys.stdout.write("Uncertainties for SN fit large, limit peak flux and freq \n")
+                    logging.warning("Uncertainties for SN fit large, limit peak flux and freq \n")
                     if jj == 0:
                         sn_low[jj] = 0.1
                     if jj == 1:
@@ -490,7 +491,7 @@ class FitsImage(object):
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
                                   label="Fractional Linear Polarization",do_colorbar=self.do_colorbar)
         elif (plot_mode=="lin_pol" or plot_mode=="frac_pol"):
-            warnings.warn("Trying to plot polarization but no polarization loaded!",UserWarning)
+            logging.warning("Trying to plot polarization but no polarization loaded!")
 
         if plot_mode=="residual":
             if plot_polar:
@@ -502,7 +503,7 @@ class FitsImage(object):
         if plot_mode=="spix" and np.sum(self.clean_image.spix)!=0:
             self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
         elif plot_mode=="spix":
-            warnings.warn("Trying to plot spectral index but no spectral index available!", UserWarning)
+            logging.warning("Trying to plot spectral index but no spectral index available!")
 
         if plot_mode=="rm" and np.sum(self.clean_image.rm)!=0:
             if plot_polar:
@@ -514,7 +515,7 @@ class FitsImage(object):
             rm=np.ma.masked_where((abs(Z) > 20000),Z)
             self.plotColormap(rm, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
         elif plot_mode=="rm":
-            warnings.warn("Trying to plot rotation measure but no rotation measure available!", UserWarning)
+            logging.warning("Trying to plot rotation measure but no rotation measure available!")
 
         if plot_mode == "turnover_freq" or plot_mode=="turnover":
             if plot_polar:
@@ -628,7 +629,7 @@ class FitsImage(object):
                 c_y = model_clean_df["Delta_y"]
                 c_flux = model_clean_df["Flux"]
             except:
-                warnings.warn("No clean model available!",UserWarning)
+                logging.warning("No clean model available!")
                 c_x = []
 
 
@@ -656,7 +657,7 @@ class FitsImage(object):
                 g_mjd = model_gauss_df["mjd"]
                 g_year = model_gauss_df["Year"]
             except:
-                warnings.warn("No model available!",UserWarning)
+                logging.warning("No model available!")
                 g_x = []
 
             for j in range(len(g_x)):

@@ -12,6 +12,10 @@ from pexpect import replwrap
 import os
 from numpy import linalg
 import logging
+from tqdm import tqdm
+
+#initialize logger
+logger = logging.getLogger(__name__)
 
 def stack_images(image_array, #input images to be stacked
         weighted=False, #choose whether to use the weighted option
@@ -56,15 +60,11 @@ def stack_images(image_array, #input images to be stacked
     elif wrong_weights:
         raise Exception("Error! You have selected a weighted stack but your weights are not the same dimension as your images!")
     else:
-        for i in range(len(image_array[0])):
-            for j in range(len(image_array[0][0])):
-                pixel_value=0
-                weight_sum=0
-                for k in range(n_images):
-                    pixel_value+=weights_array[k][i][j]*image_array[k][i][j]
-                    weight_sum+=weights_array[k][i][j]
-                pixel_value=pixel_value/weight_sum
-                stacked_image[i,j]=pixel_value
+        weight_sum=np.zeros_like(image_array[0])
+        for k in tqdm(range(n_images)):
+            stacked_image+=weights_array[k]*image_array[k]
+            weight_sum+=weights_array[k]
+        stacked_image=stacked_image/weight_sum
         
         return stacked_image
 
@@ -110,8 +110,8 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
         raise Exception("Error! Your fits-files are not in STOKES format. This is currently not implemented!")
     else:
         if only_stokes_i and (len(stokes_q_fits)!=len(fits_files) or len(stokes_u_fits)!=len(fits_files)):
-            print("Warning! Only Stokes I input given!")
-            print("-> will produce only Stokes I stacked image")
+            logging.warning("Warning! Only Stokes I input given!")
+            logging.warning("-> will produce only Stokes I stacked image")
             pols=1 #do only stokes I in this case
         else:
             pols=3 #do all three polarization Stokes I, Q, U
@@ -142,8 +142,10 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
 
                 #align polarizations according to stokes i peak
                 if align:
+                    logging.info(f"Stacking Polarization {pol}.")
                     output_stacked[pol][spw]=stack_images(align_images(data_to_stack,align_by=i_data_to_stack))
                 else:
+                    logging.info(f"Stacking Polarization {pol}.")
                     output_stacked[pol][spw]=stack_images(data_to_stack)
 
         if export_fits:
@@ -261,7 +263,6 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         uvf_files=[], #optional input array of file paths to .uvf files for fits_files
         weighting=[0,-1], #weighting option for uvw in DIFMAP, default is natural weighting
         do_selfcal=True,
-        print_log=False
         ):
 
         if use_common_beam:
@@ -274,14 +275,14 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         #check if there was input to mod_files
         if len(fits_files)!=len(mod_files):
             mod_files=[]
-            print("No or insufficient number of mod files defined. Will try to guess their names from .fits file names")
+            logging.info("No or insufficient number of mod files defined. Will try to guess their names from .fits file names")
             for fits_file in fits_files:
                 mod_files=np.append(mod_files,fits_file[:-5]+".mod")
         
         #check if there was input to uvf_files
         if len(fits_files)!=len(uvf_files):
             uvf_files=[]
-            print("No or insufficient number of uvf files defined. Will try to guess their names from .fits file names")
+            logging.info("No or insufficient number of uvf files defined. Will try to guess their names from .fits file names")
             for fits_file in fits_files:
                 uvf_files=np.append(uvf_files,fits_file[:-5]+".uvf")
 
@@ -300,6 +301,8 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         def send_difmap_command(command,prompt="0>"):
             child.sendline(command)
             child.expect_exact(prompt, None, 2)
+            logging.debug(command)
+            logging.debug("DIFMAP Output: %s", child.before)
 
         for ind, fits_file in enumerate(fits_files):
             send_difmap_command("obs " + uvf_files[ind])
@@ -317,13 +320,5 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
                 send_difmap_command("restore " + str(bmaj) + "," + str(bmin) + "," + str(posa))
             send_difmap_command("save " + outname)
 
-            if print_log:
-                print("obs " + uvf_files[ind])
-                print("rmod " + mod_files[ind])
-                if not (bmaj == -1 and bmin == -1 and posa == -1):
-                    print("restore " + str(bmaj) + "," + str(bmin) + "," + str(posa))
-                print("save " + outname)
-        
         os.system("rm -rf difmap.log*")
-        
-        #print("Convolution complete!")
+
