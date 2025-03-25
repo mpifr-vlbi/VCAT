@@ -4,7 +4,7 @@ from astropy import constants as const
 from astropy import units as u
 import pandas as pd
 from sympy import Ellipse, Point, Line
-import vcat.VLBI_map_analysis.modules.fit_functions as ff
+import vcat.fit_functions as ff
 import sys
 from scipy.optimize import curve_fit
 from vcat.helpers import closest_index
@@ -384,7 +384,7 @@ class ComponentCollection():
             fluxerr: Fractional Errors (dictionary with {'error': [], 'freq':[]})
         """
 
-        if epochs=="":
+        if not isinstance(epochs, list) and epochs=="":
             epochs=self.epochs_distinct
         elif isinstance(epochs,(float,int)):
             epochs=[epochs]

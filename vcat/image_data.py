@@ -78,6 +78,8 @@ class ImageData(object):
         if model=="":
             self.model_inp=False
         else:
+            if fits_file=="":
+                fits_file=model
             self.model_inp=True
         self.file_path = fits_file
         self.fits_file = fits_file
@@ -483,7 +485,7 @@ class ImageData(object):
             #self.masking(mask_type="cut_left",args=-200)
         else:
             if np.shape(mask) != np.shape(self.Z):
-                warnings.warn("Mask input format invalid, Mask reset to no mask.",UserWarning)
+                logger.warning("Mask input format invalid, Mask reset to no mask.",UserWarning)
                 self.mask = np.zeros_like(self.Z, dtype=bool)
             else:
                 self.mask=mask
@@ -602,7 +604,7 @@ class ImageData(object):
                 new_image_q = interpolator(self.stokes_q)(points).reshape(npix, npix)
                 new_image_u = interpolator(self.stokes_u)(points).reshape(npix, npix)
             except:
-                warnings.warn("Unable to regrid polarization, probably no polarization loaded", UserWarning)
+                logger.warning("Unable to regrid polarization, probably no polarization loaded", UserWarning)
 
 
             # write outputs to the fits files
@@ -715,7 +717,7 @@ class ImageData(object):
                 else:
                     new_model_fits=new_stokes_i_fits
             except:
-                warnings.warn("Model not regridded, probably no model loaded.",UserWarning)
+                logger.warning("Model not regridded, probably no model loaded.",UserWarning)
                 new_model_fits=""
 
             if not self.model_inp:
@@ -827,7 +829,7 @@ class ImageData(object):
 
             else:
                 if not (method=="modelcomp" or method=="model_comp" or method=="model"):
-                    warnings.warn("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
+                    logger.warning("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
                     return self
                 else:
                     image_self=self.copy()
@@ -903,11 +905,11 @@ class ImageData(object):
                         x_shifts.append(x1-x_ref)
                         y_shifts.append(y_ref-y1)
                     else:
-                        warnings.warn(f"Did no find component with id {comp_id} in both images, skipping it", UserWarning)
+                        logger.warning(f"Did no find component with id {comp_id} in both images, skipping it", UserWarning)
 
                 #take mean shift if multiple components were used
                 if len(y_shifts)==0:
-                    warnings.warn("No matching components found, will not apply a shift.")
+                    logger.warning("No matching components found, will not apply a shift.")
                     return self
                 else:
                     shift=[np.mean(y_shifts)/image_self.scale/image_self.degpp,np.mean(x_shifts)/image_self.scale/image_self.degpp]
@@ -1325,7 +1327,7 @@ class ImageData(object):
                 new_image_q = scipy.ndimage.rotate(self.stokes_q,-angle,reshape=reshape,order=order)
                 new_image_u = scipy.ndimage.rotate(self.stokes_u,-angle,reshape=reshape,order=order)
             except:
-                warnings.warn("Unable to rotate polarization, probably no polarization loaded", UserWarning)
+                logger.warning("Unable to rotate polarization, probably no polarization loaded", UserWarning)
 
             # write outputs to the fits files
             if self.only_stokes_i:
@@ -1408,7 +1410,7 @@ class ImageData(object):
                 else:
                     new_model_fits = new_stokes_i_fits
             except:
-                warnings.warn("Model not regridded, probably no model loaded.", UserWarning)
+                logger.warning("Model not regridded, probably no model loaded.", UserWarning)
                 new_model_fits = ""
 
             if not self.model_inp:
@@ -1454,11 +1456,11 @@ class ImageData(object):
                 rotate_mod_file(self.stokes_q_mod_file,angle,self.stokes_q_mod_file)
                 rotate_mod_file(self.stokes_u_mod_file,angle,self.stokes_u_mod_file)
             except:
-                warnings.warn("Could not rotate polarization, probably not loaded.", UserWarning)
+                logger.warning("Could not rotate polarization, probably not loaded.", UserWarning)
             try:
                 rotate_mod_file(self.model_mod_file,angle,self.model_mod_file)
             except:
-                warnings.warn("Could not rotate model, probably not loaded.", UserWarning)
+                logger.warning("Could not rotate model, probably not loaded.", UserWarning)
 
             newImageData.uvf_file=new_uvf
             newImageData.mask=new_mask
@@ -1611,7 +1613,7 @@ class ImageData(object):
     def get_noise_from_shift(self,shift_factor=20):
 
         if self.uvf_file == "":
-            warnings.warn("Shift not possible, no .uvf file attached to ImageData!", UserWarning)
+            logger.warning("Shift not possible, no .uvf file attached to ImageData!", UserWarning)
             return self.noise
 
         size_x=len(self.X)*self.degpp*self.scale
@@ -1673,7 +1675,7 @@ class ImageData(object):
                 self.components[ind].is_core=False
 
         if core_ind=="":
-            warnings.warn(f"No component with ID {id} found, no core currently set!",UserWarning)
+            logger.warning(f"No component with ID {id} found, no core currently set!",UserWarning)
         else:
             #recalculate core distances for every component
             for i, comp in enumerate(self.components):

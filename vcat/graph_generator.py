@@ -17,7 +17,7 @@ from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
 from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
-import vcat.VLBI_map_analysis.modules.fit_functions as ff
+import vcat.fit_functions as ff
 from vcat.helpers import closest_index, get_date, get_freq
 from vcat.kinematics import Component
 from vcat.config import logger
