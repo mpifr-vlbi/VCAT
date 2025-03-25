@@ -27,7 +27,6 @@ from astropy.modeling import models, fitting
 from scipy import integrate
 from vcat.ridgeline import Ridgeline
 from skimage.measure import profile_line
-import logging
 import warnings
 #initialize logger
 from vcat.config import logger,difmap_path
@@ -176,7 +175,7 @@ class ImageData(object):
                 self.beam_maj = self.beam_maj * 1000  # convert to mas
                 self.beam_min = self.beam_min * 1000  # convert to mas
             except:
-                logging.warning("No input beam information!")
+                logger.warning("No input beam information!")
                 self.beam_maj = 0
                 self.beam_min = 0
                 self.beam_pa = 0
@@ -802,7 +801,7 @@ class ImageData(object):
         if ((self.Z.shape != image_data2.Z.shape) or self.degpp != image_data2.degpp) or auto_regrid:
             if auto_regrid:
                 # if this is selected will automatically convolve with common beam and regrid
-                logging.info("Automatically regridding image to minimum pixelsize, smallest FOV and common beam")
+                logger.info("Automatically regridding image to minimum pixelsize, smallest FOV and common beam")
 
                 #determin common image parameters
                 pixel_size=np.min([self.degpp*self.scale,image_data2.degpp*image_data2.scale])
@@ -839,11 +838,11 @@ class ImageData(object):
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
 
                 shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
-                logging.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp))
+                logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp))
                 #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
                 shift, _, _ = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
-                logging.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp))
+                logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp))
                 #print('register images new shift (y,x): {} px'.format(-shift))
 
         elif method=="brightest":
@@ -853,7 +852,7 @@ class ImageData(object):
             x_,y_ = np.unravel_index(np.argmax(image_self.Z), image_self.Z.shape)
 
             shift=[y_ind-y_,x_ind-x_]
-            logging.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
+            logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
                                                                  shift[0] * image_self.scale * image_self.degpp))
         elif method=="modelcomp" or method=="model_comp" or method=="model":
             #get models of both images
@@ -912,7 +911,7 @@ class ImageData(object):
                     return self
                 else:
                     shift=[np.mean(y_shifts)/image_self.scale/image_self.degpp,np.mean(x_shifts)/image_self.scale/image_self.degpp]
-                    logging.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
+                    logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
                                                                        shift[0] * image_self.scale * image_self.degpp))
 
 
@@ -948,7 +947,7 @@ class ImageData(object):
         if self.uvf_file=="" or useDIFMAP==False:
             #this means there is no valid .uvf file or we don't want to use DIFMAP
 
-            logging.warning("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
+            logger.warning("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
 
             # shift in degree
             shift_x_deg = shift_x / self.scale
@@ -1318,7 +1317,7 @@ class ImageData(object):
 
         #do actual image rotations
         if self.uvf_file=="" or not useDIFMAP:
-            logging.warning("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
+            logger.warning("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
 
             new_image_i=scipy.ndimage.rotate(self.Z,-angle,reshape=reshape,order=order)
 
@@ -1496,7 +1495,7 @@ class ImageData(object):
         x_, y_ = np.unravel_index(np.argmax(ref_image), ref_image.shape)
 
         shift = [y_ind - y_, x_ind - x_]
-        logging.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * self.scale * self.degpp,
+        logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * self.scale * self.degpp,
                                                              shift[0] * self.scale * self.degpp))
 
         return self.shift(-shift[1] * self.scale * self.degpp,
@@ -1557,12 +1556,12 @@ class ImageData(object):
                 #find maximum flux
                 max_ind=np.argmax(integrated_jet)
                 jet_direction=Theta[:,0][max_ind]
-                logging.info(f"Automatically determined jet direction {jet_direction}°.")
+                logger.info(f"Automatically determined jet direction {jet_direction}°.")
                 image=image.rotate(-jet_direction)
             elif jet_angle!="":
                 image=image.rotate(-jet_angle)
             else:
-                logging.warning("Will assume the jet was already rotated to position angle 0°.")
+                logger.warning("Will assume the jet was already rotated to position angle 0°.")
 
             # TODO need to CONVERT IT TO Jy/px????
             image_data = image.Z

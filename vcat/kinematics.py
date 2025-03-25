@@ -9,7 +9,6 @@ import sys
 from scipy.optimize import curve_fit
 from vcat.helpers import closest_index
 from scipy.interpolate import interp1d
-import logging
 
 #initialize logger
 from vcat.config import logger
@@ -244,7 +243,7 @@ class ComponentCollection():
 
 
         if freqs=="":
-            freqs=self.freqs_distinct
+            freqs=self.freqs_distinct*1e-9
         elif isinstance(freqs,(float,int)):
             freqs=[freqs]
         elif not isinstance(freqs, list):
@@ -369,8 +368,8 @@ class ComponentCollection():
 
             k_r_fitted, r0_fitted = params
 
-            logging.info(f"Fitted k_r: {k_r_fitted}")
-            logging.info(f"Fitted r0: {r0_fitted}")
+            logger.info(f"Fitted k_r: {k_r_fitted}")
+            logger.info(f"Fitted r0: {r0_fitted}")
 
             results.append({"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":max_freq,"freqs":freqs,"coreshifts":coreshifts,"coreshift_err":coreshift_err})
 
@@ -397,14 +396,14 @@ class ComponentCollection():
 
         results=[]
         for epoch in epochs:
-            logging.info(epoch)
+            logger.info(epoch)
             epoch_ind=closest_index(self.epochs_distinct,epoch)
 
             fluxs=self.fluxs[epoch_ind,:].flatten()
             freqs=self.freqs[epoch_ind,:].flatten()
             ids=self.ids[epoch_ind,:].flatten()
 
-            logging.info("Fit component spectrum\n")
+            logger.info("Fit component spectrum\n")
 
             cflux = np.array(fluxs)
             if fluxerr:
@@ -417,12 +416,12 @@ class ComponentCollection():
 
             cid = ids
 
-            logging.info("Fit Powerlaw to Comp" + str(cid[0]))
+            logger.info("Fit Powerlaw to Comp" + str(cid[0]))
             pl_x0 = np.array([np.mean(cflux),-1])
             pl_p,pl_sd,pl_ch2,pl_out = ff.odr_fit(ff.powerlaw,[cfreq,cflux,cfluxerr],pl_x0,verbose=1)
 
             #fit Snu
-            logging.info("Fit SSA to Comp " + str(cid[0]))
+            logger.info("Fit SSA to Comp " + str(cid[0]))
             if fit_free_ssa:
                 sn_x0 = np.array([120,np.max(cflux),2.5,-3])
                 beta,sd_beta,chi2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
@@ -431,14 +430,14 @@ class ComponentCollection():
                 sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu_real,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
 
             if np.logical_and(sn_ch2>pl_ch2,pl_out.info<5):
-               logging.info("Power law fits better\n")
+               logger.info("Power law fits better\n")
                CompPL = cid[0]
                alpha = pl_p[1]
                alphaE = pl_sd[1]
                chi2PL = pl_ch2
                fit = "PL"
             elif np.logical_and(pl_ch2>sn_ch2,sn_out.info<5):
-                logging.info('ssa spectrum fits better\n')
+                logger.info('ssa spectrum fits better\n')
                 CompSN = cid[0]
                 num = sn_p[0]
                 Sm = sn_p[1]
@@ -458,7 +457,7 @@ class ComponentCollection():
                     athickE = 0.0
 
             else:
-                logging.info('NO FIT WORKED, use power law\n')
+                logger.info('NO FIT WORKED, use power law\n')
                 CompPL = cid[0]
                 alpha = pl_p[1]
                 alphaE = pl_sd[1]
@@ -476,6 +475,46 @@ class ComponentCollection():
                     "sn_p":sn_p,"sn_sd":sn_sd})
 
         return results
+
+    def get_model_profile(self,freq="",epochs=""):
+        # read in settings
+        if freq == "":
+            freq = self.freqs_distinct*1e-9
+        elif isinstance(freq, (int, float)):
+            freq = np.array([freq])
+        elif isinstance(freq, list):
+            freq = np.array(freq)
+        else:
+            raise Exception("Invalid input for 'freq'.")
+
+        if epochs == "":
+            epochs = self.epochs_distinct
+        elif isinstance(epochs, (float, int)):
+            epochs = [epochs]
+        elif not isinstance(epochs, list):
+            try:
+                epochs = epochs.tolist()
+            except:
+                raise Exception("Invalid input for 'epochs'.")
+
+        # export comp info
+        majs = []
+        fluxs = []
+        tbs = []
+        tbs_lower_limit = []
+        dists = []
+
+        for i, freq in enumerate(freq):
+            for j, epoch in enumerate(epochs):
+                ind_f = closest_index(self.freqs_distinct, freq * 1e9)
+                ind_e = closest_index(self.epochs_distinct, epoch)
+                majs.append(self.majs[ind_e, ind_f]*self.scale)
+                fluxs.append(self.fluxs[ind_e, ind_f])
+                tbs.append(self.tbs[ind_e, ind_f])
+                tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
+                dists.append(self.dist[ind_e, ind_f])
+
+        return {"maj": majs, "flux": fluxs, "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists}
 
     def interpolate(self, mjd, freq):
         freq_ind=closest_index(self.freqs_distinct,freq*1e9)

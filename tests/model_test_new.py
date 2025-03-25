@@ -20,6 +20,8 @@ data=[dataC,dataQ,dataU,dataW,dataX]
 
 im_cube=ImageCube(data)
 
+x,y=im_cube.get_model_profile("maj")
+
 im_cube.plot(plot_model=True,plot_comp_ids=True)
 
 fit=im_cube.fit_comp_spectrum(id=1,plot=True)

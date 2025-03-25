@@ -21,7 +21,6 @@ from vcat.graph_generator import MultiFitsImage, EvolutionPlot, KinematicPlot
 from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
-import logging
 from tqdm import tqdm
 
 #initialize logger
@@ -65,7 +64,7 @@ class ImageCube(object):
             if self.name=="":
                 self.name=image.name
             elif self.name != image.name:
-                logging.warning(f"ImageCube setup for source {self.name} but {image.name} detected in one input file, will skip it.")
+                logger.warning(f"ImageCube setup for source {self.name} but {image.name} detected in one input file, will skip it.")
                 skip=True
             if not skip:
                 if not any(abs(num - image.freq) <= freq_tolerance*1e9 for num in self.freqs):
@@ -138,14 +137,14 @@ class ImageCube(object):
         try:
             model_fits_files=sort_fits_by_date_and_frequency(model_fits_files)
         except:
-            logging.warning("model_fits_files need to be .fits file! Will continue assuming the .mod files are sorted by date and frequency, ascending!")
+            logger.warning("model_fits_files need to be .fits file! Will continue assuming the .mod files are sorted by date and frequency, ascending!")
 
         if len(fits_files)==0 and len(model_fits_files)>0:
             fits_files=model_fits_files
 
         #initialize image array
         images=[]
-        logging.info("Importing images:")
+        logger.info("Importing images:")
         for i in tqdm(range(len(fits_files)),desc="Processing"):
             fits_file = fits_files[i] if isinstance(fits_files, list) else ""
             uvf_file = uvf_files[i] if isinstance(uvf_files, list) else ""
@@ -156,7 +155,7 @@ class ImageCube(object):
             images.append(ImageData(fits_file=fits_file,uvf_file=uvf_file,stokes_q=stokes_q_file,stokes_u=stokes_u_file,model=model_fits_file,**kwargs))
 
 
-        logging.info(f"Imported {len(fits_files)} images successfully.")
+        logger.info(f"Imported {len(fits_files)} images successfully.")
         #reinitialize instance
         return ImageCube(image_data_list=images)
 
@@ -218,11 +217,11 @@ class ImageCube(object):
             new_fits_i = self.images.flatten()[0].model_save_dir + "mod_files_clean/" + self.name + "_stacked.fits"
 
             if len(stokes_i_fits)!=len(stokes_q_fits) or len(stokes_i_fits)!=len(stokes_u_fits):
-                logging.warning("Polarization data not present or invalid, will only stack Stokes I!")
-                logging.info("Stacking images")
+                logger.warning("Polarization data not present or invalid, will only stack Stokes I!")
+                logger.info("Stacking images")
                 stack_fits(fits_files=stokes_i_fits,output_file=new_fits_i)
             else:
-                logging.info("Stacking images")
+                logger.info("Stacking images")
                 stack_fits(fits_files=stokes_i_fits,stokes_q_fits=stokes_q_fits,stokes_u_fits=stokes_u_fits,
                            output_file=new_fits_i)
 
@@ -245,11 +244,11 @@ class ImageCube(object):
                               self.name + "_" + "{:.0f}".format(self.freqs[i]*1e-9).replace(".","_") + "GHz_stacked.fits")
 
                 if len(stokes_i_fits) != len(stokes_q_fits) or len(stokes_i_fits) != len(stokes_u_fits):
-                    logging.warning("Polarization data not present or invalid, will only stack Stokes I!")
-                    logging.info(f"Stacking images for {self.freqs[i]*1e-9:.1f} GHz.")
+                    logger.warning("Polarization data not present or invalid, will only stack Stokes I!")
+                    logger.info(f"Stacking images for {self.freqs[i]*1e-9:.1f} GHz.")
                     stack_fits(fits_files=stokes_i_fits, output_file=new_fits_i)
                 else:
-                    logging.info(f"Stacking images for {self.freqs[i] * 1e-9:.1f} GHz.")
+                    logger.info(f"Stacking images for {self.freqs[i] * 1e-9:.1f} GHz.")
                     stack_fits(fits_files=stokes_i_fits, stokes_q_fits=stokes_q_fits, stokes_u_fits=stokes_u_fits,
                                output_file=new_fits_i)
 
@@ -272,11 +271,11 @@ class ImageCube(object):
                               self.name + "_" + self.dates[i] + "_stacked.fits")
 
                 if len(stokes_i_fits) != len(stokes_q_fits) or len(stokes_i_fits) != len(stokes_u_fits):
-                    logging.warning("Polarization data not present or invalid, will only stack Stokes I!")
-                    logging.info(f"Stacking images for {self.dates[i]}.")
+                    logger.warning("Polarization data not present or invalid, will only stack Stokes I!")
+                    logger.info(f"Stacking images for {self.dates[i]}.")
                     stack_fits(fits_files=stokes_i_fits, output_file=new_fits_i)
                 else:
-                    logging.info(f"Stacking images for {self.dates[i]}.")
+                    logger.info(f"Stacking images for {self.dates[i]}.")
                     stack_fits(fits_files=stokes_i_fits, stokes_q_fits=stokes_q_fits, stokes_u_fits=stokes_u_fits,
                                output_file=new_fits_i)
 
@@ -351,7 +350,7 @@ class ImageCube(object):
 
         # get beam(s)
         if beam_maj==-1 and beam_min==-1 and beam_posa==-1:
-            logging.info("Determining common beam...")
+            logger.info("Determining common beam...")
             beams=self.get_common_beam(mode=mode, arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
         else:
             if isinstance(beam_maj,list) and isinstance(beam_min,list) and isinstance(beam_posa,list):
@@ -364,7 +363,7 @@ class ImageCube(object):
 
         #initialize empty array
         images = []
-        logging.info("Modifying images")
+        logger.info("Modifying images")
 
         if mode=="all":
             for ind, image in enumerate(tqdm(self.images.flatten(),desc="Processing")):
@@ -397,7 +396,7 @@ class ImageCube(object):
         else:
             raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
 
-        logging.info(f"Image modifications completed.")
+        logger.info(f"Image modifications completed.")
 
         return ImageCube(image_data_list=images)
 
@@ -523,7 +522,7 @@ class ImageCube(object):
         # initialize empty array
         images = []
 
-        logging.info("Regridding Images")
+        logger.info("Regridding Images")
 
         if mode=="all":
             for image in tqdm(self.images.flatten(),desc="Processing"):
@@ -901,7 +900,7 @@ class ImageCube(object):
 
             a = np.log10(spix2/spix1)/np.log10(freq2/freq1)
 
-            logging.info('Spectral index max(alpha)={} - min(alpha)={}\nCutoff {}<alpha<{}'.format(ma.amax(a),ma.amin(a),spix_vmin,spix_vmax))
+            logger.info('Spectral index max(alpha)={} - min(alpha)={}\nCutoff {}<alpha<{}'.format(ma.amax(a),ma.amin(a),spix_vmin,spix_vmax))
 
             a[a<spix_vmin]=spix_vmin
             a[a>spix_vmax]=spix_vmax
@@ -1246,6 +1245,44 @@ class ImageCube(object):
 
         return fit
 
+    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=True):
+        #TODO add plots, de-projected distance, and collimation fits etc.
+        if id=="":
+            #do it for all components
+            ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
+        elif isinstance(id, list):
+            ccs=[]
+            for i in id:
+                ccs.append(self.get_comp_collection(i))
+        else:
+            raise Exception("Invalid input for 'id'.")
+
+        #extract data
+        values = []
+        dists = []
+        for cc in ccs:
+            info=cc.get_model_profile(freq=freq,epochs=epoch)
+            try:
+                values+=info[value]
+            except:
+                raise Exception("Invalid 'value' parameter (use 'maj', 'flux' or 'tb').")
+            dists+=info["dist"]
+
+
+        plt.scatter(dists,values)
+        plt.xlabel("Distance from Core [mas]")
+        if value=="maj":
+            plt.ylabel("Component Size [mas]")
+        elif value=="flux":
+            plt.ylabel("Flux Density [Jy]")
+        else:
+            plt.ylabel("Brightness Temperature [K]")
+
+        if show:
+            plt.show()
+
+        return dists, values
+
     def get_speed(self,id="",freq="",order=1,show_plot=False, colors=["black","red","blue","orange"]):
 
         if freq=="":
@@ -1413,7 +1450,7 @@ class ImageCube(object):
                 end_mjd=np.max(self.images_mjd[:,ind].flatten())
 
             mjd_frames=np.linspace(start_mjd,end_mjd,n_frames)
-            logging.info("Creating movie")
+            logger.info("Creating movie")
             progress_bar=tqdm(total=n_frames,desc="Processing")
 
             def update(frame):
@@ -1460,6 +1497,6 @@ class ImageCube(object):
                 save=save+".mp4"
 
             ani.save(save,writer="ffmpeg",fps=round(1/interval*1000))
-            logging.info(f"Movie for {f:.0f}GHz exported as '{save}'")
+            logger.info(f"Movie for {f:.0f}GHz exported as '{save}'")
 
 

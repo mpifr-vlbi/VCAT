@@ -19,7 +19,6 @@ from numpy import linalg
 import scipy.ndimage
 import scipy.signal
 from scipy.interpolate import RegularGridInterpolator,griddata
-import logging
 
 #initialize logger
 from vcat.config import logger
@@ -72,7 +71,7 @@ def get_sigma_levs(image,  # 2d array/list
     #If someting went wrong with the Histogram Fit, we will  use the box method per default
     if noise_method=="box" or (noise_method=="Histogram Fit" and levs1[0]<=0):
         if (noise_method=="Histogram Fit" and levs1[0]<=0):
-            logging.warning("Could not do Histogram Fit for noise, will do 'box' method")
+            logger.warning("Could not do Histogram Fit for noise, will use 'box' method")
         #determine image rms from box at the bottom left corner with size of 1/10th of the image dimension
         noise = 1.8*np.std(image[0:round(len(image)/10),0:round(len(image[0])/10)]) #factor 1.8 from self-cal errors
         levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
@@ -608,7 +607,7 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
         _maj = np.mean(majs)
         _min = np.mean(mins)
         _pos = np.mean(posas)
-        logging.info(' Will use mean beam.')
+        logger.info(' Will use mean beam.')
     elif arg=='max':
         if np.argmax(majs)==np.argmax(mins):
             beam_ind=np.argmax(majs)
@@ -616,14 +615,14 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
             _min = mins[beam_ind]
             _pos = posas[beam_ind]
         else:
-            logging.warning('could not derive max beam, defaulting to common beam.')
+            logger.warning('could not derive max beam, defaulting to common beam.')
             return get_common_beam(majs,mins,posas,arg="common")
-        logging.info(' Will use max beam.')
+        logger.info(' Will use max beam.')
     elif arg=='median':
         _maj = np.median(majs)
         _min = np.median(mins)
         _pos = np.median(posas)
-        logging.info(' Will use median beam.')
+        logger.info(' Will use median beam.')
     elif arg == 'circ':
         _maj = np.median(majs)
         _min = _maj
@@ -694,7 +693,7 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
 
 
     common_beam=[_maj,_min,_pos]
-    logging.info("{} beam calculated: {}".format(arg,common_beam))
+    logger.info("{} beam calculated: {}".format(arg,common_beam))
     return common_beam
 
 def elliptical_gaussian_kernel(size_x, size_y, sigma_x, sigma_y, theta):

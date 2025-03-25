@@ -10,7 +10,7 @@ def find_difmap_path(logger):
     difmap_path = shutil.which("difmap")
     if difmap_path:
         difmap_path = "/".join(difmap_path.split("/")[:-1])+"/"
-        logger.info(f"Using DIFMAP Path: {difmap_path}")
+        logger.info(f"Using DIFMAP path: {difmap_path}")
     else:
         difmap_path = ""
         logger.info(f"DIFMAP not found in path, will not be able to use DIFMAP functionality.")
@@ -54,6 +54,7 @@ def load_config(path=""):
 
         logger = logging.getLogger("vcat")
         logger.info("Logging initialized. Log file: %s", LOG_FILE if LOG_FILE else "Console only")
+        logger.info(f"Using config file VCAT_CONFIG={path}")
         try:
             difmap_path = config["difmap_path"]
             logger.info(f"Using DIFMAP Path: {difmap_path}")
@@ -61,5 +62,7 @@ def load_config(path=""):
             difmap_path=find_difmap_path(logger)
 
     return logger
+
+global logger
 
 logger=load_config(CONFIG_FILE)
