@@ -15,7 +15,8 @@ import logging
 from tqdm import tqdm
 
 #initialize logger
-logger = logging.getLogger(__name__)
+from vcat.config import logger
+
 
 def stack_images(image_array, #input images to be stacked
         weighted=False, #choose whether to use the weighted option

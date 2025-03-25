@@ -21,8 +21,7 @@ import vcat.VLBI_map_analysis.modules.fit_functions as ff
 from vcat.helpers import closest_index, get_date, get_freq
 from vcat.kinematics import Component
 import logging
-
-logger = logging.getLogger(__name__)
+from vcat.config import logger
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True

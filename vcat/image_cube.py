@@ -25,7 +25,7 @@ import logging
 from tqdm import tqdm
 
 #initialize logger
-logger = logging.getLogger(__name__)
+from vcat.config import logger
 
 class ImageCube(object):
 

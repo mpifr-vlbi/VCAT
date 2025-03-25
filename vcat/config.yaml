@@ -1,0 +1,6 @@
+#General settings:
+difmap_path: "/usr/local/difmap/uvf_difmap_2.5g/"
+
+logging:
+  level: "DEBUG"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_file: "test.log"

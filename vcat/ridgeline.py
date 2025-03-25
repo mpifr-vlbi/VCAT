@@ -8,7 +8,7 @@ import logging
 from vcat.helpers import closest_index
 
 #initialize logger
-logger = logging.getLogger(__name__)
+from vcat.config import logger
 
 class Ridgeline(object):
 

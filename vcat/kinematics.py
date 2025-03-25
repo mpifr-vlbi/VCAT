@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 import logging
 
 #initialize logger
-logger = logging.getLogger(__name__)
+from vcat.config import logger
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,

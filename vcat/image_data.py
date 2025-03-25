@@ -29,9 +29,8 @@ from vcat.ridgeline import Ridgeline
 from skimage.measure import profile_line
 import logging
 import warnings
-
 #initialize logger
-logger = logging.getLogger(__name__)
+from vcat.config import logger,difmap_path
 warnings.simplefilter('ignore', ErfaWarning)
 
 class ImageData(object):
@@ -75,7 +74,7 @@ class ImageData(object):
                  noise_method="Histogram Fit", #choose noise method
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities
-                 difmap_path=""):
+                 difmap_path=difmap_path):
 
         if model=="":
             self.model_inp=False

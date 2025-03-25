@@ -22,7 +22,7 @@ from scipy.interpolate import RegularGridInterpolator,griddata
 import logging
 
 #initialize logger
-logger = logging.getLogger(__name__)
+from vcat.config import logger
 
 # takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list
