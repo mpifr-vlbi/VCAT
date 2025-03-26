@@ -9,11 +9,6 @@ import sys
 import pexpect
 from datetime import datetime
 from astropy.time import Time
-from vcat.graph_generator import FitsImage
-from vcat.kinematics import Component
-from vcat.helpers import *
-from vcat.stacking_helpers import fold_with_beam
-import warnings
 from scipy.ndimage import fourier_shift, shift
 from skimage.draw import disk, ellipse
 from skimage.registration import phase_cross_correlation
@@ -26,6 +21,10 @@ from astropy.nddata import Cutout2D
 from astropy.modeling import models, fitting
 from scipy import integrate
 from vcat.ridgeline import Ridgeline
+from vcat.graph_generator import FitsImage
+from vcat.kinematics import Component
+from vcat.helpers import *
+from vcat.stacking_helpers import fold_with_beam
 from skimage.measure import profile_line
 import warnings
 #initialize logger
@@ -36,19 +35,62 @@ class ImageData(object):
 
     """ Class to handle VLBI Image data (single image with or without polarization at one frequency)
     Attributes:
-        fits_file: Path to a .fits file containing the data (Stokes-I (DIFMAP) or Full Polarization (CASA)).
-        uvf_file: Path to a .uvf file corresponding to the fits_file
-        freq: Frequency of the Image in GHz
-        stokes_i: Optional input of a 2d-array with Stokes-I values
-        model: Path to a .fits file including the 
-        lin_pol: Optional input of a 2d-array with lin-pol values
-        evpa: Optional input of a 2d-array with EVPA values
-        pol_from_stokes: Select whether to read in polarization from stokes_q/u or lin_pol/evpa
-        stokes_q: Path to a .fits file containing Stokes-Q data
-        stokes_u: Path to a .fits file containing Stokes-U data
-        model_save_dir: Path where to store created .mod files 
-        is_casa_model: If a model .fits from CASA was imported, set to True, otherwise set to False
-        difmap_path: Provide the path to your difmap executable
+        General:
+            name (str): Source name of the observation
+            date (str): Date of the observation
+            mjd (float): MJD of the observation
+            freq (float): Frequency of the observation in Hz
+            beam_maj (float): Beam Major Axis in the intrinsic image scale (usually 'mas')
+            beam_min (float): Beam Minor Axis in the intrinsic image scale (usually 'mas')
+            beam_pa (float): Beam position angle in degrees (North through East)
+            scale (float): Conversion from degrees to the intrinsic image scale (for 'mas': 3.6e6)
+            degpp (float): Degrees per pixel
+            unit (str): Intrinsic Scale Unit of the image ('mas', 'arcsec', 'arcsec', 'deg')
+        Maps:
+            stokes_i (list[list[float]]): 2d-array of the Stokes I image
+            stokes_q (list[list[float]]): 2d-array of the Stokes Q image (if polarization loaded)
+            stokes_u (list[list[float]]): 2d-array of the Stokes U image (if polarization loaded)
+            residual_map (list[list[float]]): 2d-array of the residual map (if .uvf file provided)
+            lin_pol (list[list[float]]): 2d-array of the linear polarization
+            evpa (list[list[float]]): 2d-array of the EVPA
+            mask (list[list[bool]]): Image mask
+        Model:
+            model (DataFrame): DataFrame with all components of the loaded model
+            model_i (DataFrame): DataFrame with all Stokes I clean components
+            model_q (DataFrame): DataFrame with all Stokes Q clean components
+            model_u (DataFrame): DataFrame with all Stokes U clean components
+            components (list[Component]): List of Modelfit-Components
+        Image Parameters:
+            noise (float): Image noise in Jy, calculated using the specified 'noise_method'
+            pol_noise (float): Image noise of the linear polarization image in Jy
+            noise_3sigma (float): 3-sigma Image noise level in Jy
+            pol_noise_3sigma (float): 3-sigma Polarization noise level in Jy
+            integrated_flux_image (float): Integrated flux density of the entire image (pixel sum)
+            integrated_flux_clean (float): Integrated flux density from the Stokes I clean model
+            integrated_pol_flux_image (float): Integrated linearly polarized flux density of the entire image (pixel sum)
+            integrated_pol_flux_clean (float): Integrated linearly polarized flux density from Stokes Q and U clean models
+            evpa_average (float): Average EVPA calculated from Stokes Q and U clean models (in rad!).
+            frac_pol (float): Fractional polarization of the image (integrated_flux_pol_clean/integrated_flux_clean)
+        Ridgelines:
+            ridgeline (Ridgeline): Ridgeline of the image (can be created with self.get_ridgeline())
+            counter_ridgeline (Ridgline): Counter-Ridgeline of the image (can be created with self.get_ridgeline())
+        Filepaths:
+            file_path (str): File path to Stokes I .fits file
+            model_file_path (str): File path to modelfit .fits file
+            stokes_q_path (str): File path to Stokes Q .fits file
+            stokes_u_path (str): File path to Stokes U .fits file
+            stokes_i_mod_file (str): File path to Stokes I clean model .mod file
+            stokes_q_mod_file (str): File path to Stokes Q clean model .mod file
+            stokes_u_mod_file (str): File path to Stokes U clean model .mod file
+            model_mod_file (str): File path to the modelfit .mod file
+            residual_map_path (str): Path to the .fits file of the residual map (if .uvf file provided)
+        Additional Maps:
+            spix (list[list[float]]): 2d-array of spectral index data (if loaded)
+            rm (list[list[float]]): 2d-array of rotation measure data (if loaded)
+            turnover (list[list[float]]): 2d-array of turnover frequency data (if loaded)
+            turnover_flux (list[list[float]]): 2d-array of turnover flux density data (if loaded)
+            turnover_error (list[list[float]]): 2d-array of turnover frequency error data (if loaded)
+            turnover_chi_sq (list[list[float]]): 2d-array of turnover-fit chi-squared values
     """
 
     def __init__(self,
@@ -64,16 +106,43 @@ class ImageData(object):
                  counter_ridgeline="",
                  stokes_q="",
                  stokes_u="",
-                 comp_ids=[], #list of integers to assign as component number (from top to bottom .mod file or .fits header)
-                 auto_identify=True, #If true and no comp_ids provided will automatically name them from 0 to one
-                 core_comp_id=0, #Set comp id of the core component
-                 redshift=0, #provide redshift
+                 comp_ids=[],
+                 auto_identify=True,
+                 core_comp_id=0,
+                 redshift=0,
                  model_save_dir="tmp/",
                  is_casa_model=False,
                  noise_method="Histogram Fit", #choose noise method
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities
                  difmap_path=difmap_path):
+
+        """
+        Initializes an ImageData object to handle a full-polarization VLBI data set at one epoch and one frequency.
+        Args:
+            fits_file (str): Input .fits file(s) (Stokes I or full polarization, e.g. from CASA)
+            uvf_file (str): Input .uvf file(s)
+            stokes_i (list[list[float]]): Input of Stokes-I data as a 2d-array
+            model (str): Input of modelfit .fits or .mod file (e.g., from DIFMAP), for CASA .fits model, set is_casa_model=True
+            lin_pol (list[list[float]]): 2d array of linear polarized intensity values (if using, set pol_from_stokes=False)
+            evpa (list[list[float]]): 2d array of Electric Vector Position Angle (EVPA) (if using, set pol_from_stokes=False)
+            pol_from_stokes (bool): Choose whether to import data from fits-files or from lin_pol/evpa
+            mask (list[list[bool]]): 2d-array of an image mask
+            ridgeline (Ridgeline): Ridgeline of the image
+            counter_ridgeline (Ridgeline: Counter ridgeline of the image.
+            stokes_q (str or list[list[float]]): Input Stokes-Q .fits file or 2d array of Stokes-Q image
+            stokes_u (str or list[list[float]]): Input Stokes-U .fits file or 2d array of Stokes-U image
+            comp_ids (list[int]): list of integers to assign as component number (from top to bottom .mod file or .fits header)
+            auto_identify (bool): If true and no comp_ids provided components will automatically be named
+            core_comp_id (int): Component ID of the core component
+            redshift (float): Redshift of the source
+            model_save_dir (str): Directory where temporary data for VCAT operations will be stored
+            is_casa_model (bool): If using a CASA .fits model for 'model', set to True
+            noise_method (str): Choose method to calculate image noise ('Histogram Fit', 'box', 'Image RMS', 'DIFMAP')
+            correct_rician_bias (bool): Choose whether to correct polarization for Rician Bias
+            error (float): Set relative error on the flux density scale
+            difmap_path (str): Path to the folder of your DIFMAP installation
+        """
 
         if model=="":
             self.model_inp=False
@@ -467,6 +536,7 @@ class ImageData(object):
                                        "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
             self.frac_pol = self.integrated_pol_flux_clean / self.integrated_flux_clean
+            self.evpa_average = 0.5*np.arctan2(flux_u/flux_q)
         except:
             self.integrated_pol_flux_clean=0
             self.frac_pol = 0
@@ -549,14 +619,13 @@ class ImageData(object):
         """
         This method regrids the image in full polarization
         Args:
-            npix: Number of pixels in ONE direction
-            pixel_size: Size of pixel in image scale units (usually mas)
-            weighting: DIFMAP style weighting
-            useDIFMAP: Choose whether to regrid using DIFMAP or not
-            mask_outside: Choose whether new image ares created through regridding will be masked automatically (bool)
-
+            npix (int): Number of pixels in ONE direction
+            pixel_size (float): Size of pixel in image scale units (usually mas)
+            weighting (list[int]): DIFMAP style weighting
+            useDIFMAP (bool): Choose whether to regrid using DIFMAP or not
+            mask_outside (bool): Choose whether new image ares created through regridding will be masked automatically (bool)
         Returns:
-            ImageData object with regridded images
+            regridded ImageData object
         """
 
         #check if image already has the correct size:
@@ -645,7 +714,7 @@ class ImageData(object):
                         f[0].header["CDELT2"] = pixel_size / self.scale
                         f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
                         f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
-                        f.writeto(new_stokes_q_fits, overwrite=True)
+                        f.writeto(new_s, overwrite=True)
                 else:
                     new_stokes_q_fits=""
 
@@ -796,7 +865,19 @@ class ImageData(object):
         return plot
 
     def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,useDIFMAP=True,comp_ids=""):
-
+        """
+        This function aligns the image to a reference image (image_data2).
+        Args:
+            image_data2 (ImageData): ImageData object of the reference image
+            masked_shift (bool): Choose whether to consider the image masks for alignment
+            method: Choose alignment method (Options: 'cross_correlation', 'brightest', 'modelcomp')
+            beam_arg (str): Choose which common beam to use (Options: 'common', 'max', 'min'), only applied when auto_regrid=True
+            auto_regrid (bool): Choose whether to automatically regrid and restore both images to a common beam and image size.
+            useDIFMAP (bool): Choose whether to use DIFMAP for image operations or not.
+            comp_ids (int or list[int]): Component IDs to use for the alignment in 'modelcomp' mode.
+        Returns:
+            new ImageData object aligned to image_data2 (possibly also regridded and restored if auto_regrid=True).
+        """
         if self==image_data2:
             return self
 
@@ -928,13 +1009,15 @@ class ImageData(object):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
-            bmaj: Beam major axis (in mas)
-            bmin: Beam minor axis (in mas)
-            posa: Beam position angle (in deg)
-            shift_x: Shift in mas in x-direction
-            shift_y: Shift in mas in y-direction
-            npix: Number of pixels in one image direction
-            pixel_size: pixel size in mas
+            bmaj (float): Beam major axis (in mas)
+            bmin (float): Beam minor axis (in mas)
+            posa (float): Beam position angle (in deg)
+            shift_x (float): Shift in mas in x-direction
+            shift_y (float): Shift in mas in y-direction
+            npix (int): Number of pixels in one image direction
+            pixel_size (float): pixel size in mas
+            weighting (list[int]): DIFMAP weighting option
+            useDIFMAP (bool): Choose whether to use DIFMAP for the restoring or not
         Returns:
             New ImageData object
         """
@@ -1205,16 +1288,27 @@ class ImageData(object):
                          difmap_path=self.difmap_path)
 
     def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
-        #for shifting we can just use the restore option with shift parameters, not specifying a beam
+        """
+        Function to shift the image in RA and Dec.
+        Args:
+            shift_x (float): Shift in Right Ascension (in mas)
+            shift_y (float): Shift in Declination (in mas)
+            npix (int): Option to change the number of pixels in ONE direction.
+            pixel_size (float): Option to change the pixel size (in mas)
+            weighting (list[int]): DIFMAP weighting option
+            useDIFMAP (bool): Choose whether to use DIFMAP for shifting or not.
+        Returns:
+            shifted ImageData object
+        """
         try:
             #We can just call the restore() function without doing the restore steps
-            return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size="",weighting=weighting,useDIFMAP=useDIFMAP)
+            return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
         except:
             raise Exception("No shift possible, something went wrong!")
 
     def masking(self, mask_type='ellipse', args=False):
-        '''Mask image data object that can be used for masking the images.
-
+        '''
+        Function to mask ImageData object.
         Args:
             mask_type: 'npix_x','cut_left','cut_right','radius','ellipse','flux_cut'
             args: the arguments for the mask
@@ -1224,9 +1318,6 @@ class ImageData(object):
                 'radius': args = radius
                 'ellipse': args = {'e_args': [e_maj,e_min,e_pa], 'e_xoffset': xoff, 'e_yoffset': yoff}
                 'flux_cut: args = flux cut
-
-        Returns:
-            masks for both images
         '''
 
         # cut out inner, optically thick part of the image
@@ -1293,6 +1384,16 @@ class ImageData(object):
             self.mask=np.zeros_like(self.Z)
 
     def rotate(self,angle,useDIFMAP=True,reshape=False,order=1):
+        """
+        Function to rotate ImageData Object (note: EVPAs are currently not rotated!)
+        Args:
+            angle (float): Rotation angle in degrees (North through East)
+            useDIFMAP (bool): Choose whether to use DIFMAP or not
+            reshape (bool): If useDIFMAP=False, choose whether to reshape the image size to avoid empty areas.
+            order (int): Order parameter for scipy.ndimage.rotate function
+        Returns:
+            rotated ImageData object
+        """
 
         #rotate mask
         new_mask=scipy.ndimage.rotate(self.mask,-angle,reshape=reshape,order=0)
@@ -1471,6 +1572,11 @@ class ImageData(object):
         return newImageData
 
     def get_peak_distance(self):
+        """
+        Function to calculate the Distance between Stokes I and Linear Polarization Peak
+        Returns:
+            [x_dist,y_dist]: Vector difference between Stokes I and Lin-Pol peak (in mas)
+        """
         #returns distance between stokes I and lin pol peak
 
         #find maximum indices for stokes I and lin_pol
@@ -1483,6 +1589,14 @@ class ImageData(object):
         return [x_dist, y_dist]
 
     def center(self,mode="stokes_i",useDIFMAP=True):
+        """
+        Function to center the brightest pixel of the image.
+        Args:
+            mode: Choose which map to use ('stokes_i', 'lin_pol')
+            useDIFMAP: Choose whether to use DIFMAP or not.
+        Returns:
+            Shifted ImageData object
+        """
 
         if mode=="stokes_i":
             ref_image=self.Z
@@ -1504,6 +1618,16 @@ class ImageData(object):
                           shift[0] * self.scale * self.degpp, useDIFMAP=useDIFMAP)
 
     def get_profile(self,point1,point2,show=True,image="stokes_i"):
+        """
+        Function to obtain a line profile of the image.
+        Args:
+            point1 (list[float]): Starting Point of the profile [x1,y1] (in mas)
+            point2 (list[float]): End Point of the profile [x2,y2] (in mas)
+            show (bool): Choose whether to display a plot of the profile
+            image (bool): Choose map to use ('stokes_i','lin_pol','evpa','spix','rm')
+        Returns:
+            x_values, intensity_profile: Array of the Distance from point1 to point2 and the profile
+        """
 
         #get index of slice ends
         x_ind1 = closest_index(self.X,point1[0])
@@ -1541,6 +1665,25 @@ class ImageData(object):
 
     def get_ridgeline(self,method="slices",angle_for_slices=0,auto_rotate=True,jet_angle="",
                       cut_radial=5.0, cut_final=10.0,counterjet=True,width=40,j_len="",start_radius=0,chi_sq_val=100.0,err_FWHM=0.1):
+
+        """
+        Function to calculate the Ridgeline (and Counter-Ridgeline) of an image.
+        Args:
+            method (str): Select method to use ('slices', 'polar')
+            angle_for_slices (float): Choose angle for the slices method
+            auto_rotate (bool): For the 'slices' method, choose whether to automatically detect the jet direction
+            jet_angle (float): If auto_rotate=False, provide the jet_angle in degrees for the 'slices' method
+            cut_radial (float): radial SNR Cut for the 'slices' method
+            cut_final (float): final SNR cut for the 'slices' method
+            counterjet (bool): Choose whether to also fit a counterjet
+            width (int): Jet width in to consider for 'slices' method (in pixel)
+            j_len (int): Jet length to consider for 'slices' method (in pixel)
+            start_radius (float): Start radius for polar method (in mas)
+            chi_sq_val (float): Chi-squared cut for fits.
+            err_FWHM (float): Relative error of the FWHM to consider for fits
+        Returns:
+            Ridgeline and Counter-Ridgeline objects
+        """
 
         if method=="slices":
             #this is Lucas method with an additional option to auto_rotate.
@@ -1611,6 +1754,13 @@ class ImageData(object):
             raise Exception("Please select valid ridgeline method ('polar', 'slices').")
 
     def get_noise_from_shift(self,shift_factor=20):
+        """
+        Function to calculate the image noise by shifting the phase center with DIFMAP
+        Args:
+            shift_factor (float): Factor of how far times the image size to shift the phase center away.
+        Returns:
+            Noise value in Jy
+        """
 
         if self.uvf_file == "":
             logger.warning("Shift not possible, no .uvf file attached to ImageData!", UserWarning)
@@ -1627,10 +1777,20 @@ class ImageData(object):
         return noise
 
     def jet_to_counterjet_profile(self,savefig="",show=True):
+        """
+        Function to plot the jet-to-counterjet ratio
+        Args:
+            savefig (str): File path to store the plot
+            show (bool): Choose whether to display the plot
+        """
         self.ridgeline.jet_to_counterjet_profile(self.counter_ridgeline,savefig=savefig,show=show)
 
     def get_model_info(self):
-        #helper method to get current state of the model
+        """
+        Helper method to get the current state of the model
+        Returns:
+            List of Component IDs and the Core Component ID
+        """
         comp_ids=[]
         core_comp_id=0
         if self.components!=[]:
@@ -1642,6 +1802,12 @@ class ImageData(object):
         return comp_ids, core_comp_id
 
     def change_component_ids(self,old_ids,new_ids):
+        """
+        Function to assign new component numbers
+        Args:
+            old_ids (int or list[int]): Old component IDs
+            new_ids (int or list[int]): New component IDs
+        """
 
         #handle single value input
         if isinstance(old_ids,int) and isinstance(new_ids,int):
@@ -1665,6 +1831,11 @@ class ImageData(object):
                     self.components[ind].component_number=-1
 
     def set_core_component(self,id):
+        """
+        Function to set the core component
+        Args:
+            id (int): Component ID of the core component
+        """
 
         core_ind=""
         for ind, comp in enumerate(self.components):
@@ -1685,6 +1856,13 @@ class ImageData(object):
                     self.components[i].delta_x_est ** 2 + self.components[i].delta_y_est ** 2)
 
     def get_component(self,id):
+        """
+        Function to get a specific Component.
+        Args:
+            id (int): ID of the component
+        Returns:
+            Component
+        """
         for comp in self.components:
             if comp.component_number==id:
                 return comp
@@ -1692,6 +1870,11 @@ class ImageData(object):
         raise Exception(f"Component with ID {id} not found.")
 
     def get_core_component(self):
+        """
+        Function to retrieve the core component.
+        Returns:
+            Core Component
+        """
         for comp in self.components:
             if comp.is_core:
                 return comp
