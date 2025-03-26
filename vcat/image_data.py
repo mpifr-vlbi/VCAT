@@ -536,7 +536,7 @@ class ImageData(object):
                                        "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod")
             self.integrated_pol_flux_clean=np.sqrt(flux_u**2+flux_q**2)
             self.frac_pol = self.integrated_pol_flux_clean / self.integrated_flux_clean
-            self.evpa_average = 0.5*np.arctan2(flux_u/flux_q)
+            self.evpa_average = 0.5*np.arctan2(flux_u,flux_q)
         except:
             self.integrated_pol_flux_clean=0
             self.frac_pol = 0
