@@ -710,7 +710,7 @@ class FitsImage(object):
             self.ax.invert_xaxis()
             self.ax.set_aspect('auto', adjustable='box', anchor='C')
             self.ax.set_xlabel("Position Angle [°]")
-            self.ax.set_ylabel("Radius [mas]")
+            self.ax.set_ylabel(f"Radius [{self.clean_image.unit}]")
         else:
 
             self.ax.set_aspect('equal', adjustable='box', anchor='C')

@@ -554,6 +554,8 @@ class ImageData(object):
             #test masking
             #self.mask[0:200]=np.ones_like(self.Z[0:200],dtype=bool)
             #self.masking(mask_type="cut_left",args=-200)
+            #set mask where Image is None
+            self.mask[np.isnan(self.Z)]=True
         else:
             if np.shape(mask) != np.shape(self.Z):
                 logger.warning("Mask input format invalid, Mask reset to no mask.",UserWarning)
@@ -625,12 +627,19 @@ class ImageData(object):
         """
         if polarization=="I":
             os.system(f"cp {self.file_path} {outputfile}")
+            logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
         elif polarization=="Q":
-            os.system(f"cp {self.stokes_q_path} {outputfile}")
+            if self.stokes_q_path=="":
+                logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
+            else:
+                os.system(f"cp {self.stokes_q_path} {outputfile}")
+                logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
         elif polarization=="U":
-            os.system(f"cp {self.stokes_u_path} {outputfile}")
-
-        logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
+            if self.stokes_u_path=="":
+                logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
+            else:
+                os.system(f"cp {self.stokes_u_path} {outputfile}")
+                logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
 
     def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
         """
@@ -938,11 +947,11 @@ class ImageData(object):
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
 
                 shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
-                logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp))
+                logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp,self.unit))
                 #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
                 shift, _, _ = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
-                logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp))
+                logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
                 #print('register images new shift (y,x): {} px'.format(-shift))
 
         elif method=="brightest":
@@ -952,8 +961,8 @@ class ImageData(object):
             x_,y_ = np.unravel_index(np.argmax(image_self.Z), image_self.Z.shape)
 
             shift=[y_ind-y_,x_ind-x_]
-            logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
-                                                                 shift[0] * image_self.scale * image_self.degpp))
+            logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1] * image_self.scale * image_self.degpp,
+                                                                 shift[0] * image_self.scale * image_self.degpp,self.unit))
         elif method=="modelcomp" or method=="model_comp" or method=="model":
             #get models of both images
             comps1=image_self.components
@@ -1011,8 +1020,8 @@ class ImageData(object):
                     return self
                 else:
                     shift=[np.mean(y_shifts)/image_self.scale/image_self.degpp,np.mean(x_shifts)/image_self.scale/image_self.degpp]
-                    logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * image_self.scale * image_self.degpp,
-                                                                       shift[0] * image_self.scale * image_self.degpp))
+                    logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1] * image_self.scale * image_self.degpp,
+                                                                       shift[0] * image_self.scale * image_self.degpp,self.unit))
 
 
         else:
@@ -1652,8 +1661,8 @@ class ImageData(object):
         x_, y_ = np.unravel_index(np.argmax(ref_image), ref_image.shape)
 
         shift = [y_ind - y_, x_ind - x_]
-        logger.info('will apply shift (x,y): [{} : {}] mas'.format(-shift[1] * self.scale * self.degpp,
-                                                             shift[0] * self.scale * self.degpp))
+        logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1] * self.scale * self.degpp,
+                                                             shift[0] * self.scale * self.degpp,self.unit))
 
         return self.shift(-shift[1] * self.scale * self.degpp,
                           shift[0] * self.scale * self.degpp, useDIFMAP=useDIFMAP)
@@ -1697,7 +1706,7 @@ class ImageData(object):
 
         if show:
             plt.plot(x_values,intensity_profile)
-            plt.xlabel("Distance from Point 1 [mas]")
+            plt.xlabel(f"Distance from Point 1 [{self.unit}]")
             plt.ylabel("Flux Density [Jy/beam]")
             plt.tight_layout()
             plt.show()
