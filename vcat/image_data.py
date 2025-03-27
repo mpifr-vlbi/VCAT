@@ -624,7 +624,7 @@ class ImageData(object):
             polarization (str): Polarization to export ('I','Q','U')
         """
         if polarization=="I":
-            os.system(f"cp {self.stokes_i_path} {outputfile}")
+            os.system(f"cp {self.file_path} {outputfile}")
         elif polarization=="Q":
             os.system(f"cp {self.stokes_q_path} {outputfile}")
         elif polarization=="U":
