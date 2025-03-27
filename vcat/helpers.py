@@ -56,7 +56,7 @@ def get_sigma_levs(image,  # 2d array/list
 
     elif noise_method=="Image RMS":
         Z1 = image.flatten()
-        noise = np.std(Z1)
+        noise = np.nanstd(Z1)
         levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
