@@ -423,7 +423,7 @@ class ImageCube(object):
                 values.append(image.frac_pol*100)
                 ylabel = "Fractional Polarization [%]"
             elif value=="evpa" or value=="evpa_average":
-                values.append(image.evpa_average)
+                values.append(image.evpa_average/np.pi*180)
                 ylabel = "Electric Vector Position Angle [°]"
             elif value=="noise":
                 values.append(image.noise)
