@@ -616,6 +616,22 @@ class ImageData(object):
     def copy(self):
         return copy.copy(self)
 
+    def export(self,outputfile,polarization="I"):
+        """
+        Function to export fits file
+        Args:
+            outputfile (str): Name/path of the intended output file
+            polarization (str): Polarization to export ('I','Q','U')
+        """
+        if polarization="I":
+            os.system(f"cp {self.stokes_i_path} {outputfile}")
+        elif polarization="Q":
+            os.system(f"cp {self.stokes_q_path} {outputfile}")
+        elif polarization="U":
+            os.system(f"cp {self.stokes_u_path} {outputfile}")
+
+        logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
+
     def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
         """
         This method regrids the image in full polarization
