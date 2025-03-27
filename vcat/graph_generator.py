@@ -932,6 +932,29 @@ class FitsImage(object):
             self.ax.text(maj1_x*scale,maj1_y*scale,str(id),fontsize=10)
         return [ellipse,line1,line2]
 
+    def plotTimeline(self,min_mjd,max_mjd,current_mjd):
+        x_min, x_max = self.ax.get_xlim()
+        y_min, y_max = self.ax.get_ylim()
+
+        # Leave some space at the sides (e.g., 10% of the image width)
+        side_margin = 0.1 * (x_max - x_min)
+
+        def map_mjd_to_image(mjd):
+            return x_min + side_margin + (x_max - x_min - 2*side_margin) * (mjd - min_mjd) / (max_mjd - min_mjd)
+
+        min_x = map_mjd_to_image(min_mjd)
+        max_x = map_mjd_to_image(max_mjd)
+        current_x = map_mjd_to_image(current_mjd)
+
+        y_pos = y_max * 0.9  # Adjust as needed
+        self.ax.plot([min_x, max_x], [y_pos, y_pos], color='black', linestyle='-', linewidth=2, label='Observation Timeline')
+
+        # Mark the current MJD with a dot
+        self.ax.scatter(current_x, y_pos, color='black', s=100, zorder=3, label=f'Current MJD: {current_mjd}')
+
+        # Add labels for min and max MJD
+        self.ax.text(min_x, y_pos*0.9, f'{min_mjd}', color='black', ha='center', fontsize=10)
+        self.ax.text(max_x, y_pos*0.9, f'{max_mjd}', color='black', ha='center', fontsize=10)
 
     def change_plot_lim(self,x_min,x_max,y_min,y_max):
         self.ax.set_xlim(x_min, x_max)

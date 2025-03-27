@@ -404,7 +404,7 @@ class ImageCube(object):
     def plot_evolution(self, value="flux",freq="",show=True, savefig="",
                        colors=["black","green","blue","red","purple","orange","magenta","brown"], #default colors
                        markers=["."], #default markers
-                       linestyles=["none"]):
+                       linestyles=["-"]):
 
         #TODO also make ridgeline plot over several epochs possible
         if freq == "":
@@ -1378,8 +1378,8 @@ class ImageCube(object):
         return fits
 
     def movie(self,freq="",noise="max",n_frames=500,interval=50,
-              start_mjd="",end_mjd="",fps=20,save="",plot_components=False,fill_components=False,
-              component_cmap="hot_r",title="",**kwargs):
+              start_mjd="",end_mjd="",dpi=300,fps=20,save="",plot_components=False,fill_components=False,
+              plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
 
         #TODO sanity check if all images have same dimensions, otherwise it will crash
 
@@ -1425,10 +1425,10 @@ class ImageCube(object):
                     for k in range(len(evpa)):
                         for j in range(len(evpa[0])):
                             if evpa[k][j]-evpas[i-1][k][j]>90:
-                                for ind in range(j,len(evpas)):
+                                for ind in range(i,len(evpas)):
                                     evpas[ind][k][j]-=180
                             if evpa[k][j]-evpas[i-1][k][j]<-90:
-                                for ind in range(j,len(evpas)):
+                                for ind in range(i,len(evpas)):
                                     evpas[ind][k][j]+=180
 
             #EVPA
@@ -1494,6 +1494,10 @@ class ImageCube(object):
                         except:
                             pass
 
+                #plot timeline
+                if plot_timeline:
+                    plot.plotTimeline(start_mjd,end_mjd,current_mjd)
+
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)
 
@@ -1502,7 +1506,7 @@ class ImageCube(object):
             elif ".mp4" not in save:
                 save=save+".mp4"
 
-            ani.save(save,writer="ffmpeg",fps=round(1/interval*1000))
+            ani.save(save,writer="ffmpeg",dpi=dpi,fps=round(1/interval*1000))
             logger.info(f"Movie for {f:.0f}GHz exported as '{save}'")
 
 
