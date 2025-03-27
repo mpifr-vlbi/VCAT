@@ -272,8 +272,8 @@ class EvolutionPlot(object):
         self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
         self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
 
-    def plotEvolution(self,mjds,value,c="black",marker=".",label=""):
-        self.ax.scatter(mjds, value, c=c, marker=marker,label=label)
+    def plotEvolution(self,mjds,value,c="black",marker=".",label="",linestyle="none"):
+        self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
 
 
         

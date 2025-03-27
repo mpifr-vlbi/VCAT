@@ -17,6 +17,8 @@ print(dataC.components)
 
 im_cube=ImageCube(images)
 
+im_cube.plot_evolution()
+
 print(im_cube)
 
 #plot it

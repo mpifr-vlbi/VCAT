@@ -400,47 +400,53 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    #This function generates simply lightcurve-like plots to plot the evolution of flux, lin_pol etc. vs. time
-    def plot_evolution(self, value="flux",show=True, savefig="",
-                       colors=["black","green","blue","red","purple","orange","magenta","brown"], #default colors #TODO find a better solution
-                       markers=[".",".",".",".",".",".",".",".","."], #default markers #TODO find a better solution
-                       **kwargs):
+    #This function generates lightcurve-like plots to plot the evolution of flux, lin_pol etc. vs. time
+    def plot_evolution(self, value="flux",freq="",show=True, savefig="",
+                       colors=["black","green","blue","red","purple","orange","magenta","brown"], #default colors
+                       markers=["."], #default markers
+                       linestyles=["none"]):
+
         #TODO also make ridgeline plot over several epochs possible
+        if freq == "":
+            freq = self.freqs
+        elif not isinstance(epoch, list):
+            raise Exception("Invalid input for 'freq'.")
 
-        values=[]
-        mjds=[]
-        freqs=[]
-        for i, image in enumerate(self.images.flatten()):
-            mjds.append(image.mjd)
-            freqs.append(image.freq*1e-9)
-            if value=="flux":
-                values.append(image.integrated_flux_clean)
-                ylabel="Flux Density [Jy/beam]"
-            elif value=="linpol" or value=="lin_pol":
-                values.append(image.integrated_pol_flux_clean)
-                ylabel = "Linear Polarized Flux [Jy/beam]"
-            elif value=="frac_pol" or value=="fracpol":
-                values.append(image.frac_pol*100)
-                ylabel = "Fractional Polarization [%]"
-            elif value=="evpa" or value=="evpa_average":
-                values.append(image.evpa_average/np.pi*180)
-                ylabel = "Electric Vector Position Angle [°]"
-            elif value=="noise":
-                values.append(image.noise)
-                ylabel = "Image Noise [Jy/beam]"
-            elif value=="pol_noise" or value=="polnoise":
-                values.append(image.pol_noise)
-                ylabel = "Polarization Noise [Jy/beam]"
-            else:
-                raise Exception("Please specify valid plot mode")
+        plot = EvolutionPlot(xlabel="MJD [days]")
 
-        plot=EvolutionPlot(xlabel="MJD [days]",ylabel=ylabel)
+        for i,f in enumerate(freq):
+            values = []
+            mjds = []
+            ind_f=closest_index(freq,f)
+            for image in self.images[:,ind_f].flatten():
+                mjds.append(image.mjd)
+                if value=="flux":
+                    values.append(image.integrated_flux_clean)
+                    ylabel="Flux Density [Jy/beam]"
+                elif value=="linpol" or value=="lin_pol":
+                    values.append(image.integrated_pol_flux_clean)
+                    ylabel = "Linear Polarized Flux [Jy/beam]"
+                elif value=="frac_pol" or value=="fracpol":
+                    values.append(image.frac_pol*100)
+                    ylabel = "Fractional Polarization [%]"
+                elif value=="evpa" or value=="evpa_average":
+                    values.append(image.evpa_average/np.pi*180)
+                    ylabel = "Electric Vector Position Angle [°]"
+                elif value=="noise":
+                    values.append(image.noise)
+                    ylabel = "Image Noise [Jy/beam]"
+                elif value=="pol_noise" or value=="polnoise":
+                    values.append(image.pol_noise)
+                    ylabel = "Polarization Noise [Jy/beam]"
+                else:
+                    raise Exception("Please specify valid plot mode")
 
-        for i,freq in enumerate(np.unique(freqs)):
-            inds=np.where(freqs==freq)[0]
-            label="{:.1f}".format(freq)+" GHz"
-            plot.plotEvolution(np.array(mjds)[inds],np.array(values)[inds],c=colors[i],marker=markers[i],label=label)
 
+            label="{:.1f}".format(f*1e-9)+" GHz"
+            plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
+                               label=label,linestyle=linestyles[i % len(linestyles)])
+
+        plt.ylabel(ylabel)
         plt.legend()
         plt.tight_layout()
 
@@ -1287,7 +1293,7 @@ class ImageCube(object):
 
         if freq=="":
             freq=self.freqs
-        elif not isinstance(epoch, list):
+        elif not isinstance(freq, list):
             raise Exception("Invalid input for 'freq'.")
 
         if id=="":
