@@ -30,26 +30,34 @@ class ImageCube(object):
 
     """ Class to handle a multi-frequency, multi-epoch Image data set
     Attributes:
-        fits_file: Path to a .fits file containing the data (Stokes-I (DIFMAP) or Full Polarization (CASA)).
-        uvf_file: Path to a .uvf file corresponding to the fits_file
-        freq: Frequency of the Image in GHz
-        stokes_i: Optional input of a 2d-array with Stokes-I values
-        model: Path to a .fits file including the 
-        lin_pol: Optional input of a 2d-array with lin-pol values
-        evpa: Optional input of a 2d-array with EVPA values
-        pol_from_stokes: Select whether to read in polarization from stokes_q/u or lin_pol/evpa
-        stokes_q: Path to a .fits file containing Stokes-Q data
-        stokes_u: Path to a .fits file containing Stokes-U data
-        model_save_dir: Path where to store created .mod files 
-        is_casa_model: If a model .fits from CASA was imported, set to True, otherwise set to False
-        difmap_path: Provide the path to your difmap executable
+        freqs (list[float]): Frequencies of the ImageCube in Hz
+        dates (list[str]): Dates included in the ImageCube
+        mjds (list[float]): MJDs included in the ImageCube
+        name (str): Source Name
+        date_tolerance (float): Difference in days to consider the same epoch
+        freq_tolerance (float): Difference in GHz to consider the same frequency
+        images (list[list[ImageData]]): 2d-array of ImageData objects
+        comp_collections (list[ComponentCollection]): List of Component Collections (one collection per ID)
+        images_freq (list[list[float]]): 2d-array of frequencies in Hz
+        images_mjd (list[list[float]]): 2d-array of MJDs
+        images_majs (list[list[float]]): 2d-array of Beam Major Axis
+        images_mins (list[list[float]]): 2d-array of Beam Minor Axis
+        images_pas (list[list[float]]): 2d-array of Beam position angle (in degree)
+        noises (list[list[float]]): 2d-array of Image noises
     """
 
     def __init__(self,
                  image_data_list=[], #list of ImageData objects
-                 date_tolerance=1, #date tolerance to consider "simultaneous" #TODO
-                 freq_tolerance=1, #frequency tolerance to consider the same #TODO
+                 date_tolerance=1, #date tolerance to consider "simultaneous"
+                 freq_tolerance=1, #frequency tolerance to consider the same
                  ):
+        """
+        Initialize ImageCube class.
+        Args:
+            image_data_list (list[ImageData]): List of ImageData objects
+            date_tolerance (float): Difference in days to consider the same epoch
+            freq_tolerance (float): Difference in GHz to consider the same frequency
+        """
         self.freqs=[]
         self.dates=[]
         self.mjds=[]
@@ -129,6 +137,18 @@ class ImageCube(object):
         return line1+line2+line3
 
     def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files="",**kwargs):
+        """
+        Function to import ImageCube directly from (.fits-)files.
+        Args:
+            fits_files (list[str]): List of Stokes-I or full-polarization .fits file
+            uvf_files (list[str]): List of .uvf-files
+            stokes_q_files (list[str]): List of Stokes Q .fits files
+            stokes_u_files (list[str]): List of Stokes U .fits files
+            model_fits_files (list[str]): List of modelfit .fits files (.mod files work as well, but must be sorted)
+            **kwargs: Additional options as in ImageData (will be applied to all Images, e.g. 'noise_method')
+        Returns:
+            ImageCube object
+        """
         #sort input files
         fits_files=sort_fits_by_date_and_frequency(fits_files)
         uvf_files=sort_uvf_by_date_and_frequency(uvf_files)
@@ -160,7 +180,15 @@ class ImageCube(object):
         return ImageCube(image_data_list=images)
 
     def masking(self,mode="all",mask_type="ellipse",args=False):
-        # initialize empty array
+        """
+        Function to apply mask to images included in Image Cube
+        Args:
+            mode (str): Choose apply mode ('all', 'freq', 'epoch'), will apply independent mask for 'all', per 'epoch' or per 'frequency'
+            mask_type (str or list[str]): Mask type, if 'freq' or 'epoch' mode can be list
+            args: Mask argument
+        Returns:
+            ImageCube with masked images
+        """
         images = []
 
         if mode == "all":
@@ -1382,7 +1410,6 @@ class ImageCube(object):
               plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
 
         #TODO sanity check if all images have same dimensions, otherwise it will crash
-
         if freq=="":
             freq=[f*1e-9 for f in self.freqs]
         elif isinstance(freq, (float,int)):
@@ -1392,7 +1419,23 @@ class ImageCube(object):
         else:
             raise Exception("Please enter valid 'freq' value.")
 
-        for f in freq:
+        if save=="":
+            save=[]
+            for f in freq:
+                save.append(f"movie_{f*1e-9:.0f}GHz.mp4")
+        elif isinstance(save, str):
+            save_ar=[]
+            if len(freq)>1:
+                for f in freq:
+                    save_ar.append(save+f"_{f*1e-9:.0f}GHz.mp4")
+                save=save_ar
+            else:
+                save=[save]
+        elif not isinstance(save, list):
+            raise Exception("Please enter valid 'save' value.")
+
+
+        for index,f in enumerate(freq):
             # create figure environment to plot the data on.
             fig, ax = plt.subplots()
 
@@ -1501,12 +1544,8 @@ class ImageCube(object):
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)
 
-            if save=="":
-                save=f"movie_{f:.0f}GHz.mp4"
-            elif ".mp4" not in save:
-                save=save+".mp4"
 
-            ani.save(save,writer="ffmpeg",dpi=dpi,fps=round(1/interval*1000))
-            logger.info(f"Movie for {f:.0f}GHz exported as '{save}'")
+            ani.save(save[index],writer="ffmpeg",dpi=dpi,fps=round(1/interval*1000))
+            logger.info(f"Movie for {f:.0f}GHz exported as '{save[index]}'")
 
 
