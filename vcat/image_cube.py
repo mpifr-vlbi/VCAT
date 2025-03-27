@@ -1422,12 +1422,12 @@ class ImageCube(object):
         if save=="":
             save=[]
             for f in freq:
-                save.append(f"movie_{f*1e-9:.0f}GHz.mp4")
+                save.append(f"movie_{f:.0f}GHz.mp4")
         elif isinstance(save, str):
             save_ar=[]
             if len(freq)>1:
                 for f in freq:
-                    save_ar.append(save+f"_{f*1e-9:.0f}GHz.mp4")
+                    save_ar.append(save+f"_{f:.0f}GHz.mp4")
                 save=save_ar
             else:
                 save=[save]
@@ -1492,6 +1492,8 @@ class ImageCube(object):
             levs1_linpol = plot.levs1_linpol
             levs = plot.levs
             levs1 = plot.levs1
+            linpol_vmax = plot.linpol_vmax
+            fracpol_vmax = plot.fracpol_vmax
 
             if start_mjd=="":
                 start_mjd=np.min(self.images_mjd[:,ind].flatten())
@@ -1516,7 +1518,8 @@ class ImageCube(object):
 
                 #plot the ref_image
                 plot=ref_image.plot(fig=fig, ax=ax, show=False, title=f"MJD: {current_mjd:.0f}",
-                               levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,**kwargs)
+                               levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,
+                                linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,**kwargs)
 
                 #plot_components if necessary:
                 if plot_components:
