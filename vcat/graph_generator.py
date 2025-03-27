@@ -953,8 +953,8 @@ class FitsImage(object):
         self.ax.scatter(current_x, y_pos, color='black', s=100, zorder=3, label=f'Current MJD: {current_mjd}')
 
         # Add labels for min and max MJD
-        self.ax.text(min_x, y_pos*0.9, f'{min_mjd}', color='black', ha='center', fontsize=10)
-        self.ax.text(max_x, y_pos*0.9, f'{max_mjd}', color='black', ha='center', fontsize=10)
+        self.ax.text(min_x, y_pos*0.85, f'{min_mjd}', color='black', ha='center', fontsize=10)
+        self.ax.text(max_x, y_pos*0.85, f'{max_mjd}', color='black', ha='center', fontsize=10)
 
     def change_plot_lim(self,x_min,x_max,y_min,y_max):
         self.ax.set_xlim(x_min, x_max)
