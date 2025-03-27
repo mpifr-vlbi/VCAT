@@ -1098,10 +1098,13 @@ class ImageData(object):
                 with fits.open(self.fits_file) as f:
                     f[0].data[0, 0, :, :] = new_image_i
                     new_stokes_i_fits = self.model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
-                    f[1].header['XTENSION'] = 'BINTABLE'
-                    #shift model/clean components
-                    f[1].data["DELTAX"] += shift_x_deg
-                    f[1].data["DELTAY"] += shift_y_deg
+                    try:
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        #shift model/clean components
+                        f[1].data["DELTAX"] += shift_x_deg
+                        f[1].data["DELTAY"] += shift_y_deg
+                    except:
+                        pass
                     if not (bmaj == -1 and bmin == -1 and posa == -1):
                         #Overwrite beam parameters in header
                         f[0].header["BMAJ"] = bmaj / self.scale
@@ -1113,10 +1116,13 @@ class ImageData(object):
                     with fits.open(self.stokes_q_path) as f:
                         f[0].data[0, 0, :, :] = new_image_q
                         new_stokes_q_fits = self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
-                        f[1].header['XTENSION'] = 'BINTABLE'
-                        # shift model/clean components
-                        f[1].data["DELTAX"] += shift_x_deg
-                        f[1].data["DELTAY"] += shift_y_deg
+                        try:
+                            f[1].header['XTENSION'] = 'BINTABLE'
+                            # shift model/clean components
+                            f[1].data["DELTAX"] += shift_x_deg
+                            f[1].data["DELTAY"] += shift_y_deg
+                        except:
+                            pass
                         if not (bmaj == -1 and bmin == -1 and posa == -1):
                             # Overwrite beam parameters in header
                             f[0].header["BMAJ"] = bmaj / self.scale
@@ -1128,10 +1134,13 @@ class ImageData(object):
                     with fits.open(self.stokes_u_path) as f:
                         f[0].data[0, 0, :, :] = new_image_u
                         new_stokes_u_fits = self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
-                        f[1].header['XTENSION'] = 'BINTABLE'
-                        # shift model/clean components
-                        f[1].data["DELTAX"] += shift_x_deg
-                        f[1].data["DELTAY"] += shift_y_deg
+                        try:
+                            f[1].header['XTENSION'] = 'BINTABLE'
+                            # shift model/clean components
+                            f[1].data["DELTAX"] += shift_x_deg
+                            f[1].data["DELTAY"] += shift_y_deg
+                        except:
+                            pass
                         if not (bmaj == -1 and bmin == -1 and posa == -1):
                             # Overwrite beam parameters in header
                             f[0].header["BMAJ"] = bmaj / self.scale
@@ -1180,9 +1189,12 @@ class ImageData(object):
                         f[0].data[0, 0, :, :] = new_image_model
                         new_model_fits = self.model_save_dir + "mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                     self.freq / 1e9).replace(".", "_") + "GHz.fits"
-                        f[1].header['XTENSION'] = 'BINTABLE'
-                        f[1].data["DELTAX"] += shift_x_deg
-                        f[1].data["DELTAY"] += shift_y_deg
+                        try:
+                            f[1].header['XTENSION'] = 'BINTABLE'
+                            f[1].data["DELTAX"] += shift_x_deg
+                            f[1].data["DELTAY"] += shift_y_deg
+                        except:
+                            pass
                         if not (bmaj == -1 and bmin == -1 and posa == -1):
                             f[0].header["BMAJ"] = bmaj / self.scale
                             f[0].header["BMIN"] = bmin / self.scale
@@ -1439,10 +1451,13 @@ class ImageData(object):
                     f[0].data[0, 0, :, :] = new_image_i
                     new_stokes_i_fits = self.model_save_dir + "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                         self.freq / 1e9).replace(".", "_") + "GHz.fits"
-                    f[1].header['XTENSION'] = 'BINTABLE'
-                    new_x,new_y=rotate_points(f[1].data["DELTAX"],f[1].data["DELTAY"],-angle)
-                    f[1].data['DELTAX']=new_x
-                    f[1].data['DELTAY']=new_y
+                    try:
+                        f[1].header['XTENSION'] = 'BINTABLE'
+                        new_x,new_y=rotate_points(f[1].data["DELTAX"],f[1].data["DELTAY"],-angle)
+                        f[1].data['DELTAX']=new_x
+                        f[1].data['DELTAY']=new_y
+                    except:
+                        pass
                     f[0].header['BPA']+=angle
                     f.writeto(new_stokes_i_fits, overwrite=True)
 
@@ -1452,10 +1467,13 @@ class ImageData(object):
                         f[0].data[0, 0, :, :] = new_image_q
                         new_stokes_q_fits = self.model_save_dir + "mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                             self.freq / 1e9).replace(".", "_") + "GHz.fits"
-                        f[1].header['XTENSION'] = 'BINTABLE'
-                        new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
-                        f[1].data['DELTAX'] = new_x
-                        f[1].data['DELTAY'] = new_y
+                        try:
+                            f[1].header['XTENSION'] = 'BINTABLE'
+                            new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
+                            f[1].data['DELTAX'] = new_x
+                            f[1].data['DELTAY'] = new_y
+                        except:
+                            pass
                         f[0].header['BPA'] += angle
                         f.writeto(new_stokes_q_fits, overwrite=True)
                 else:
@@ -1467,10 +1485,13 @@ class ImageData(object):
                         f[0].data[0, 0, :, :] = new_image_u
                         new_stokes_u_fits = self.model_save_dir + "mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                             self.freq / 1e9).replace(".", "_") + "GHz.fits"
-                        f[1].header['XTENSION'] = 'BINTABLE'
-                        new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
-                        f[1].data['DELTAX'] = new_x
-                        f[1].data['DELTAY'] = new_y
+                        try:
+                            f[1].header['XTENSION'] = 'BINTABLE'
+                            new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
+                            f[1].data['DELTAX'] = new_x
+                            f[1].data['DELTAY'] = new_y
+                        except:
+                            pass
                         f[0].header['BPA'] += angle
                         f.writeto(new_stokes_u_fits, overwrite=True)
                 else:
@@ -1501,10 +1522,13 @@ class ImageData(object):
                             f[0].data[0, 0, :, :] = new_image_model
                             new_model_fits = self.model_save_dir + "mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                     self.freq / 1e9).replace(".", "_") + "GHz.fits"
-                            f[1].header['XTENSION'] = 'BINTABLE'
-                            new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
-                            f[1].data['DELTAX'] = new_x
-                            f[1].data['DELTAY'] = new_y
+                            try:
+                                f[1].header['XTENSION'] = 'BINTABLE'
+                                new_x, new_y = rotate_points(f[1].data["DELTAX"], f[1].data["DELTAY"], -angle)
+                                f[1].data['DELTAX'] = new_x
+                                f[1].data['DELTAY'] = new_y
+                            except:
+                                pass
                             f[0].header['BPA'] += angle
                             f.writeto(new_model_fits, overwrite=True)
                     else:
