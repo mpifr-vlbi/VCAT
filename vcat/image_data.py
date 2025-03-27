@@ -437,8 +437,9 @@ class ImageData(object):
             #write .mod file from .fits input
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
-            self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
-            write_mod_file(self.model, self.model_mod_file, freq=self.freq)
+            if self.model is not None:
+                self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+                write_mod_file(self.model, self.model_mod_file, freq=self.freq)
         else:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)

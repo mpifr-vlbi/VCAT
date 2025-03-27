@@ -95,7 +95,11 @@ def getComponentInfo(filename,scale=60*60*1000):
         #read in fits file
         data_df = pd.DataFrame()
         hdu_list = fits.open(filename)
-        comp_data = hdu_list[1].data
+        try:
+            comp_data = hdu_list[1].data
+        except:
+            logger.warning("FITS file does not contain model.")
+            return None
         comp_data1 = np.zeros((len(comp_data), len(comp_data[0])))
         date = np.array([])
         year = np.array([])
