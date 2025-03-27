@@ -1425,11 +1425,11 @@ class ImageCube(object):
                     for k in range(len(evpa)):
                         for j in range(len(evpa[0])):
                             if evpa[k][j]-evpas[i-1][k][j]>np.pi/2:
-                                for ind in range(i,len(evpas)):
-                                    evpas[ind][k][j]-=np.pi
+                                for l in range(i,len(evpas)):
+                                    evpas[l][k][j]-=np.pi
                             if evpa[k][j]-evpas[i-1][k][j]<-np.pi/2:
-                                for ind in range(i,len(evpas)):
-                                    evpas[ind][k][j]+=np.pi
+                                for l in range(i,len(evpas)):
+                                    evpas[l][k][j]+=np.pi
 
             #EVPA
             interp_evpa = RegularGridInterpolator(grid, evpas, method='linear', bounds_error=False,
