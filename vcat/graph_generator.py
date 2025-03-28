@@ -459,7 +459,7 @@ class FitsImage(object):
         clean_alpha = 1  # float for sympol transparency
 
         #get sigma levs
-        if not isinstance(levs,list) and not isinstance(levs1,list):
+        if not isinstance(levs,(list,np.ndarray)) and not isinstance(levs1,(list,np.ndarray)):
             levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_noise)
 
         self.levs=levs
@@ -473,7 +473,7 @@ class FitsImage(object):
 
         if (plot_mode=="lin_pol" or plot_mode=="frac_pol") and np.sum(lin_pol)!=0:
 
-            if not isinstance(levs_linpol,list) and not isinstance(levs1_linpol,list):
+            if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
                 levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
 
 
@@ -932,7 +932,7 @@ class FitsImage(object):
             self.ax.text(maj1_x*scale,maj1_y*scale,str(id),fontsize=10)
         return [ellipse,line1,line2]
 
-    def plotTimeline(self,min_mjd,max_mjd,current_mjd):
+    def plotTimeline(self,min_mjd,max_mjd,current_mjd,times):
         x_min, x_max = self.ax.get_xlim()
         y_min, y_max = self.ax.get_ylim()
 
@@ -955,6 +955,10 @@ class FitsImage(object):
         # Add labels for min and max MJD
         self.ax.text(min_x, y_pos*0.85, f'{min_mjd}', color='black', ha='center', fontsize=10)
         self.ax.text(max_x, y_pos*0.85, f'{max_mjd}', color='black', ha='center', fontsize=10)
+
+        #Add increments for real observations
+        for time in times:
+            self.ax.vlines(x=map_mjd_to_image(time),ymin=y_pos*0.96,ymax=y_pos*1.04,color="black",linestyle="-",linewidth=2)
 
     def change_plot_lim(self,x_min,x_max,y_min,y_max):
         self.ax.set_xlim(x_min, x_max)

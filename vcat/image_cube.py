@@ -772,9 +772,6 @@ class ImageCube(object):
         else:
             raise Exception("Please use a valid align mode ('all', 'epoch', 'freq').")
 
-        for im in images_new:
-            for c in im.components:
-                print(c)
         return ImageCube(image_data_list=images_new)
 
     def slice(self,epoch_lim="",freq_lim=""):
@@ -1405,7 +1402,7 @@ class ImageCube(object):
 
         return fits
 
-    def movie(self,freq="",noise="max",n_frames=500,interval=50,
+    def movie(self,plot_mode="stokes_i",freq="",noise="max",n_frames=500,interval=50,
               start_mjd="",end_mjd="",dpi=300,fps=20,save="",plot_components=False,fill_components=False,
               plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
 
@@ -1486,7 +1483,7 @@ class ImageCube(object):
             ref_image=self.images[:,ind].flatten()[im_ind]
 
             #get levs
-            plot=ref_image.plot(show=False,**kwargs)
+            plot=ref_image.plot(plot_mode=plot_mode,show=False,**kwargs)
             plt.close()
             levs_linpol = plot.levs_linpol
             levs1_linpol = plot.levs1_linpol
@@ -1517,7 +1514,7 @@ class ImageCube(object):
                 ref_image.evpa = interp_evpa(query_points).reshape(len(images[0]), len(images[0][0])).T
 
                 #plot the ref_image
-                plot=ref_image.plot(fig=fig, ax=ax, show=False, title=f"MJD: {current_mjd:.0f}",
+                plot=ref_image.plot(plot_mode=plot_mode,fig=fig, ax=ax, show=False, title=f"MJD: {current_mjd:.0f}",
                                levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,
                                 linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,**kwargs)
 
@@ -1542,7 +1539,7 @@ class ImageCube(object):
 
                 #plot timeline
                 if plot_timeline:
-                    plot.plotTimeline(start_mjd,end_mjd,current_mjd)
+                    plot.plotTimeline(start_mjd,end_mjd,current_mjd,times)
 
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)

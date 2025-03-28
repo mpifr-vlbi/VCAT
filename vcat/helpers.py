@@ -611,7 +611,7 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
         _maj = np.mean(majs)
         _min = np.mean(mins)
         _pos = np.mean(posas)
-        logger.info(' Will use mean beam.')
+        logger.info('Will use mean beam.')
     elif arg=='max':
         if np.argmax(majs)==np.argmax(mins):
             beam_ind=np.argmax(majs)
@@ -621,12 +621,12 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
         else:
             logger.warning('could not derive max beam, defaulting to common beam.')
             return get_common_beam(majs,mins,posas,arg="common")
-        logger.info(' Will use max beam.')
+        logger.info('Will use max beam.')
     elif arg=='median':
         _maj = np.median(majs)
         _min = np.median(mins)
         _pos = np.median(posas)
-        logger.info(' Will use median beam.')
+        logger.info('Will use median beam.')
     elif arg == 'circ':
         _maj = np.median(majs)
         _min = _maj
