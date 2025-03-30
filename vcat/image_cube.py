@@ -1405,6 +1405,25 @@ class ImageCube(object):
     def movie(self,plot_mode="stokes_i",freq="",noise="max",n_frames=500,interval=50,
               start_mjd="",end_mjd="",dpi=300,fps=20,save="",plot_components=False,fill_components=False,
               plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
+        """
+        Function to create movies from image cube
+        Args:
+            plot_mode (str): Choose plot mode ('stokes_i','lin_pol','frac_pol')
+            freq (float or list[float]): Choose frequencies in GHz to create movie
+            noise (str): Choose which common noise level to use ('min' or 'max')
+            n_frames (int): Number of frames
+            interval (float): Interval in milliseconds between frames
+            start_mjd (float): Start MJD of the movie
+            end_mjd (float): End MJD of the movie
+            dpi (int): Choose resolution in dpi
+            save (str): Choose name of the movie file
+            plot_components (bool): Choose whether to animate modelfit components (correct assignment should be done before!)
+            fill_components (bool): If true, will fill components with a colormap based on their flux density
+            plot_timeline (bool): Choose whether to plot a timeline
+            component_cmap (str): Matplotlib colormap for 'fill_components' option.
+            title (str): Choose Plot title (default: MJD)
+            **kwargs: Plot options known from plot() function
+        """
 
         #TODO sanity check if all images have same dimensions, otherwise it will crash
         if freq=="":
@@ -1503,7 +1522,7 @@ class ImageCube(object):
 
             def update(frame):
                 progress_bar.update(1)
-                ax.cla()
+                fig.clf()
                 #modify ref_image to interpolated values
                 current_mjd=mjd_frames[frame]
                 X,Y=np.meshgrid(np.arange(len(images[0])),np.arange(len(images[0][0])),indexing="ij")

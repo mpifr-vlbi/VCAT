@@ -402,6 +402,8 @@ class FitsImage(object):
         self.linpol_vmax=linpol_vmax
         self.fracpol_vmax=fracpol_vmax
         self.col=""
+        self.lin_pol_sigma_cut=lin_pol_sigma_cut
+        self.stokes_i_sigma_cut=stokes_i_sigma_cut
 
         #modify these parameters if polar plot is selected
         if plot_polar:
@@ -794,9 +796,9 @@ class FitsImage(object):
             if im_color =="":
                 im_color = "cubehelix_r"
 
-            linthresh = 10.0 * levs1[0]
+            linthresh = 10.0 * levs1[0] / self.lin_pol_sigma_cut
             if self.linpol_vmax=="":
-                vmax = np.max([np.max(Z), 10.0 * levs1[0]])
+                vmax = np.max([np.max(Z), linthresh])
                 self.linpol_vmax=vmax
             else:
                 vmax=self.linpol_vmax
