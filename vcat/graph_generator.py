@@ -796,7 +796,7 @@ class FitsImage(object):
             if im_color =="":
                 im_color = "cubehelix_r"
 
-            linthresh = 10.0 * levs1[0] / self.lin_pol_sigma_cut
+            linthresh = 10.0 * self.clean_image.noise
             if self.linpol_vmax=="":
                 vmax = np.max([np.max(Z), linthresh])
                 self.linpol_vmax=vmax
