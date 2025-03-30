@@ -1017,7 +1017,7 @@ class FitsImage(object):
 
 class MultiFitsImage(object):
 
-    def __init__(self,lint
+    def __init__(self,
                  image_cube,  # ImageData object
                  mode="individual", #Choose what effect the parameters have ('individual','freq','epoch','all')
                  swap_axis=False, #If True frequency will be plotted in x-direction and time in y
