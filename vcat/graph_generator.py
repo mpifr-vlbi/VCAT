@@ -796,7 +796,7 @@ class FitsImage(object):
             if im_color =="":
                 im_color = "cubehelix_r"
 
-            linthresh = 10.0 * self.clean_image.noise
+            linthresh = 10.0 * self.clean_image.pol_noise
             if self.linpol_vmax=="":
                 vmax = np.max([np.max(Z), linthresh])
                 self.linpol_vmax=vmax
@@ -1017,7 +1017,7 @@ class FitsImage(object):
 
 class MultiFitsImage(object):
 
-    def __init__(self,
+    def __init__(self,lint
                  image_cube,  # ImageData object
                  mode="individual", #Choose what effect the parameters have ('individual','freq','epoch','all')
                  swap_axis=False, #If True frequency will be plotted in x-direction and time in y
