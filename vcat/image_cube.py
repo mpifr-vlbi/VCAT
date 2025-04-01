@@ -1522,7 +1522,7 @@ class ImageCube(object):
 
             def update(frame):
                 progress_bar.update(1)
-                fig.clf()
+                ax.cla()
                 #modify ref_image to interpolated values
                 current_mjd=mjd_frames[frame]
                 X,Y=np.meshgrid(np.arange(len(images[0])),np.arange(len(images[0][0])),indexing="ij")

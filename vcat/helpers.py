@@ -19,6 +19,7 @@ from numpy import linalg
 import scipy.ndimage
 import scipy.signal
 from scipy.interpolate import RegularGridInterpolator,griddata
+from vcat.config import difmap_path
 
 #initialize logger
 from vcat.config import logger
@@ -230,6 +231,13 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
             else:
                 theta.append(0)
         if maj[ind]>0:
+            ratio_val=min[ind]/maj[ind]
+            if ratio_val>1:
+                #swap maj and min if needed
+                m=maj[ind]
+                maj[ind]=min[ind]
+                min[ind]=m
+                pos[ind]=pos[ind]+90
             ratio.append(min[ind]/maj[ind])
         else:
             ratio.append(0)
@@ -244,7 +252,7 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
     pos=np.array(pos)[argsort]
     typ_obj=np.array(typ_obj)[argsort]
 
-    #check if we need to ad "v" to the components to make them fittable
+    #check if we need to add "v" to the components to make them fittable
     if adv:
         ad="v"
     else:
@@ -415,8 +423,9 @@ def JyPerBeam2Jy(jpb,b_maj,b_min,px_inc):
 
     return jpb/PXPERBEAM(b_maj,b_min,px_inc)
 
-# calculates the image noise from the residual map in a given box area
-def get_residual_map(uvf_file,mod_file, difmap_path, save_location="residual.fits", npix=2048,pxsize=0.05):
+# calculates the residual map given a uvf file and a mod file
+def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", save_location="residual.fits", npix=2048,pxsize=0.05,
+                     do_selfcal=False):
     """ calculates residual map and stores it as .fits file.
     Args:
         uvf_file: Path to a .uvf file
@@ -445,7 +454,9 @@ def get_residual_map(uvf_file,mod_file, difmap_path, save_location="residual.fit
         child.expect_exact(prompt, None, 2)
 
     send_difmap_command("obs "+uvf_file)
-    send_difmap_command("select i")
+    send_difmap_command(f"select {channel}")
+    if do_selfcal:
+        send_difmap_command("selfcal")
     send_difmap_command("uvw 0,-1")  # use natural weighting
     send_difmap_command("rmod "+mod_file)
     send_difmap_command("maps " + str(npix) + "," + str(pxsize))
@@ -476,7 +487,7 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, x_width, y_wi
     return np.std(data[x_min:x_max,y_min:y_max]) #TODO check order of x/y here and if AVERAGE is the correct thing to do!!!
 
 #returns the reduced chi-square of a modelfit
-def get_model_chi_square_red(uvf_file,mod_file,difmap_path):
+def get_model_chi_square_red(uvf_file,mod_file,difmap_path=difmap_path):
     env = os.environ.copy()
 
     # add difmap to PATH
