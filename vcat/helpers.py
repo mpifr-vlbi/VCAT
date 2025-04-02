@@ -83,11 +83,11 @@ def get_sigma_levs(image,  # 2d array/list
 
     return levs, levs1
 
-#gets components from .fits file
+#gets components from .fits or .mod file
 def getComponentInfo(filename,scale=60*60*1000):
-    """Imports component info from a modelfit .fits file.
+    """Imports component info from a modelfit .fits or .mod file.
     Args:
-        filename: Path to a modelfit (or clean) .fits file
+        filename: Path to a modelfit (or clean) .fits or .mod file
     Returns:
         Pandas Dataframe with the model data (Flux, Delta_x, Delta_y, Major Axis, Minor Axis, PA, Typ_obj)    
     """
@@ -316,6 +316,70 @@ def write_mod_file_from_casa(file_path,channel="i",export="export.mod"):
 
     #create mod file
     write_mod_file(model_df,export,image_data.freq,image_data.scale)
+
+def write_mod_file_from_components(components,channel="i",export="export.mod",adv=False):
+    """
+    Writes a .mod file from a given list of component objects
+    Args:
+        components (list[Component]): List of component objects to include in the .mod file
+        channel (str): polarization channel ("I","Q","U")
+        export (str): file path of the .mod file to be created
+    """
+    flux = []
+    delta_x = []
+    delta_y = []
+    maj = []
+    min = []
+    pos = []
+    typ_obj = []
+
+    for comp in components:
+        if channel in ["i","I"]:
+            flux = np.append(flux,comp.flux)
+        delta_x = np.append(delta_x,comp.x)
+        delta_y = np.append(delta_y,comp.y)
+        maj = np.append(maj,comp.maj)
+        min = np.append(min,comp.min)
+        pos = np.append(pos, comp.pos)
+        typ_obj = np.append(typ_obj, 1) #for gauss component
+
+        if channel in ["u","U","q","U"]:
+            #calculate U and Q flux from lin_pol and evpa
+            chi = comp.evpa
+            if chi > 90:
+                chi -= 180
+            if chi < -90:
+                chi += 180
+            if chi >= 0 and chi < 45:
+                pre_q = +1
+                pre_u = +1
+            elif chi >= 45 and chi <= 90:
+                pre_u = +1
+                pre_q = -1
+            elif chi <= 0 and chi >= -45:
+                pre_q = +1
+                pre_u = -1
+            elif chi <= -45 and chi >= -90:
+                pre_q = -1
+                pre_u = -1
+
+            chi = 2 * comp.evpa / 180 * np.pi
+            U = pre_u * abs(np.tan(chi) * comp.lin_pol / np.sqrt(1 + np.tan(chi) ** 2))
+            Q = pre_q * abs(comp.lin_pol / np.sqrt(1 + np.tan(chi) ** 2))
+            if channel in ["q","Q"]:
+                flux = np.append(flux, Q)
+            else:
+                flux = np.append(flux, U)
+
+    model_df = pd.DataFrame({"Flux": flux,
+                             "Delta_x": delta_x,
+                             "Delta_y": delta_y,
+                             "Major_axis": maj,
+                             "Minor_axis": min,
+                             "PA": pos,
+                             "Typ_obj": typ_obj})
+    if len(components)>0:
+        write_mod_file(model_df,export,components[0].freq*1e-9,components[0].scale,adv=adv)
 
 def get_freq(fits_file):
     freq=0

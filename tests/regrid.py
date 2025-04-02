@@ -2,6 +2,9 @@ from vcat import ImageData
 from vcat.graph_generator import FitsImage
 import matplotlib.pyplot as plt
 
+ImageData(uvf_file="../dataset_example/0215_pol/Ku/0215+015.uvf")
+
+
 data=ImageData("../dataset_example/0215_pol/Ku/0215+015.icn.fits",
         model="../dataset_example/0215_pol/Ku/0215+015.icn.fits",
         stokes_q="../dataset_example/0215_pol/Ku/0215+015.qcn.fits",

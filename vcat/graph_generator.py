@@ -899,7 +899,7 @@ class FitsImage(object):
                 cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
-    def plotComponent(self,x,y,maj,min,pos,scale,fillcolor="",id=""):
+    def plotComponent(self,x,y,maj,min,pos,scale,fillcolor="",id="",evpa=""):
 
         if fillcolor=="":
             # Plotting ellipses
@@ -932,6 +932,15 @@ class FitsImage(object):
 
         if id!="":
             self.ax.text(maj1_x*scale,maj1_y*scale,str(id),fontsize=10)
+
+        if evpa!="":
+            evpa1_x = x - np.sin(-np.pi / 180 * evpa) * maj * 0.75
+            evpa1_y = y + np.cos(-np.pi / 180 * evpa) * maj * 0.75
+            evpa2_x = x + np.sin(-np.pi / 180 * evpa) * maj * 0.75
+            evpa2_y = y - np.cos(-np.pi / 180 * evpa) * maj * 0.75
+
+            self.ax.plot([evpa1_x*scale, evpa2_x*scale],[evpa1_y*scale,evpa2_y*scale],zorder=3,color=self.component_color,lw=3)
+
         return [ellipse,line1,line2]
 
     def plotTimeline(self,min_mjd,max_mjd,current_mjd,times):

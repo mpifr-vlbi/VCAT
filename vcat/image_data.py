@@ -392,7 +392,7 @@ class ImageData(object):
 
         try:
             q_fits=fits.open(stokes_q_path)
-            u_fits=fits.open(stokes_q_path)
+            u_fits=fits.open(stokes_u_path)
             self.difmap_pol_noise = np.sqrt(float(q_fits[0].header["NOISE"])**2+float(u_fits[0].header["NOISE"])**2)
             q_fits.close()
             u_fits.close()
@@ -1354,7 +1354,7 @@ class ImageData(object):
                 'cut_left': args = cut_left
                 'cut_right': args = cut_right
                 'radius': args = radius
-                'ellipse': args = {'e_args': [e_maj,e_min,e_pa], 'e_xoffset': xoff, 'e_yoffset': yoff}
+                'ellipse': args = {'e_args': [e_maj,e_min,e_pa], 'e_xoffset': xoff, 'e_yoffset': yoff} all in the image intrinsic unit
                 'flux_cut: args = flux cut
         '''
 
@@ -1391,11 +1391,11 @@ class ImageData(object):
             self.mask[rr, cc] = True
 
         if mask_type == 'ellipse':
-            e_maj = args['e_args'][0]
-            e_min = args['e_args'][1]
+            e_maj = int(args['e_args'][0]/self.scale/self.degpp)/2
+            e_min = int(args['e_args'][1]/self.scale/self.degpp)/2
             e_pa = args['e_args'][2]
-            e_xoffset = args['e_xoffset']
-            e_yoffset = args['e_yoffset']
+            e_xoffset = -int(args['e_xoffset']/self.scale/self.degpp)
+            e_yoffset = int(args['e_yoffset']/self.scale/self.degpp)
             try:
                 x, y = int(len(self.X) / 2) + e_xoffset, int(len(self.Y) / 2) +e_yoffset
             except:
@@ -1411,7 +1411,7 @@ class ImageData(object):
                 e_pa = 0
             else:
                 e_pa = e_pa
-            rr, cc = ellipse(y, x, e_maj, e_min, rotation=e_pa * np.pi / 180)
+            rr, cc = ellipse(y, x, e_maj, e_min, rotation=-e_pa * np.pi / 180)
             self.mask[rr, cc] = True
 
         if mask_type == 'flux_cut':

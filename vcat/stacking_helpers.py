@@ -12,9 +12,12 @@ from pexpect import replwrap
 import os
 from numpy import linalg
 from tqdm import tqdm
+from scipy.optimize import minimize
+import ehtim as eh
 
 #initialize logger
 from vcat.config import logger
+from vcat.helpers import write_mod_file_from_components,getComponentInfo
 
 
 def stack_images(image_array, #input images to be stacked
@@ -322,3 +325,128 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
 
         os.system("rm -rf difmap.log*")
 
+def modelfit_difmap(uvf_file,components,niter,difmap_path,weighting=[0,-1]):
+
+    write_mod_file_from_components(components,"i",export="/tmp/mod.mod",adv=True)
+
+    env = os.environ.copy()
+
+    # add difmap to PATH
+    if difmap_path != None and not difmap_path in os.environ['PATH']:
+        env['PATH'] = env['PATH'] + ':{0}'.format(difmap_path)
+
+    # remove potential difmap boot files (we don't need them)
+    env["DIFMAP_LOGIN"] = ""
+    # Initialize difmap call
+    child = pexpect.spawn('difmap', encoding='utf-8', echo=False, env=env)
+    child.expect_exact("0>", None, 2)
+
+    def send_difmap_command(command, prompt="0>"):
+        child.sendline(command)
+        child.expect_exact(prompt, None, 2)
+        logger.debug(command)
+        logger.debug("DIFMAP Output: %s", child.before)
+
+    #do the modelfit in DIFMAP
+    send_difmap_command("obs " + uvf_file)
+    send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  # use custom weighting
+    send_difmap_command("select i")
+    send_difmap_command("rmod " + "/tmp/mod.mod")
+    send_difmap_command("modelfit  "+str(niter))
+    send_difmap_command("wmod " + "/tmp/mod.mod")
+
+    os.system("rm -rf difmap.log*")
+
+    #get fitted components from .mod file
+    model_df = getComponentInfo("/tmp/mod.mod")
+
+    for ind, comp in model_df.reset_index().iterrows():
+        # assign new values
+        components[ind].x=comp["Delta_x"]
+        components[ind].y=comp["Delta_y"]
+        components[ind].maj=comp["Major_axis"]
+        components[ind].min=comp["Minor_axis"]
+        components[ind].pos=comp["PA"]
+        components[ind].flux=comp["Flux"]
+
+    return components
+
+def modelfit_ehtim(uvf_file,components,niter,npix=1024,fov=10):
+    #fov in mas!!
+    scale=components[0].scale
+
+    try:
+        npix=int(npix)
+    except:
+        npix=1024
+    try:
+        fov=float(fov)
+    except:
+        fov=10
+
+    obs=eh.obsdata.load_uvfits(uvf_file)
+
+    def get_chisq(params, obs, plot=False):
+        # create empty model
+        mod = eh.model.Model()
+
+        params = np.array(params).reshape(-1, 7)
+
+        for param in params:
+            # actually add it
+            mod = mod.add_gauss(F0=param[0],
+                                FWHM_maj=param[1] *eh.RADPERUAS*1e3,
+                                FWHM_min=param[2] *eh.RADPERUAS*1e3,
+                                PA=param[3] / 180 * np.pi,
+                                x0=param[4] / scale / 180 * np.pi,
+                                y0=param[5] / scale / 180 * np.pi,
+                                pol_frac=1,
+                                pol_evpa=param[6] / 180 * np.pi)
+
+        # make image from model
+        im = mod.make_image(fov*1e3*eh.RADPERUAS, npix)
+
+        if plot:
+            im = im.blur_gauss(obs.fit_beam(weighting="natural"))
+            im.display(plotp=True, show=True, export_pdf="fitted_model.pdf")
+
+        # calculate reduced chi-squared (still need to make this fully correct!!!)
+        chisq_red = (obs.chisq(im, pol="Q") + obs.chisq(im, pol="U")) / 2
+
+        return chisq_red
+
+    initial_guess=[]
+    for comp in components:
+        initial_guess.append(comp.lin_pol)
+        initial_guess.append(comp.maj*scale)
+        initial_guess.append(comp.min*scale)
+        initial_guess.append(comp.pos)
+        initial_guess.append(comp.x*scale)
+        initial_guess.append(comp.y*scale)
+        initial_guess.append(comp.evpa)
+
+    progress = []
+    def callback(params):
+        current_chi2 = get_chisq(params, obs)
+        progress.append(current_chi2)
+        print(f"Step {len(progress)}: chi2_red = {current_chi2:.4f}, params:{params}")
+
+    callb=get_chisq(initial_guess,obs)
+    print(f"Step 0: chi2_red = {callb}")
+
+    result = minimize(get_chisq, initial_guess, args=(obs,False),method="Nelder-Mead",callback=callback,options={"maxiter":niter})
+
+    #plot final model
+    fitted_params=result.x
+    models = np.array(fitted_params).reshape(-1, 7)
+
+    for ind,model in enumerate(models):
+        components[ind].lin_pol=model[0]
+        components[ind].maj=model[1]/scale
+        components[ind].min=model[2]/scale
+        components[ind].pos=model[3]
+        components[ind].x=model[4]/scale
+        components[ind].y=model[5]/scale
+        components[ind].evpa=model[6]
+
+    return components

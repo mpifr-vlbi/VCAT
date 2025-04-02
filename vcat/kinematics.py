@@ -16,7 +16,7 @@ from vcat.config import logger
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
                  component_number=-1, is_core=False, redshift=0, scale=60 * 60 * 10 ** 3,freq=15e9,noise=0,
-                 beam_maj=0, beam_min=0, beam_pa=0):
+                 beam_maj=0, beam_min=0, beam_pa=0,lin_pol=0,evpa=0):
         self.x = x
         self.y = y
         self.mjd = mjd
@@ -37,6 +37,8 @@ class Component():
         self.distance_to_core = np.sqrt(self.delta_x_est ** 2 + self.delta_y_est ** 2)
         self.redshift = redshift
         self.freq=freq
+        self.lin_pol=lin_pol
+        self.evpa=evpa
 
         def calculate_theta():
             if (self.delta_y_est > 0 and self.delta_x_est > 0) or (self.delta_y_est > 0 and self.delta_x_est < 0):
