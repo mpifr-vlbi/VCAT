@@ -184,6 +184,120 @@ def getComponentInfo(filename,scale=60*60*1000):
 
     return data_df
 
+'''FMP Apr25'''
+def get_ms_ps(fits_file):
+    ### Extract necessary information from fits header ###
+    header = fits.getheader(fits_file)
+    ms_x = header['NAXIS1']
+    ms_y = header['NAXIS2']
+    round_digit = 3    # round pixel size to two significant figures
+    ps_x = round(np.abs(header['CDELT1'] * 3600 * 1000),
+               int(np.ceil(np.abs(np.log10(header['CDELT2']*3600*1000))))+(round_digit-1))
+    ps_y = round(np.abs(header['CDELT2'] * 3600 * 1000),
+               int(np.ceil(np.abs(np.log10(header['CDELT2']*3600*1000))))+(round_digit-1))
+    
+    return ms_x, ps_x, ms_y, ps_y
+
+def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file,
+                      shift=None, uv_weight=0, error_weight=-1, rms_box=100,
+                      scale=3.6E6, difmap_path=""):
+    '''
+    # Purpose: Short program to read in a .fits image and corresponding .uvfits
+    and .mfit file (containing Gaussian modelfits) from difmap, to estimate the
+    uncertainties of the modelfit components based on the image plane. This
+    implementation here is the best way approximating what is described in
+    Schinzel+ 2012, in which each component is handled individually.
+    
+    # Args:
+        fits_file (str): Path to the .fits image file.
+        uvf_file (str): Path to the .uvfits file containing the visibilities.
+        mfit_file (str): Path to the text file containing the Gaussian
+          modelfit components from difmap.
+        mfitid_file (str): Path to the text file containing the Gaussian
+          modelfit components from difmap, including component names in the
+          lasy column.
+        shift (list): two-element-list with the shift of the map in RA and Dec.
+        uv_weight (int): Exponent with which to weight the visibilities
+          according to their density in the uv-plane. Natural weighting
+          corresponds to -2, uniform to 0 (default).
+        error_weight (int): Exponent with which to weight the visibility
+          amplitudes according to their initial weights. -2 corresponds to
+          Gaussian, 0 no error weighting. Default is -1.
+    
+    # Returns:
+        S_p (list): List with peak flux densities for each component in mJy/beam.
+        rms (list): List with residual image root-mean square for each
+          component in mJy/beam.
+    '''
+    
+    # Add difmap to PATH
+    if difmap_path == None:
+        logger.warning('Difmap path not defined. Cannot compute errors according to Schinzel et al. 2012.')
+        
+    # Initialize difmap call
+    child = pexpect.spawn('difmap', encoding='utf-8', echo=False)
+    child.expect_exact('0>', None, 2)
+
+    def send_difmap_command(command,prompt='0>'):
+        child.sendline(command)
+        child.expect_exact(prompt, None, 2)
+        
+    # print('Using .fits and .uvf file')
+    ms_x, ps_x, ms_y, ps_y = get_ms_ps(fits_file)
+    send_difmap_command('observe ' + uvf_file)
+    send_difmap_command('select I')
+    send_difmap_command('uvw '+str(uv_weight)+','+str(error_weight))    # use natural weighting as default
+    if shift != None:
+        send_difmap_command('shift '+str(shift[0])+','+str(shift[1]))
+    send_difmap_command('rmod ' + mfit_file)
+    send_difmap_command('mapsize '+str(2*ms_x)+','+str(ps_x)+','+ str(2*ms_y)+','+str(ps_y))
+    send_difmap_command('wdmap '+fits_file[0:-5]+'_resmap.fits')
+    
+    send_difmap_command('dev /NULL')
+    send_difmap_command('mapl map')
+    
+    if shift != None:
+        ra = comp.x*scale + shift[0]
+        dec = comp.y*scale + shift[1]
+    else:
+        ra = comp.x*scale
+        dec = comp.y*scale
+    
+    send_difmap_command('dev /NULL')
+    send_difmap_command('mapl cln')
+    send_difmap_command('addwin '+str(ra-1*ps_x)
+                             +','+str(ra+1*ps_x)
+                             +','+str(dec-1*ps_y)
+                             +','+str(dec+1*ps_y))
+    send_difmap_command('winmod')
+    send_difmap_command('restore 0,0,0,true')    # prevents difmap from adding
+        # the residuals to the clean map
+    send_difmap_command('mapl cln')
+    send_difmap_command('print mapvalue('+str(ra)
+                                     +','+str(dec)+')')
+    try:
+        for j, str_ in enumerate(child.before[::-1]):
+            if str_ =='.':
+                j_end = j
+                break
+        S_p = float(child.before[-j_end-2:])
+    except ValueError:
+        logger.warning('Could not read off peak flux density for component.')
+        print(child.before)
+        S_p = np.nan
+    
+    resMAP_data = fits.getdata(resmap_file)
+    resMAP_data = np.squeeze(resMAP_data)
+    xdim = len(np.array(resMAP_data)[0])
+    ydim = len(np.array(resMAP_data)[:,0])
+    rms = np.std(resMAP_data[ int(round(ydim/2 + dec/ps_y, 0))  - int(rms_box/2)
+                             :int(round(ydim/2 + dec/ps_y, 0))  + int(rms_box/2),
+                              int(round(xdim/2 - ra/ps_x, 0))-1 - int(rms_box/2)
+                             :int(round(xdim/2 - ra/ps_x, 0))-1 + int(rms_box/2)])
+    
+    return S_p, rms
+'''FMP Apr25'''
+
 #writes a .mod file given an input of from getComponentInfo(fitsfile)
 #the adv options adds a "v" character to the model to make the parameters fittable in DIFMAP
 def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):

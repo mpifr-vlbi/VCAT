@@ -160,6 +160,16 @@ class ImageData(object):
         self.residual_map_path=""
         self.residual_map = []
         self.noise_method=noise_method
+        '''
+        FMP Apr25: suggestion to include visibility weights as used by difmap
+        as attributes for ImageData class.
+        Could actually be read in from the .par file if present. There are many
+        calls to difmap that would use these variables. I only use them in my
+        edits below for now.
+        '''
+        self.uv_weight = 0
+        self.vis_error_weight = -2
+        ''' FMP Apr25 '''
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
@@ -281,6 +291,7 @@ class ImageData(object):
 
 
         #handle model loading
+        model_old = model    # FMP Apr25: need difmap modelfit file later
         self.model_file_path = model
         if self.model_file_path=="":
             self.model_file_path=self.fits_file
@@ -521,6 +532,25 @@ class ImageData(object):
 
 
         hdu_list.close()
+        
+        '''FMPApr25'''
+        for comp in self.components:
+            comp.get_errors(fits_file=fits_file,
+                            uvf_file=uvf_file,
+                            mfit_file=model_old,
+                            resmap_file=self.residual_map_path,
+                            uv_weight=self.uv_weight,
+                            error_weight=self.vis_error_weight, scale=self.scale,
+                            difmap_path=self.difmap_path, method='Schinzel12')
+            # print(f'flux: {comp.flux:.5f} +/- {comp.flux_err:.5f} Jy')
+            # print(f'radius: {comp.radius:.3f} +/- {comp.radius_err:.3f} mas')
+            # print(f'theta: {comp.theta:.1f} +/- {comp.theta_err:.1f} deg')
+            # print(f'RA: {comp.x:.2e} +/- {comp.x_err:.2e} deg')
+            # print(f'Dec: {comp.y:.2e} +/- {comp.y_err:.2e} deg')
+            # print(f'Major axis: {comp.maj:.2e} +/- {comp.maj_err:.2e} deg')
+            # print(f'Minor axis: {comp.min:.2e} +/- {comp.min_err:.2e} deg')
+            # print('\n')
+        '''FMPApr25'''
 
         #calculate cleaned flux density from mod files
         #first stokes I
