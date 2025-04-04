@@ -251,10 +251,6 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file,
         send_difmap_command('shift '+str(shift[0])+','+str(shift[1]))
     send_difmap_command('rmod ' + mfit_file)
     send_difmap_command('mapsize '+str(2*ms_x)+','+str(ps_x)+','+ str(2*ms_y)+','+str(ps_y))
-    send_difmap_command('wdmap '+fits_file[0:-5]+'_resmap.fits')
-    
-    send_difmap_command('dev /NULL')
-    send_difmap_command('mapl map')
     
     if shift != None:
         ra = comp.x*scale + shift[0]
