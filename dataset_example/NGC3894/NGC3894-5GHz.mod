@@ -1,1 +1,0 @@
-/home/anne/work/imaging/radio_galaxies/NGC3894/difmap/EB092A/J1148_22_10_2024_CL7-remap.mod

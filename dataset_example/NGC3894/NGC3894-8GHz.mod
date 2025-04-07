@@ -1,1 +1,0 @@
-/home/anne/work/imaging/radio_galaxies/NGC3894/difmap/EB092D/J1148_remap.mod

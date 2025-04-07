@@ -1,1 +1,0 @@
-/home/anne/work/imaging/radio_galaxies/NGC3894/difmap/HSAQ/NGC3894_remap.mod

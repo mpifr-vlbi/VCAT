@@ -1,1 +1,0 @@
-/home/anne/work/imaging/radio_galaxies/NGC3894/difmap/HSAU/NGC3894_uni_remap.mod
