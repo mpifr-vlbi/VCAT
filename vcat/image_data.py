@@ -34,8 +34,10 @@ warnings.simplefilter('ignore', ErfaWarning)
 class ImageData(object):
 
     """ Class to handle VLBI Image data (single image with or without polarization at one frequency)
+
     Attributes:
         General:
+
             name (str): Source name of the observation
             date (str): Date of the observation
             mjd (float): MJD of the observation
@@ -46,6 +48,7 @@ class ImageData(object):
             scale (float): Conversion from degrees to the intrinsic image scale (for 'mas': 3.6e6)
             degpp (float): Degrees per pixel
             unit (str): Intrinsic Scale Unit of the image ('mas', 'arcsec', 'arcsec', 'deg')
+
         Maps:
             stokes_i (list[list[float]]): 2d-array of the Stokes I image
             stokes_q (list[list[float]]): 2d-array of the Stokes Q image (if polarization loaded)
@@ -54,6 +57,7 @@ class ImageData(object):
             lin_pol (list[list[float]]): 2d-array of the linear polarization
             evpa (list[list[float]]): 2d-array of the EVPA
             mask (list[list[bool]]): Image mask
+
         Model:
             model (DataFrame): DataFrame with all components of the loaded model
             model_i (DataFrame): DataFrame with all Stokes I clean components
@@ -119,6 +123,7 @@ class ImageData(object):
 
         """
         Initializes an ImageData object to handle a full-polarization VLBI data set at one epoch and one frequency.
+
         Args:
             fits_file (str): Input .fits file(s) (Stokes I or full polarization, e.g. from CASA)
             uvf_file (str): Input .uvf file(s)
@@ -651,6 +656,7 @@ class ImageData(object):
     def export(self,outputfile,polarization="I"):
         """
         Function to export fits file
+
         Args:
             outputfile (str): Name/path of the intended output file
             polarization (str): Polarization to export ('I','Q','U')
@@ -674,6 +680,7 @@ class ImageData(object):
     def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
         """
         This method regrids the image in full polarization
+
         Args:
             npix (int): Number of pixels in ONE direction
             pixel_size (float): Size of pixel in image scale units (usually mas)
@@ -923,6 +930,7 @@ class ImageData(object):
     def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,useDIFMAP=True,comp_ids=""):
         """
         This function aligns the image to a reference image (image_data2).
+
         Args:
             image_data2 (ImageData): ImageData object of the reference image
             masked_shift (bool): Choose whether to consider the image masks for alignment
@@ -1358,6 +1366,7 @@ class ImageData(object):
     def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
         """
         Function to shift the image in RA and Dec.
+
         Args:
             shift_x (float): Shift in Right Ascension (in mas)
             shift_y (float): Shift in Declination (in mas)
@@ -1377,6 +1386,7 @@ class ImageData(object):
     def masking(self, mask_type='ellipse', args=False):
         '''
         Function to mask ImageData object.
+
         Args:
             mask_type: 'npix_x','cut_left','cut_right','radius','ellipse','flux_cut'
             args: the arguments for the mask
@@ -1454,6 +1464,7 @@ class ImageData(object):
     def rotate(self,angle,useDIFMAP=True,reshape=False,order=1):
         """
         Function to rotate ImageData Object (note: EVPAs are currently not rotated!)
+
         Args:
             angle (float): Rotation angle in degrees (North through East)
             useDIFMAP (bool): Choose whether to use DIFMAP or not
@@ -1671,6 +1682,7 @@ class ImageData(object):
     def center(self,mode="stokes_i",useDIFMAP=True):
         """
         Function to center the brightest pixel of the image.
+
         Args:
             mode: Choose which map to use ('stokes_i', 'lin_pol')
             useDIFMAP: Choose whether to use DIFMAP or not.
@@ -1700,6 +1712,7 @@ class ImageData(object):
     def get_profile(self,point1,point2,show=True,image="stokes_i"):
         """
         Function to obtain a line profile of the image.
+
         Args:
             point1 (list[float]): Starting Point of the profile [x1,y1] (in mas)
             point2 (list[float]): End Point of the profile [x2,y2] (in mas)
@@ -1748,6 +1761,7 @@ class ImageData(object):
 
         """
         Function to calculate the Ridgeline (and Counter-Ridgeline) of an image.
+
         Args:
             method (str): Select method to use ('slices', 'polar')
             angle_for_slices (float): Choose angle for the slices method
@@ -1836,6 +1850,7 @@ class ImageData(object):
     def get_noise_from_shift(self,shift_factor=20):
         """
         Function to calculate the image noise by shifting the phase center with DIFMAP
+
         Args:
             shift_factor (float): Factor of how far times the image size to shift the phase center away.
         Returns:
@@ -1859,6 +1874,7 @@ class ImageData(object):
     def jet_to_counterjet_profile(self,savefig="",show=True):
         """
         Function to plot the jet-to-counterjet ratio
+
         Args:
             savefig (str): File path to store the plot
             show (bool): Choose whether to display the plot
@@ -1884,6 +1900,7 @@ class ImageData(object):
     def change_component_ids(self,old_ids,new_ids):
         """
         Function to assign new component numbers
+
         Args:
             old_ids (int or list[int]): Old component IDs
             new_ids (int or list[int]): New component IDs
@@ -1913,6 +1930,7 @@ class ImageData(object):
     def set_core_component(self,id):
         """
         Function to set the core component
+
         Args:
             id (int): Component ID of the core component
         """
@@ -1938,6 +1956,7 @@ class ImageData(object):
     def get_component(self,id):
         """
         Function to get a specific Component.
+
         Args:
             id (int): ID of the component
         Returns:

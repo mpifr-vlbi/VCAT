@@ -29,6 +29,7 @@ from vcat.config import logger
 class ImageCube(object):
 
     """ Class to handle a multi-frequency, multi-epoch Image data set
+
     Attributes:
         freqs (list[float]): Frequencies of the ImageCube in Hz
         dates (list[str]): Dates included in the ImageCube
@@ -53,6 +54,7 @@ class ImageCube(object):
                  ):
         """
         Initialize ImageCube class.
+
         Args:
             image_data_list (list[ImageData]): List of ImageData objects
             date_tolerance (float): Difference in days to consider the same epoch
@@ -136,6 +138,7 @@ class ImageCube(object):
     def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files="",**kwargs):
         """
         Function to import ImageCube directly from (.fits-)files.
+
         Args:
             fits_files (list[str]): List of Stokes-I or full-polarization .fits file
             uvf_files (list[str]): List of .uvf-files
@@ -179,6 +182,7 @@ class ImageCube(object):
     def masking(self,mode="all",mask_type="ellipse",args=False):
         """
         Function to apply mask to images included in Image Cube
+
         Args:
             mode (str): Choose apply mode ('all', 'freq', 'epoch'), will apply independent mask for 'all', per 'epoch' or per 'frequency'
             mask_type (str or list[str]): Mask type, if 'freq' or 'epoch' mode can be list
@@ -219,6 +223,7 @@ class ImageCube(object):
 
     def stack(self,mode="freq", stack_linpol=False):
         """
+
         Args:
             mode: Select mode ("all" -> stack all images, "freq" -> stack all images from the same frequency across epochs,
             "epoch" -> stack all images from the same epoch across all frequencies)
@@ -319,6 +324,7 @@ class ImageCube(object):
     def get_common_beam(self,mode="all",arg="common",ppe=100,tolerance=0.0001,plot_beams=False):
         """
         This function calculates the common beam from a selection of ImageData Objects within the ImageCube.
+
         Args:
             mode: Select mode ("all" -> one beam for all, "freq" -> gets common beam per frequency across epochs,
             "epoch" -> gets common beam per epoch across all frequencies)
@@ -353,6 +359,7 @@ class ImageCube(object):
                 shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],ppe=100,tolerance=0.0001,plot_beams=False):
         """
         This function allows to restore the ImageCube with a custom beam
+
         Args:
             beam_maj: Beam major axis to use
             beam_min: Beam minor axis to use
@@ -774,6 +781,7 @@ class ImageCube(object):
     def slice(self,epoch_lim="",freq_lim=""):
         """
         This method allows you to get a slice of the given ImageCube
+
         Args:
             epoch_lim: [start_epoch,end_epoch] Provide start and end epoch or MJD
             freq_lim: [start_freq, end_freq] Provide start and end frequency in GHz
@@ -832,6 +840,7 @@ class ImageCube(object):
     def removeFreq(self, freq="",window=1.):
         """
         This method allows you to remove a particular frequency.
+
         Args:
             freq: List of frequencies to remove
             window: Window in GHz to consider around center freq
@@ -864,6 +873,7 @@ class ImageCube(object):
     def removeEpoch(self, epoch="",window=1.):
         """
         This method allows you to remove a particular epoch.
+
         Args:
             epoch: List of epochs to remove
             window: Days to consider around the epoch
@@ -1404,6 +1414,7 @@ class ImageCube(object):
               plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
         """
         Function to create movies from image cube
+
         Args:
             plot_mode (str): Choose plot mode ('stokes_i','lin_pol','frac_pol')
             freq (float or list[float]): Choose frequencies in GHz to create movie

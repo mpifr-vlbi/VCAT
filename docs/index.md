@@ -7,23 +7,23 @@ It should help you to make VLBI analysis fast and provides a good starting
 
 ## Table Of Contents
 
-This documentation consists of four separate parts:
+This documentation consists of two separate parts:
 
-2. [How-To Guides](how-to-guides.md)
-3. [References](references.md)
-
+1. [References](references.md)
+2. [Tutorials](tutorials.md)
+3. [imageData](imagedata.md)
+4. [imageCube](imagecube.md)
 
 Quickly find what you're looking for depending on
 your use case by looking at the different pages.
 
 ## Project Overview
 
-::: VCAT
+::: vcat
 
 ## Acknowledgements
 
-This package makes use of the ehtim-library: https://github.com/achael/eht-imaging
-Please consider citing the original publication given at the repo.
+Do we have something here?
 
 ## Please Cite
 
