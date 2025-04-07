@@ -1,4 +1,6 @@
-site_name: VCAT
+site_name: vcat
+
+repo_url: https://github.com/mpifr-vlbi/VCAT/
 
 theme:
   name: readthedocs
@@ -8,5 +10,11 @@ plugins:
 
 nav:
   - VCAT Docs: index.md
-  - How-to guides: how-to-guides.md
-  - references.md
+  - User Guide: tutorials.md
+  - References: 
+    - References Overview: references.md
+    - imageData: imagedata.md
+    - imageCube: imagecube.md
+  - About:
+    - License: license.md
+    - Release Notes: release-note.md
