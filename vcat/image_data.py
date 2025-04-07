@@ -516,9 +516,7 @@ class ImageData(object):
                                 uvf_file=self.uvf_file,
                                 mfit_file=self.model_mod_file,
                                 resmap_file=self.residual_map_path,
-                                uv_weight=uvw[0],
-                                error_weight=uvw[1], scale=self.scale,
-                                difmap_path=difmap_path, method='flat')
+                                weighting=uvw,difmap_path=difmap_path, method='flat')
 
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
@@ -754,7 +752,7 @@ class ImageData(object):
                         f[0].header["CDELT2"] = pixel_size / self.scale
                         f[0].header["CRPIX1"] = int(f[0].header["CRPIX1"] / len(self.X) * npix)
                         f[0].header["CRPIX2"] = int(f[0].header["CRPIX2"] / len(self.X) * npix)
-                        f.writeto(new_s, overwrite=True)
+                        f.writeto(new_stokes_q_fits, overwrite=True)
                 else:
                     new_stokes_q_fits=""
 
