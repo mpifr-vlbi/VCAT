@@ -7,8 +7,7 @@ from sympy import Ellipse, Point, Line
 import vcat.fit_functions as ff
 import sys
 from scipy.optimize import curve_fit
-from vcat.helpers import closest_index
-from vcat.helpers import get_comp_peak_rms    # FMP Apr25
+from vcat.helpers import closest_index, get_comp_peak_rms
 from scipy.interpolate import interp1d
 
 #initialize logger
@@ -40,6 +39,15 @@ class Component():
         self.freq=freq
         self.lin_pol=lin_pol
         self.evpa=evpa
+        #Set default error value of 10%
+        self.x_err = 0.1 * self.maj
+        self.y_err = 0.1 * self.maj
+        self.maj_err = 0.1 * self.maj
+        self.min_err = 0.1 * self.min
+        self.flux_err = 0.1 * self.flux
+        self.radius_err = 0.1 * self.maj
+        self.theta_err = 20
+
 
         def calculate_theta():
             if (self.delta_y_est > 0 and self.delta_x_est > 0) or (self.delta_y_est > 0 and self.delta_x_est < 0):
@@ -101,43 +109,38 @@ class Component():
         else:
             self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb / min_for_tb   #Kovalev et al. 2005
         self.scale = scale
+
+    def __str__(self):
+        line1 = f"Component with ID {self.component_number} at frequency {self.freq * 1e-9:.1f} GHz\n"
+        line2 = f"x: {self.x * self.scale:.2f}mas, y:{self.y * self.scale:.2f}mas\n"
+        line3 = f"Maj: {self.maj * self.scale:.2f}mas, Min: {self.min * self.scale:.2f}, PA: {self.pos}°\n"
+        line4 = f"Flux: {self.flux} Jy, Distance to Core: {self.distance_to_core * self.scale:.2f} mas\n"
+
+        return line1 + line2 + line3 + line4
     
     '''FMP Apr25'''
     def get_errors(self, fits_file, uvf_file, mfit_file, resmap_file,
-                   shift=None, uv_weight=0, error_weight=-1, rms_box=100,
-                   scale=3.6E6, difmap_path="", method='flat', gain_err=0.1):
+                   shift=None, weighting=[0,-1], rms_box=100, difmap_path="", method='flat', gain_err=0.1):
         if method == 'flat':
-            self.x_err = 0.1*self.x
-            self.y_err = 0.1*self.y
-            self.maj_err = 0.1*self.maj
-            self.min_err = 0.1*self.min
-            self.flux_err = 0.1*self.flux
-            self.radius_err = 0.1*self.radius
-            self.theta_err = 0.1*self.theta
-        
-        elif method == 'Schinzel12':            
+            self.x_err = 0.1 * self.maj
+            self.y_err = 0.1 * self.maj
+            self.maj_err = 0.1 * self.maj
+            self.min_err = 0.1 * self.min
+            self.flux_err = 0.1 * self.flux
+            self.radius_err = 0.1 * self.maj
+            self.theta_err = 20
+
+        elif method == 'Schinzel12':
             if any(x is None or x is [] or x is '' for x in [fits_file, uvf_file, mfit_file, resmap_file]):
                 logger.warning('Either .fits, .uvfits, .mfit or residual map .fits file missing. Cannot compute errors according to Schinzel et al. 2012. Will apply flat 10 % errors.')
-                # print('Provided files were:')
-                # print(f'fits file: {fits_file}')
-                # print(f'uvfits file: {uvf_file}')
-                # print(f'modelfit file: {mfit_file}')
-                # print(f'Residual map file: {resmap_file}')
-                self.x_err = 0.1*self.x
-                self.y_err = 0.1*self.y
-                self.maj_err = 0.1*self.maj
-                self.min_err = 0.1*self.min
-                self.flux_err = 0.1*self.flux
-                self.radius_err = 0.1*self.radius
-                self.theta_err = 0.1*self.theta
+                self.get_errors(fits_file,uvf_file,mfit_file,resmap_file,shift,weighting,rms_box,difmap_path,"flat")
             else:
                 ### Get peak flux density and rms around component position ###
                 S_p, rms = get_comp_peak_rms(self, fits_file=fits_file,
                                              uvf_file=uvf_file,
                                              mfit_file=mfit_file,
                                              resmap_file=resmap_file,
-                                             shift=shift, uv_weight=uv_weight,
-                                             error_weight=error_weight,
+                                             weighting=weighting,
                                              rms_box=rms_box, scale=scale,
                                              difmap_path=difmap_path)
                 
@@ -155,18 +158,19 @@ class Component():
                     # quadrature to reflect individual telescopes' fundamental gain uncertainty
                 
                 ### Calculate minimum resolvable size based on SNR at modelfit positions ###
-                if uv_weight != 0:    # uniform weight
+                #TODO check this formula it seems to be different from what is in the paper
+                if weighting[0] != 0:    # uniform weight
                     d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
                 else:    # this is the condition for natural weight
                     d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
 
                 ### Calculate other errors ###
                 size_maj = np.maximum(d_lim, self.maj)
-                if self.maj > d_lim/scale:
+                if self.maj > d_lim/self.scale:
                     self.maj_err = self.maj/SNR_p
                 else:
                     self.maj_err = np.nan
-                if self.min > d_lim/scale:
+                if self.min > d_lim/self.scale:
                     self.min_err = self.min/SNR_p
                 else:
                     self.min_err = np.nan
@@ -175,23 +179,15 @@ class Component():
                 
                 # NOTE: this does not take into account the covariance of the radial coordinates!
                 # TODO: implement that
-                self.x_err = np.sqrt(  (self.radius_err/scale*np.sin(self.theta/180*np.pi))**2
-                                     + (self.radius/scale*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
-                self.y_err = np.sqrt(  (self.radius_err/scale*np.cos(self.theta/180*np.pi))**2
-                                     + (self.radius/scale*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
+                self.x_err = np.sqrt(  (self.radius_err/self.scale*np.sin(self.theta/180*np.pi))**2
+                                     + (self.radius/self.scale*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
+                self.y_err = np.sqrt(  (self.radius_err/self.scale*np.cos(self.theta/180*np.pi))**2
+                                     + (self.radius/self.scale*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
         elif method == 'Weaver22':
             # TODO: Implement this approach
             print("Will soon be implemented")
             return
     '''FMP Apr25'''
-    
-    def __str__(self):
-        line1=f"Component with ID {self.component_number} at frequency {self.freq*1e-9:.1f} GHz\n"
-        line2=f"x: {self.x*self.scale:.2f}mas, y:{self.y*self.scale:.2f}mas\n"
-        line3=f"Maj: {self.maj*self.scale:.2f}mas, Min: {self.min*self.scale:.2f}, PA: {self.pos}°\n"
-        line4=f"Flux: {self.flux} Jy, Distance to Core: {self.distance_to_core*self.scale:.2f} mas\n"
-
-        return line1+line2+line3+line4
 
     def set_distance_to_core(self, core_x, core_y):
         self.delta_x_est = self.x - core_x

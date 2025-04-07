@@ -286,7 +286,6 @@ class ImageData(object):
 
 
         #handle model loading
-        model_old = model    # FMP Apr25: need difmap modelfit file later
         self.model_file_path = model
         if self.model_file_path=="":
             self.model_file_path=self.fits_file
@@ -513,6 +512,13 @@ class ImageData(object):
                 self.components[i].delta_x_est=comp.x-self.components[core_id].x
                 self.components[i].delta_y_est=comp.y-self.components[core_id].y
                 self.components[i].distance_to_core=np.sqrt(self.components[i].delta_x_est**2+self.components[i].delta_y_est**2)
+                comp.get_errors(fits_file=self.fits_file,
+                                uvf_file=self.uvf_file,
+                                mfit_file=self.model_mod_file,
+                                resmap_file=self.residual_map_path,
+                                uv_weight=uvw[0],
+                                error_weight=uvw[1], scale=self.scale,
+                                difmap_path=difmap_path, method='flat')
 
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
@@ -527,25 +533,6 @@ class ImageData(object):
 
 
         hdu_list.close()
-        
-        '''FMPApr25'''
-        for comp in self.components:
-            comp.get_errors(fits_file=fits_file,
-                            uvf_file=uvf_file,
-                            mfit_file=model_old,
-                            resmap_file=self.residual_map_path,
-                            uv_weight=uvw[0],
-                            error_weight=uvw[1], scale=self.scale,
-                            difmap_path=self.difmap_path, method='Schinzel12')
-            # print(f'flux: {comp.flux:.5f} +/- {comp.flux_err:.5f} Jy')
-            # print(f'radius: {comp.radius:.3f} +/- {comp.radius_err:.3f} mas')
-            # print(f'theta: {comp.theta:.1f} +/- {comp.theta_err:.1f} deg')
-            # print(f'RA: {comp.x:.2e} +/- {comp.x_err:.2e} deg')
-            # print(f'Dec: {comp.y:.2e} +/- {comp.y_err:.2e} deg')
-            # print(f'Major axis: {comp.maj:.2e} +/- {comp.maj_err:.2e} deg')
-            # print(f'Minor axis: {comp.min:.2e} +/- {comp.min_err:.2e} deg')
-            # print('\n')
-        '''FMPApr25'''
 
         #calculate cleaned flux density from mod files
         #first stokes I

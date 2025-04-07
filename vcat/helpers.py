@@ -198,9 +198,7 @@ def get_ms_ps(fits_file):
     
     return ms_x, ps_x, ms_y, ps_y
 
-def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file,
-                      shift=None, uv_weight=0, error_weight=-1, rms_box=100,
-                      scale=3.6E6, difmap_path=""):
+def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighting=[0,-1], rms_box=100, difmap_path=""):
     '''
     # Purpose: Short program to read in a .fits image and corresponding .uvfits
     and .mfit file (containing Gaussian modelfits) from difmap, to estimate the
@@ -213,23 +211,18 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file,
         uvf_file (str): Path to the .uvfits file containing the visibilities.
         mfit_file (str): Path to the text file containing the Gaussian
           modelfit components from difmap.
-        mfitid_file (str): Path to the text file containing the Gaussian
-          modelfit components from difmap, including component names in the
-          lasy column.
-        shift (list): two-element-list with the shift of the map in RA and Dec.
-        uv_weight (int): Exponent with which to weight the visibilities
-          according to their density in the uv-plane. Natural weighting
-          corresponds to -2, uniform to 0 (default).
-        error_weight (int): Exponent with which to weight the visibility
-          amplitudes according to their initial weights. -2 corresponds to
-          Gaussian, 0 no error weighting. Default is -1.
+        resmap_file (str): Path to the residual map (output)
+        weighting (list[int]): DIFMAP uv-weighting (default: [0,-1])
     
     # Returns:
         S_p (list): List with peak flux densities for each component in mJy/beam.
         rms (list): List with residual image root-mean square for each
           component in mJy/beam.
     '''
-    
+
+    #TODO: This entire first DIFMAP call can be handled by get_residual_map(uvf_file,mfit_file)
+    #TODO: We also need to discuss whether we want to use the CLEAN or MODEL residual map!
+
     # Add difmap to PATH
     if difmap_path == None:
         logger.warning('Difmap path not defined. Cannot compute errors according to Schinzel et al. 2012.')
@@ -246,20 +239,17 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file,
     ms_x, ps_x, ms_y, ps_y = get_ms_ps(fits_file)
     send_difmap_command('observe ' + uvf_file)
     send_difmap_command('select I')
-    send_difmap_command('uvw '+str(uv_weight)+','+str(error_weight))    # use natural weighting as default
-    if shift != None:
-        send_difmap_command('shift '+str(shift[0])+','+str(shift[1]))
+    send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))    # use natural weighting as default
     send_difmap_command('rmod ' + mfit_file)
     send_difmap_command('mapsize '+str(2*ms_x)+','+str(ps_x)+','+ str(2*ms_y)+','+str(ps_y))
-    
-    if shift != None:
-        ra = comp.x*scale + shift[0]
-        dec = comp.y*scale + shift[1]
-    else:
-        ra = comp.x*scale
-        dec = comp.y*scale
-    
+    send_difmap_command(f'wdmap {resmap_file}')
+    ra = comp.x*comp.scale
+    dec = comp.y*comp.scale
+
     send_difmap_command('dev /NULL')
+    #TODO FE: In the paper it says: The respective component was then removed from the Gaussian model and the modified model was subtracted from the data, yielding an image that
+    # contained only the contribution from the investigated component. The flux density (S p ) was measured at the peak position of the Gaussian.
+    # -> This is not happening here
     send_difmap_command('mapl cln')
     send_difmap_command('addwin '+str(ra-1*ps_x)
                              +','+str(ra+1*ps_x)
@@ -271,6 +261,7 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file,
     send_difmap_command('mapl cln')
     send_difmap_command('print mapvalue('+str(ra)
                                      +','+str(dec)+')')
+
     try:
         for j, str_ in enumerate(child.before[::-1]):
             if str_ =='.':
@@ -281,7 +272,8 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file,
         logger.warning('Could not read off peak flux density for component.')
         print(child.before)
         S_p = np.nan
-    
+
+    #TODO FE: this part can be replaced with get_noise_from_residual_map
     resMAP_data = fits.getdata(resmap_file)
     resMAP_data = np.squeeze(resMAP_data)
     xdim = len(np.array(resMAP_data)[0])
