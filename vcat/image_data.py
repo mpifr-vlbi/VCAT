@@ -179,13 +179,25 @@ class ImageData(object):
             self.counter_ridgeline=counter_ridgeline
 
 
+        if fits_file=="":
+            #if no fits file was loaded try to get the dirty image
+            if uvf_file!="":
+                #get dirty map from uvf file
+                get_residual_map(uvf_file, "", difmap_path=difmap_path, channel="i",
+                                 save_location="/tmp/dirty_image.fits", npix=2048, pxsize=0.05,
+                                 do_selfcal=False)
+                fits_file="/tmp/dirty_image.fits"
+                self.fits_file=fits_file
+                self.file_path=fits_file
+            else:
+                self.no_fits=True
+
         # Read clean files in
         if fits_file!="":
             hdu_list=fits.open(fits_file)
             self.hdu_list = hdu_list
             self.no_fits=False
-        else:
-            self.no_fits=True
+
         
         self.stokes_q_path=stokes_q
         self.stokes_u_path=stokes_u
