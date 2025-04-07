@@ -1,2 +1,55 @@
 2025-03-25 14:56:31,382 - INFO - vcat - Logging initialized. Log file: test.log
 2025-03-25 14:56:31,382 - INFO - vcat - Using DIFMAP Path: /usr/liasfjocal/difmap/uvf_difmap_2.5g/
+2025-04-07 21:12:27,927 - INFO - vcat - Logging initialized. Log file: test.log
+2025-04-07 21:12:27,927 - INFO - vcat - Using config file VCAT_CONFIG=/home/flep98/VCAT/vcat/config.yaml
+2025-04-07 21:12:27,927 - INFO - vcat - Using DIFMAP Path: /usr/local/difmap/uvf_difmap_2.5g/
+2025-04-07 21:12:28,394 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:12:28,394 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:12:28,394 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:12:28,394 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:13:19,938 - INFO - vcat - Logging initialized. Log file: test.log
+2025-04-07 21:13:19,938 - INFO - vcat - Using config file VCAT_CONFIG=/home/flep98/VCAT/vcat/config.yaml
+2025-04-07 21:13:19,938 - INFO - vcat - Using DIFMAP Path: /usr/local/difmap/uvf_difmap_2.5g/
+2025-04-07 21:13:20,199 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:13:20,199 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:13:20,199 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:13:20,200 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:13:56,071 - INFO - vcat - Logging initialized. Log file: test.log
+2025-04-07 21:13:56,071 - INFO - vcat - Using config file VCAT_CONFIG=/home/flep98/VCAT/vcat/config.yaml
+2025-04-07 21:13:56,071 - INFO - vcat - Using DIFMAP Path: /usr/local/difmap/uvf_difmap_2.5g/
+2025-04-07 21:13:56,071 - INFO - vcat - Using uvfadsoi
+2025-04-07 21:13:56,346 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:13:56,347 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:13:56,347 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:13:56,347 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:13:59,851 - DEBUG - parso.cache - pickle loaded: /home/flep98/anaconda3/lib/python3.9/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi
+2025-04-07 21:14:34,400 - INFO - vcat - Logging initialized. Log file: test.log
+2025-04-07 21:14:34,400 - INFO - vcat - Using config file VCAT_CONFIG=/home/flep98/VCAT/vcat/config.yaml
+2025-04-07 21:14:34,400 - INFO - vcat - Using DIFMAP Path: /usr/local/difmap/uvf_difmap_2.5g/
+2025-04-07 21:14:34,400 - INFO - vcat - Using uvfadsoi
+2025-04-07 21:14:34,657 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:14:34,657 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:14:34,657 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:14:34,657 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:14:37,403 - DEBUG - parso.cache - pickle loaded: /home/flep98/anaconda3/lib/python3.9/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi
+2025-04-07 21:19:21,063 - INFO - vcat - Logging initialized. Log file: test.log
+2025-04-07 21:19:21,063 - INFO - vcat - Using config file VCAT_CONFIG=/home/flep98/VCAT/vcat/config.yaml
+2025-04-07 21:19:21,063 - INFO - vcat - Using DIFMAP Path: /usr/local/difmap/uvf_difmap_2.5g/
+2025-04-07 21:19:42,016 - INFO - vcat - Logging initialized. Log file: test.log
+2025-04-07 21:19:42,016 - INFO - vcat - Using config file VCAT_CONFIG=/home/flep98/VCAT/vcat/config.yaml
+2025-04-07 21:19:42,016 - INFO - vcat - Using DIFMAP Path: /usr/local/difmap/uvf_difmap_2.5g/
+2025-04-07 21:19:42,016 - INFO - vcat - Using uv-weighting: [0, -1]
+2025-04-07 21:19:42,272 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:19:42,272 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:19:42,272 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:19:42,272 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:19:44,420 - DEBUG - parso.cache - pickle loaded: /home/flep98/anaconda3/lib/python3.9/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi
+2025-04-07 21:19:58,876 - INFO - vcat - Logging initialized. Log file: test.log
+2025-04-07 21:19:58,876 - INFO - vcat - Using config file VCAT_CONFIG=/home/flep98/VCAT/vcat/config.yaml
+2025-04-07 21:19:58,876 - INFO - vcat - Using DIFMAP Path: /usr/local/difmap/uvf_difmap_2.5g/
+2025-04-07 21:19:58,876 - INFO - vcat - Using uv-weighting: [0, -1]
+2025-04-07 21:19:59,137 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:19:59,137 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:19:59,137 - DEBUG - h5py._conv - Creating converter from 7 to 5
+2025-04-07 21:19:59,137 - DEBUG - h5py._conv - Creating converter from 5 to 7
+2025-04-07 21:20:01,745 - DEBUG - parso.cache - pickle loaded: /home/flep98/anaconda3/lib/python3.9/site-packages/jedi/third_party/typeshed/stdlib/3/builtins.pyi

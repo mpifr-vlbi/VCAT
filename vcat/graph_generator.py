@@ -18,7 +18,7 @@ import colormaps as cmaps
 import matplotlib.ticker as ticker
 from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
 import vcat.fit_functions as ff
-from vcat.helpers import closest_index, get_date, get_freq
+from vcat.helpers import closest_index, get_date, get_freq, write_mod_file
 from vcat.kinematics import Component
 from vcat.config import logger
 

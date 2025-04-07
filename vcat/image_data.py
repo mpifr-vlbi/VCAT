@@ -28,7 +28,7 @@ from vcat.stacking_helpers import fold_with_beam
 from skimage.measure import profile_line
 import warnings
 #initialize logger
-from vcat.config import logger,difmap_path
+from vcat.config import logger,difmap_path,uvw
 warnings.simplefilter('ignore', ErfaWarning)
 
 class ImageData(object):
@@ -160,16 +160,6 @@ class ImageData(object):
         self.residual_map_path=""
         self.residual_map = []
         self.noise_method=noise_method
-        '''
-        FMP Apr25: suggestion to include visibility weights as used by difmap
-        as attributes for ImageData class.
-        Could actually be read in from the .par file if present. There are many
-        calls to difmap that would use these variables. I only use them in my
-        edits below for now.
-        '''
-        self.uv_weight = 0
-        self.vis_error_weight = -2
-        ''' FMP Apr25 '''
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
@@ -539,8 +529,8 @@ class ImageData(object):
                             uvf_file=uvf_file,
                             mfit_file=model_old,
                             resmap_file=self.residual_map_path,
-                            uv_weight=self.uv_weight,
-                            error_weight=self.vis_error_weight, scale=self.scale,
+                            uv_weight=uvw[0],
+                            error_weight=uvw[1], scale=self.scale,
                             difmap_path=self.difmap_path, method='Schinzel12')
             # print(f'flux: {comp.flux:.5f} +/- {comp.flux_err:.5f} Jy')
             # print(f'radius: {comp.radius:.3f} +/- {comp.radius_err:.3f} mas')
@@ -671,7 +661,7 @@ class ImageData(object):
                 os.system(f"cp {self.stokes_u_path} {outputfile}")
                 logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
 
-    def regrid(self,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
+    def regrid(self,npix="",pixel_size="",weighting=uvw,useDIFMAP=True,mask_outside=False):
         """
         This method regrids the image in full polarization
         Args:
@@ -1061,7 +1051,7 @@ class ImageData(object):
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
-    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=uvw,useDIFMAP=True):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
@@ -1355,7 +1345,7 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
 
-    def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
+    def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=uvw,useDIFMAP=True):
         """
         Function to shift the image in RA and Dec.
         Args:

@@ -19,6 +19,7 @@ def find_difmap_path(logger):
 #load config file
 def load_config(path=""):
     global difmap_path
+    global uvw
     if path=="":
 
         logging.basicConfig(
@@ -31,6 +32,7 @@ def load_config(path=""):
         logger.info("Logging initialized. Log file: Console only.")
         logger.info("No environment variable VCAT_CONFIG found, will use defaults.")
         difmap_path=find_difmap_path(logger)
+        uvw=[0,-1]
 
     else:
         with open(path, "r") as file:
@@ -60,6 +62,12 @@ def load_config(path=""):
             logger.info(f"Using DIFMAP Path: {difmap_path}")
         except:
             difmap_path=find_difmap_path(logger)
+        try:
+            uvw = config["uvw"]
+            logger.info(f"Using uv-weighting: {uvw}")
+        except:
+            uvw = [0,-1]
+            logger.info(f"Using uvfadsoi")
 
     return logger
 

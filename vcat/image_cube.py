@@ -22,6 +22,7 @@ from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
 from tqdm import tqdm
+from vcat.config import uvw
 
 #initialize logger
 from vcat.config import logger
@@ -350,7 +351,7 @@ class ImageCube(object):
 
 
     def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True,
-                shift_x=0,shift_y=0,npix="",pixel_size="",weighting=[0,-1],ppe=100,tolerance=0.0001,plot_beams=False):
+                shift_x=0,shift_y=0,npix="",pixel_size="",weighting=uvw,ppe=100,tolerance=0.0001,plot_beams=False):
         """
         This function allows to restore the ImageCube with a custom beam
         Args:
@@ -549,7 +550,7 @@ class ImageCube(object):
 
         return plot
 
-    def regrid(self,npix="", pixel_size="",mode="all",weighting=[0,-1],useDIFMAP=True,mask_outside=False):
+    def regrid(self,npix="", pixel_size="",mode="all",weighting=uvw,useDIFMAP=True,mask_outside=False):
         # initialize empty array
         images = []
 
@@ -582,7 +583,7 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
-    def shift(self, mode="all", shift_x=0, shift_y=0, npix="",pixel_size="",weighting=[0,-1],useDIFMAP=True):
+    def shift(self, mode="all", shift_x=0, shift_y=0, npix="",pixel_size="",weighting=uvw,useDIFMAP=True):
         # initialize empty array
         images = []
 
