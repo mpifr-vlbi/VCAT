@@ -68,19 +68,16 @@ class ImageCube(object):
         images=[]
         #go through image data list and extract some info
         for image in image_data_list:
-            skip=False
             if self.name=="":
                 self.name=image.name
             elif self.name != image.name:
-                logger.warning(f"ImageCube setup for source {self.name} but {image.name} detected in one input file, will skip it.")
-                skip=True
-            if not skip:
-                if not any(abs(num - image.freq) <= freq_tolerance*1e9 for num in self.freqs):
-                    self.freqs.append(image.freq)
-                if not any(abs(num - image.mjd) <= date_tolerance for num in self.mjds):
-                    self.dates.append(image.date)
-                    self.mjds.append(image.mjd)
-                images.append(image)
+                logger.warning(f"ImageCube setup for source {self.name} but {image.name} detected in one input file!")
+            if not any(abs(num - image.freq) <= freq_tolerance*1e9 for num in self.freqs):
+                self.freqs.append(image.freq)
+            if not any(abs(num - image.mjd) <= date_tolerance for num in self.mjds):
+                self.dates.append(image.date)
+                self.mjds.append(image.mjd)
+            images.append(image)
 
         image_data_list=images
         self.freqs=np.sort(self.freqs)
