@@ -114,9 +114,13 @@ class Component():
         line1 = f"Component with ID {self.component_number} at frequency {self.freq * 1e-9:.1f} GHz\n"
         line2 = f"x: {self.x * self.scale:.2f}mas, y:{self.y * self.scale:.2f}mas\n"
         line3 = f"Maj: {self.maj * self.scale:.2f}mas, Min: {self.min * self.scale:.2f}, PA: {self.pos}°\n"
-        line4 = f"Flux: {self.flux} Jy, Distance to Core: {self.distance_to_core * self.scale:.2f} mas\n"
+        line4 = f"Flux: {self.flux*1e3} mJy, Distance to Core: {self.distance_to_core * self.scale:.2f} mas\n"
+        if self.lin_pol!=0:
+            line5=f"Lin Pol: {self.lin_pol*1e3} mJy ({self.lin_pol/self.flux*1e2}%), EVPA: {self.evpa}°\n"
+        else:
+            line5=""
 
-        return line1 + line2 + line3 + line4
+        return line1 + line2 + line3 + line4 + line5
     
     '''FMP Apr25'''
     def get_errors(self, fits_file, uvf_file, mfit_file, resmap_file,

@@ -1989,8 +1989,7 @@ class ImageData(object):
         for i, comp in enumerate(self.components):
             #calculate lin_pol and EVPA from Q and U flux
             lin_pol=np.sqrt(comps_q[i].flux**2+comps_u[i].flux**2)
-            evpa=1/2*np.arctan2(comps_u[i].flux**2,comps_q[i].flux**2)/np.pi*180
-
+            evpa=0.5*np.arctan2(comps_u[i].flux,comps_q[i].flux)/np.pi*180
             #set lin_pol and evpa of component
             self.components[i].lin_pol = lin_pol
             self.components[i].evpa = evpa
