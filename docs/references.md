@@ -1,9 +1,7 @@
 # References to the VCAT code
 
 This is reference for the technical implementation of the `VCAT` project code.
-
 This is just the start of the reference documentation, more will appeare here as time goes by.
-
 The main parts of interest of VCAT are the imageData and imageCube classes, on which
 all required analysis is done.
 

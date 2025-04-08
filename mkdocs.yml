@@ -4,9 +4,15 @@ repo_url: https://github.com/mpifr-vlbi/VCAT/
 
 theme:
   name: readthedocs
+  locale: en
+
+use_directory_urls: false
 
 plugins:
   - mkdocstrings
+
+markdown_extensions:
+  - admonition
 
 nav:
   - VCAT Docs: index.md
