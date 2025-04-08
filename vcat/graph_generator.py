@@ -55,6 +55,47 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Flux Density [Jy]', fontsize=font_size_axis_title)
 
+    def plot_pas(self,component_collection,color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.posas, c=color, label=component_collection.name,marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Position Angle [deg]', fontsize=font_size_axis_title)
+
+    def plot_linpol(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.lin_pols, c=color, label=component_collection.name,
+                         marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Linearly Polarized Flux Density [Jy]', fontsize=font_size_axis_title)
+
+    def plot_fracpol(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, np.array(component_collection.lin_pols)/np.array(component_collection.fluxs)*100,
+                         c=color, label=component_collection.name,marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Fractional Polarized Flux Density [%]', fontsize=font_size_axis_title)
+
+    def plot_evpa(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.evpas, c=color, label=component_collection.name,
+                         marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
+
+    def plot_maj(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.majs, c=color, label=component_collection.name,
+                         marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
+
+    def plot_min(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.mins, c=color, label=component_collection.name,
+                         marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
+
     def plot_tbs(self,component_collection,color):
         if component_collection.length() > 0:
             lower_limit_inds = np.where(np.array(component_collection.tbs_lower_limit))[0]
@@ -67,7 +108,7 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)
         self.ax.set_yscale("log")
-    
+
     def plot_spectrum(self,component_collection,color,epochs=""):
 
         if epochs=="":

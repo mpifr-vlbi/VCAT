@@ -1322,6 +1322,57 @@ class ImageCube(object):
 
         return dists, values
 
+    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=["black","red","blue","orange"]):
+        if freq=="":
+            freq=self.freqs
+        elif not isinstance(freq, list):
+            raise Exception("Invalid input for 'freq'.")
+
+        if id=="":
+            #do it for all components
+            ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
+        elif isinstance(id, list):
+            ccs=[]
+            for i in id:
+                ccs.append(self.get_comp_collection(i))
+        else:
+            raise Exception("Invalid input for 'id'.")
+
+        fits=[]
+
+        for fr in freq:
+            # One plot per frequency with all components
+            plot = KinematicPlot()
+            for ind, cc in enumerate(ccs):
+
+                ind = ind % len(colors)
+                color = colors[ind]
+                if value=="flux":
+                    plot.plot_fluxs(cc, color=color)
+                elif value=="tb":
+                    plot.plot_tbs(cc, color=color)
+                elif value=="dist":
+                    plot.plot_kinematics(cc, color=color)
+                elif value=="pos" or value=="PA":
+                    plot.plot_pas(cc, color=color)
+                elif value=="lin_pol" or value=="linpol":
+                    plot.plot_linpol(cc, color=color)
+                elif value=="evpa" or value=="EVPA":
+                    plot.plot_evpa(cc, color=color)
+                elif value=="maj":
+                    plot.plot_maj(cc, color=color)
+                elif value=="min":
+                    plot.plot_min(cc, color=color)
+                elif value=="fracpol":
+                    plot.plot_fracpol(cc, color=color)
+
+
+
+
+            plt.legend()
+            if show:
+                plt.show()
+
     def get_speed(self,id="",freq="",order=1,show_plot=False, colors=["black","red","blue","orange"]):
 
         if freq=="":

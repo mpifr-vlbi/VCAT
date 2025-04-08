@@ -204,7 +204,7 @@ class Component():
                 "component_number": self.component_number, "is_core": self.is_core,
                 "delta_x_est": self.delta_x_est, "delta_y_est": self.delta_y_est,
                 "distance_to_core": self.distance_to_core, "redshift": self.redshift,
-                "freq": self.freq, "tb": self.tb, "scale": self.scale}
+                "freq": self.freq, "tb": self.tb, "scale": self.scale, "lin_pol": self.lin_pol, "evpa": self.evpa}
 
 class ComponentCollection():
     def __init__(self, components=[], name="",date_tolerance=1,freq_tolerance=1):
@@ -263,6 +263,8 @@ class ComponentCollection():
         self.posas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.delta_x_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.delta_y_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.lin_pols = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.evpas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
 
         for i, year in enumerate(epochs):
             for j, freq in enumerate(freqs):
@@ -285,6 +287,8 @@ class ComponentCollection():
                         self.posas[i,j]=comp.pos
                         self.delta_x_ests[i,j]=comp.delta_x_est
                         self.delta_y_ests[i,j]=comp.delta_y_est
+                        self.lin_pols[i,j]=comp.lin_pol
+                        self.evpas[i,j]=comp.evpa
 
         if len(np.unique(self.ids.flatten()))>1:
             numbers=np.unique(self.ids.flatten())
