@@ -10,13 +10,24 @@ use_directory_urls: false
 
 plugins:
   - mkdocstrings
+  - mkdocs-jupyter
 
 markdown_extensions:
   - admonition
 
 nav:
   - VCAT Docs: index.md
-  - User Guide: tutorials.md
+  - Notebooks: 
+    - Notebook overview: tutorials.md
+    - ImageCube plots: examples/ImageCubePlots.ipynb
+    - ImageCube operations: examples/ImageCubeOperations.ipynb
+    - ImageData plots: examples/ImageDataPlots.ipynb
+    - ImageData operations: examples/ImageOperations.ipynb
+    - Alignment: examples/Alignment.ipynb
+    - Model components: examples/ModelComponents.ipynb
+    - Ridgeline: examples/Ridgeline.ipynb
+    - Stacking: examples/Stacking.ipynb
+    - Turnover Frequency: examples/TurnoverFrequency.ipynb
   - References: 
     - References Overview: references.md
     - imageData: imagedata.md
