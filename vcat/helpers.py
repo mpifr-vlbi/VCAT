@@ -219,9 +219,12 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
         rms (list): List with residual image root-mean square for each
           component in mJy/beam.
     '''
-
+    
+    scale = comp.scale
+    
     #TODO: This entire first DIFMAP call can be handled by get_residual_map(uvf_file,mfit_file)
     #TODO: We also need to discuss whether we want to use the CLEAN or MODEL residual map!
+    # FMP: for this, we should definitely use the MODEL residual map for consistency.
 
     # Add difmap to PATH
     if difmap_path == None:
@@ -250,6 +253,12 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
     #TODO FE: In the paper it says: The respective component was then removed from the Gaussian model and the modified model was subtracted from the data, yielding an image that
     # contained only the contribution from the investigated component. The flux density (S p ) was measured at the peak position of the Gaussian.
     # -> This is not happening here
+    #FMP: it is indeed an approximation since the exact way it is described in the paper would be somewhat convoluted
+    # (would involve doing a FT of just the modified model to remove from the visibilities and then FT back to an
+    # image to read off the peak flux density, I am not even sure that it was meant to be that complex).
+    # So what is written below really subtracts the 'modified model' not from the data, but removes it so the
+    # contribution that is left is just the one model component in question. I leave it open to debate how to implement
+    # this in a better way...
     send_difmap_command('mapl cln')
     send_difmap_command('addwin '+str(ra-1*ps_x)
                              +','+str(ra+1*ps_x)

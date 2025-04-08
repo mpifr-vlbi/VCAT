@@ -120,7 +120,9 @@ class Component():
     
     '''FMP Apr25'''
     def get_errors(self, fits_file, uvf_file, mfit_file, resmap_file,
-                   shift=None, weighting=[0,-1], rms_box=100, difmap_path="", method='flat', gain_err=0.1):
+                   shift=None, weighting=[0,-1], rms_box=100, difmap_path="",
+                   method='flat', gain_err=0.1):
+        scale = self.scale
         if method == 'flat':
             self.x_err = 0.1 * self.maj
             self.y_err = 0.1 * self.maj
@@ -141,7 +143,7 @@ class Component():
                                              mfit_file=mfit_file,
                                              resmap_file=resmap_file,
                                              weighting=weighting,
-                                             rms_box=rms_box, scale=scale,
+                                             rms_box=rms_box,
                                              difmap_path=difmap_path)
                 
                 if S_p < 0:
@@ -159,6 +161,8 @@ class Component():
                 
                 ### Calculate minimum resolvable size based on SNR at modelfit positions ###
                 #TODO check this formula it seems to be different from what is in the paper
+                # It is indeed slightly different, it has been adjusted over time according to priv. comm. and the correct formula was not published
+                # Originally according to Lobanov'05, with corrections based on Lobanov'15, adjusted formula presented in Nair+'19, corrected for one typo in Poetzl+'25
                 if weighting[0] != 0:    # uniform weight
                     d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
                 else:    # this is the condition for natural weight
@@ -184,9 +188,72 @@ class Component():
                 self.y_err = np.sqrt(  (self.radius_err/self.scale*np.cos(self.theta/180*np.pi))**2
                                      + (self.radius/self.scale*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
         elif method == 'Weaver22':
-            # TODO: Implement this approach
-            print("Will soon be implemented")
-            return
+            scale = self.scale
+            if any(_file == None or _file == [] or _file == '' for _file in [fits_file, uvf_file, mfit_file, resmap_file]):
+                logger.warning('Either .fits, .uvfits, .mfit or residual map .fits file missing. Cannot compute errors according to Weaver et al. 2022. Will apply flat 10 % errors.')
+                self.x_err = 0.1*self.x
+                self.y_err = 0.1*self.y
+                self.maj_err = 0.1*self.maj
+                self.min_err = 0.1*self.min
+                self.flux_err = 0.1*self.flux
+                self.radius_err = 0.1*self.radius
+                self.theta_err = 20
+                # TODO: incorporate 'simple' method, only reading off peak flux densities from clean map.
+            else:
+                ### Get peak flux density and rms around component position ###
+                S_p, rms = get_comp_peak_rms(self, fits_file=fits_file,
+                                             uvf_file=uvf_file,
+                                             mfit_file=mfit_file,
+                                             resmap_file=resmap_file,
+                                             weighting=weighting,
+                                             rms_box=rms_box,
+                                             difmap_path=difmap_path)
+                
+                if S_p < 0:
+                    # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
+                    S_p = rms
+            
+                ### Calculate errors ###
+                SNR = S_p/rms
+                sigma_p = rms*np.sqrt(1 + SNR)
+                SNR_p = S_p/sigma_p
+                
+                ### Calculate minimum resolvable size based on SNR at modelfit positions ###
+                # Originally according to Lobanov'05, with corrections based on Lobanov'15, adjusted formula presented in Nair+'19, corrected for one typo in Poetzl+'25
+                if weighting[0] != 0:    # uniform weight
+                    d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
+                else:    # this is the condition for natural weight
+                    d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
+            
+                ### Calculate other errors ###
+                size_maj = np.maximum(d_lim, self.maj*scale)
+                size_min = np.maximum(d_lim, self.min*scale)
+                if self.maj*scale > d_lim:
+                    self.tb_lower_limit = False
+                    self.maj_err = self.maj/SNR_p
+                else:
+                    self.tb_lower_limit = True
+                    self.maj_err = np.nan
+                
+                if self.min*scale > d_lim:
+                    self.tb_lower_limit = False
+                    self.min_err = self.min/SNR_p
+                else:
+                    self.tb_lower_limit = True
+                    self.min_err = np.nan
+                
+                Tb_obs = 7.5E8*self.flux/(size_maj*size_min)    # in K, adjusted from Weaver+'22 to include elliptical Gaussian components
+                self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/scale    # in deg
+                self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22
+                    # this assumes that the beam is ~ 2 times more elongated in North-South direction. TODO: generalize this.
+                self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (0.05*self.flux**2))    # in Jy
+                
+                self.maj_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
+                self.min_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
+                
+                self.radius_err = np.sqrt( (self.x_err*self.x/np.sqrt(self.x**2+self.y**2))**2
+                                          +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*scale    # in mas
+                self.theta_err = np.arctan(self.radius_err/self.radius)*180/np.pi    # in deg
     '''FMP Apr25'''
 
     def set_distance_to_core(self, core_x, core_y):
