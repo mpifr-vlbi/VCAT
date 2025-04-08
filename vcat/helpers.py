@@ -355,18 +355,29 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
     typ_obj=np.array(typ_obj)[argsort]
 
     #check if we need to add "v" to the components to make them fittable
-    if adv:
-        ad="v"
+    if isinstance(adv,list):
+        ad=[]
+        for ads in adv:
+            if ads:
+                ad.append("v")
+            else:
+                ad.append("")
+        if len(adv)!=6:
+            #make sure ad has seven elements
+            for i in range(6-len(adv)):
+                ad.append("")
+    elif adv:
+        ad=["v","v","v","v","v","v"]
     else:
-        ad=""
+        ad=["","","","","",""]
 
     for ind in range(len(flux)):
-        print(" "+"{:.8f}".format(flux[ind])+ad+"   "+
-              "{:.8f}".format(radius[ind])+ad+"    "+
-              "{:.3f}".format(theta[ind])+ad+"   "+
-              "{:.7f}".format(maj[ind]*scale)+ad+"    "+
-              "{:.6f}".format(ratio[ind])+"   "+
-              "{:.4f}".format(pos[ind])+"  "+
+        print(" "+"{:.8f}".format(flux[ind])+ad[0]+"   "+
+              "{:.8f}".format(radius[ind])+ad[1]+"    "+
+              "{:.3f}".format(theta[ind])+ad[2]+"   "+
+              "{:.7f}".format(maj[ind]*scale)+ad[3]+"    "+
+              "{:.6f}".format(ratio[ind])+ad[4]+"   "+
+              "{:.4f}".format(pos[ind])+ad[5]+"  "+
               str(int(typ_obj[ind]))+" "+
               "{:.5E}".format(freq)+"   0")
 

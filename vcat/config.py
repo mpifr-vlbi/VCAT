@@ -6,6 +6,10 @@ import shutil
 
 CONFIG_FILE = os.getenv("VCAT_CONFIG", "")
 
+#Initialize logging
+print("\rThank you for using VCAT. Have fun with VLBI!", end="\n")
+print("\rIf you are using this package please cite VCAT Team et al. 2025 ....")
+
 def find_difmap_path(logger):
     difmap_path = shutil.which("difmap")
     if difmap_path:

@@ -1,0 +1,41 @@
+! Started logfile: difmap.log on Mon Apr  7 23:14:34 2025
+! Starting new interactive shell. Use the EOF character to exit.
+! Obeying initialization file: 
+obs ../dataset_example/0235+164/K/0235+164E.uvf
+! Reading UV FITS file: ../dataset_example/0235+164/K/0235+164E.uvf
+! AN table 1: 137 integrations on 36 of 36 possible baselines.
+! Apparent sampling: 0.89781 visibilities/baseline/integration-bin.
+! Found source: 0235+164
+! 
+! There are 4 IFs, and a total of 4 channels:
+! 
+!  IF  Channel    Frequency  Freq offset  Number of   Overall IF
+!       origin    at origin  per channel   channels    bandwidth
+!  ------------------------------------------------------------- (Hz)
+!  01        1   2.3576e+10     1.28e+08          1     1.28e+08
+!  02        2   2.3704e+10     1.28e+08          1     1.28e+08
+!  03        3   2.3832e+10     1.28e+08          1     1.28e+08
+!  04        4    2.396e+10     1.28e+08          1     1.28e+08
+! 
+! Polarization(s): RR LL RL LR
+! 
+! Read 1 lines of history.
+! 
+! Reading 70848 visibilities.
+select i
+! Selecting polarization: I,  channels: 1..4
+! Reading IF 1 channels: 1..1
+! Reading IF 2 channels: 2..2
+! Reading IF 3 channels: 3..3
+! Reading IF 4 channels: 4..4
+uvw 0,-1
+! Uniform weighting is not currently selected.
+! Gridding weights will be scaled by errors raised to the power -1.
+! Radial weighting is not currently selected.
+rmod tmp/mod_files_clean/0235+164_2022-08-01_24GHz.mod
+! A total of 97 model components were read from file tmp/mod_files_clean/0235+164_2022-08-01_24GHz.mod
+maps 1024,0.02000000004727464
+! Map grid = 1024x1024 pixels with 0.0200x0.0200 milli-arcsec cellsize.
+! 
+! Terminated interactive shell.
+! Log file difmap.log closed on Mon Apr  7 23:14:34 2025

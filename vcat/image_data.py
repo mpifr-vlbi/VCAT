@@ -24,7 +24,7 @@ from vcat.ridgeline import Ridgeline
 from vcat.graph_generator import FitsImage
 from vcat.kinematics import Component
 from vcat.helpers import *
-from vcat.stacking_helpers import fold_with_beam
+from vcat.stacking_helpers import fold_with_beam, modelfit_difmap
 from skimage.measure import profile_line
 import warnings
 #initialize logger
@@ -118,7 +118,8 @@ class ImageData(object):
                  is_casa_model=False,
                  noise_method="Histogram Fit", #choose noise method
                  correct_rician_bias=False,
-                 error=0.05, #relative error flux densities
+                 error=0.05, #relative error flux densities,
+                 fit_comp_polarization=False,
                  difmap_path=difmap_path):
 
         """
@@ -146,6 +147,7 @@ class ImageData(object):
             noise_method (str): Choose method to calculate image noise ('Histogram Fit', 'box', 'Image RMS', 'DIFMAP')
             correct_rician_bias (bool): Choose whether to correct polarization for Rician Bias
             error (float): Set relative error on the flux density scale
+            fit_comp_polarization (bool): Choose whether to fit polarization of modelfit components
             difmap_path (str): Path to the folder of your DIFMAP installation
         """
 
@@ -529,6 +531,15 @@ class ImageData(object):
                                 mfit_file=self.model_mod_file,
                                 resmap_file=self.residual_map_path,
                                 weighting=uvw,difmap_path=difmap_path, method='flat')
+
+                if self.uvf_file!="" and fit_comp_polarization:
+                    logger.debug("Retrieving polarization information for modelfit components.")
+                    self.fit_comp_polarization()
+                else:
+                    if fit_comp_polarization:
+                        logger.warning("Trying to fit component polarization, but no uvf file loaded!")
+                    else:
+                        logger.debug("Not fitting component polarization")
 
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
@@ -1967,4 +1978,19 @@ class ImageData(object):
 
         raise Exception(f"No core component defined.")
 
+    def fit_comp_polarization(self):
+        write_mod_file_from_components(self.components,channel="i",export="tmp/model_q.mod",adv=[True])
+        os.system("cp tmp/model_q.mod tmp/model_u.mod")
+        comps_q=copy.deepcopy(self.components)
+        comps_u=copy.deepcopy(self.components)
+        comps_q=modelfit_difmap(self.uvf_file,"tmp/model_q.mod",50,difmap_path,components=comps_q,weighting=uvw,channel="q")
+        comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,weighting=uvw,channel="u")
 
+        for i, comp in enumerate(self.components):
+            #calculate lin_pol and EVPA from Q and U flux
+            lin_pol=np.sqrt(comps_q[i].flux**2+comps_u[i].flux**2)
+            evpa=1/2*np.arctan2(comps_u[i].flux**2,comps_q[i].flux**2)/np.pi*180
+
+            #set lin_pol and evpa of component
+            self.components[i].lin_pol = lin_pol
+            self.components[i].evpa = evpa
