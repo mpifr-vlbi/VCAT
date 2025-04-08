@@ -319,7 +319,6 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
     original_stdout=sys.stdout
     sys.stdout=open(writepath,'w')
 
-    #TODO this part is probably redundant since it is now already included in the model_df
     radius=[]
     theta=[]
     ratio=[]

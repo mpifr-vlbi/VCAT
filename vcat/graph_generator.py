@@ -717,7 +717,7 @@ class FitsImage(object):
                 try:
                     component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
                 except:
-                    component_noise=self.clean_image.noise_3sigma
+                    component_noise=self.clean_image.noise
 
                 #This is needed for the GUI
                 component = Component(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], g_flux[j], g_date[j],

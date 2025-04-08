@@ -423,34 +423,19 @@ class ImageData(object):
         #calculate image noise according to the method selected
         unused, levs_i = get_sigma_levs(self.Z, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for stokes i
 
-        try:
+        if np.sum(self.lin_pol)!=0:
             unused, levs_pol = get_sigma_levs(self.lin_pol, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for polarization
-        except:
+        else:
             levs_pol=[0]
-
-        # calculate image noise
-        unused, levs_i_3sigma = get_sigma_levs(self.Z, 3,noise_method=self.noise_method,noise=self.difmap_noise)  # get noise for stokes i
-        try:
-            unused, levs_pol_3sigma = get_sigma_levs(self.lin_pol, 3,noise_method=self.noise_method,noise=self.difmap_noise)  # get noise for polarization
-        except:
-            levs_pol_3sigma = [0]
 
         self.noise = levs_i[0]
         self.pol_noise = levs_pol[0]
-
-        self.noise_3sigma  = levs_i_3sigma[0]
-        self.pol_noise_3sigma = levs_pol_3sigma[0]
 
         #calculate integrated total flux in image
         self.integrated_flux_image = JyPerBeam2Jy(np.sum(self.Z), self.beam_maj, self.beam_min, self.degpp * self.scale)
 
         #calculate integrated pol flux in image
         self.integrated_pol_flux_image = JyPerBeam2Jy(np.sum(self.lin_pol),self.beam_maj,self.beam_min,self.degpp*self.scale)
-
-        #calculate average EVPA (mask where lin pol < 3 sigma or stokes i < 3 sigma (same as in plot)
-        integrate_evpa = np.ma.masked_where((self.lin_pol < self.pol_noise_3sigma) | (self.Z < self.noise_3sigma),
-                                            self.evpa)
-        self.evpa_average = np.average(integrate_evpa)
 
         if not is_casa_model:
             #TODO basic checks if file is valid
