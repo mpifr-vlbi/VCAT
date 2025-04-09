@@ -443,7 +443,9 @@ class ImageCube(object):
         #TODO also make ridgeline plot over several epochs possible
         if freq == "":
             freq = self.freqs
-        elif not isinstance(epoch, list):
+        elif isinstance(freq,(float,int)):
+            freq = [freq]
+        elif not isinstance(freq, list):
             raise Exception("Invalid input for 'freq'.")
 
         if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:

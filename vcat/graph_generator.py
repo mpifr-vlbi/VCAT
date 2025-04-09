@@ -377,6 +377,7 @@ class EvolutionPlot(object):
 
     def plotEVPAevolution(self,mjds,evpas,c="black",marker=".",label="",linestyle="-"):
 
+
         plot_evpas=2*np.array(wrap_evpas(evpas))/180*np.pi #we will plot two times EVPA
 
         #interpolate EVPA for the line plot
