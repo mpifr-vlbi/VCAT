@@ -10,7 +10,7 @@ data=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
 
 print(data)
 
-data.plot(plot_mode="lin_pol")
+data.plot(plot_mode="lin_pol",plot_evpa=True,xlim=[10,-5],ylim=[-5,5])
 
 data.plot(plot_line=[(5,-5),(-10,10)])
 x,y=data.get_profile((5,-5),(-10,10))

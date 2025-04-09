@@ -372,7 +372,6 @@ class EvolutionPlot(object):
             self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
-
     def plotEvolution(self,mjds,value,c="black",marker=".",label="",linestyle="none"):
         self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
 
@@ -462,10 +461,10 @@ class FitsImage(object):
                  plot_polar=False, #choose to plot image in polar coordinates
                  ###HERE STARTS POLARIZATION INPUT
                  plot_evpa=False, #decide whether to plot EVPA or not
-                 evpa_width=2, #choose width of EVPA lines
-                 evpa_len=8,  # choose length of EVPA in pixels
+                 evpa_width=1.5, #choose width of EVPA lines
+                 evpa_len=-1,  # choose length of EVPA in pixels
                  lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
-                 evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
+                 evpa_distance=-1,  # choose distance of EVPA vectors to draw in pixels
                  rotate_evpa=0, # rotate EVPAs by a given angle in degrees (North through East)
                  evpa_color="white", # set EVPA color for plot
                  title="", # plot title (default is date)
@@ -502,6 +501,30 @@ class FitsImage(object):
         lin_pol=self.clean_image.lin_pol
         self.lin_pol=self.clean_image.lin_pol
         self.evpa_width=evpa_width
+        # set default evpa_len if not given
+        if evpa_len==-1:
+            npix=len(X)
+            if xlim!=[]:
+                factor=(max(xlim)-min(xlim))/(max(X)-min(X))
+            else:
+                factor=1
+            #make evpa len 2% of the image size
+            self.evpa_len = factor * npix // 45
+        else:
+            self.evpa_len=evpa_len
+
+        #set default evpa_distance if not provided
+        if evpa_distance==-1:
+            npix = len(X)
+            if xlim != []:
+                factor = (max(xlim) - min(xlim)) / (max(X) - min(X))
+            else:
+                factor = 1
+            # make evpa len 2% of the image size
+            self.evpa_distance = factor * npix // 45
+        else:
+            self.evpa_distance=evpa_distance
+        self.rotate_evpa=rotate_evpa
         # Set beam parameters
         beam_maj = self.clean_image.beam_maj
         beam_min = self.clean_image.beam_min
@@ -586,20 +609,21 @@ class FitsImage(object):
             self.plotColormap(Z,im_color,levs,levs1,extent,do_colorbar=self.do_colorbar)
             contour_color="white"
 
+        if np.sum(lin_pol)!=0:
+            if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
+                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+                self.levs_linpol = levs_linpol
+                self.levs1_linpol = levs1_linpol
 
         if (plot_mode=="lin_pol" or plot_mode=="frac_pol") and np.sum(lin_pol)!=0:
 
-            if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
-                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
-
-
             if plot_mode=="lin_pol":
-                self.plotColormap(lin_pol,im_color,levs_linpol,levs1_linpol,extent,
+                self.plotColormap(lin_pol,im_color,levs_linpol,self.levs1_linpol,extent,
                                   label="Linear Polarized Intensity [Jy/beam]",do_colorbar=self.do_colorbar)
             if plot_mode=="frac_pol":
                 plot_lin_pol = np.array(lin_pol)
                 plot_frac_pol = plot_lin_pol / np.array(self.clean_image.Z)
-                plot_frac_pol = np.ma.masked_where((plot_lin_pol < levs1_linpol[0]) | (self.clean_image.Z<levs1[0]),
+                plot_frac_pol = np.ma.masked_where((plot_lin_pol < self.levs1_linpol[0]) | (self.clean_image.Z<self.levs1[0]),
                                                   plot_frac_pol)
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
@@ -680,10 +704,9 @@ class FitsImage(object):
             self.plotColormap(to, im_color, levs, levs1, extent, label=r"Turnover $\chi^2$",
                               do_colorbar=self.do_colorbar)
 
+
         if plot_evpa and np.sum(lin_pol)!=0:
-            if not isinstance(levs_linpol,list) and not isinstance(levs1_linpol,list):
-                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
-            self.plotEvpa(self.clean_image.evpa, rotate_evpa, evpa_len, evpa_distance, levs1_linpol, levs1)
+            self.plotEvpa()
 
         # Contour plot
         if contour == True:
@@ -813,9 +836,6 @@ class FitsImage(object):
 
         self.xmin, self.xmax = ra_min, ra_max
         self.ymin, self.ymax = dec_min, dec_max
-
-        self.levs_linpol = levs_linpol
-        self.levs1_linpol = levs1_linpol
 
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
@@ -1089,24 +1109,23 @@ class FitsImage(object):
         self.ax.set_xlim(x_min, x_max)
         self.ax.set_ylim(y_min, y_max)
 
-    def plotEvpa(self,evpa,rotate_evpa,evpa_len,evpa_distance,levs1_linpol,levs1_i):
-
-        evpa_len=evpa_len*self.clean_image.degpp*self.clean_image.scale
+    def plotEvpa(self):
+        evpa=self.clean_image.evpa
+        evpa_len=self.evpa_len*self.clean_image.degpp*self.clean_image.scale
 
         stokes_i=self.Z
         # plot EVPA
-        evpa = evpa + rotate_evpa / 180 * np.pi
+        evpa = evpa + self.rotate_evpa / 180 * np.pi
 
         # create mask where to plot EVPA (only where stokes i and lin pol have plotted contours)
         mask = np.zeros(np.shape(stokes_i), dtype=bool)
-        mask[:] = (self.lin_pol > levs1_linpol[0]) * (stokes_i > levs1_i[0])
+        mask[:] = (self.lin_pol > self.levs1_linpol[0]) * (stokes_i > self.levs1[0])
         YLoc, XLoc = np.where(mask)
 
         y_evpa = evpa_len * np.cos(evpa[mask])
         x_evpa = evpa_len * np.sin(evpa[mask])
-        evpa=evpa[mask]
 
-        SelPix = range(0, len(stokes_i), int(evpa_distance))
+        SelPix = range(0, len(stokes_i), int(self.evpa_distance))
 
         lines = []
         for i in range(0, len(XLoc)):
@@ -1430,6 +1449,3 @@ class MultiFitsImage(object):
             self.fig.savefig(name, dpi=300, bbox_inches='tight', transparent=False)
         else:
             self.fig.savefig(name+".png",dpi=300,bbox_inches="tight", transparent=False)
-
-
-

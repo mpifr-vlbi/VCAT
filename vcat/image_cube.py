@@ -543,10 +543,10 @@ class ImageCube(object):
             "shared_colorbar_label": "",  # choose custom colorbar label
             "shared_colorbar_labelsize" : 10,  # choose labelsize of custom colorbar
             "plot_evpa": False,
-            "evpa_width": 2,
-            "evpa_len": 8,
+            "evpa_width": 1.5,
+            "evpa_len": -1,
             "lin_pol_sigma_cut": 3,
-            "evpa_distance": 10,
+            "evpa_distance": -1,
             "rotate_evpa": 0,
             "evpa_color": "white",
             "title": " ",

@@ -38,7 +38,7 @@ def load_config(path=""):
         logger.info("No environment variable VCAT_CONFIG found, will use defaults.")
         difmap_path=find_difmap_path(logger)
         uvw=[0,-1]
-        font="Times New Roman"
+        font="DejaVu Sans"
 
     else:
         with open(path, "r") as file:
@@ -78,7 +78,7 @@ def load_config(path=""):
             font = config["font"]
             logger.info(f"Using font: {font}")
         except:
-            font = "Times New Roman"
+            font = "DejaVu Sans"
 
 
     return logger

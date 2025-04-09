@@ -123,7 +123,7 @@ class Component():
         return line1 + line2 + line3 + line4 + line5
     
     '''FMP Apr25'''
-    def get_errors(self, fits_file, uvf_file, mfit_file, resmap_file,
+    def get_errors(self, fits_file="", uvf_file="", mfit_file="", resmap_file="",
                    shift=None, weighting=[0,-1], rms_box=100, difmap_path="",
                    method='flat', gain_err=0.1):
         scale = self.scale
@@ -137,7 +137,7 @@ class Component():
             self.theta_err = 20
 
         elif method == 'Schinzel12':
-            if any(x is None or x is [] or x is '' for x in [fits_file, uvf_file, mfit_file, resmap_file]):
+            if any(x == None or x == [] or x == '' for x in [fits_file, uvf_file, mfit_file, resmap_file]):
                 logger.warning('Either .fits, .uvfits, .mfit or residual map .fits file missing. Cannot compute errors according to Schinzel et al. 2012. Will apply flat 10 % errors.')
                 self.get_errors(fits_file,uvf_file,mfit_file,resmap_file,shift,weighting,rms_box,difmap_path,"flat")
             else:
@@ -537,6 +537,7 @@ class ComponentCollection():
             annotate_fit_results=True):
         """
         This function only makes sense on a component collection with multiple components on the same date at different frequencies
+
         Inputs:
             fluxerr: Fractional Errors (dictionary with {'error': [], 'freq':[]})
         """
