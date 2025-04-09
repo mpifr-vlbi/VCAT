@@ -603,6 +603,8 @@ class FitsImage(object):
 
         self.levs=levs
         self.levs1=levs1
+        self.levs_linpol=levs_linpol
+        self.levs1_linpol=levs1_linpol
 
         # Image colormap
         if self.im_colormap == True and plot_mode=="stokes_i":
