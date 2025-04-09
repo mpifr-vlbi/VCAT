@@ -16,11 +16,11 @@ import pexpect
 from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
-from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
+from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar, wrap_evpas, closest_index, get_date, get_freq, write_mod_file
 import vcat.fit_functions as ff
-from vcat.helpers import closest_index, get_date, get_freq, write_mod_file
 from vcat.kinematics import Component
 from vcat.config import logger
+from scipy.interpolate import interp1d
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -37,10 +37,35 @@ font_size_axis_title=13
 font_size_axis_tick=12
 
 class KinematicPlot(object):
-    def __init__(self):
+    def __init__(self,pol_plot=False):
 
         super().__init__()
-        self.fig, self.ax = plt.subplots(1, 1)
+
+        self.pol_plot=pol_plot
+
+        if pol_plot:
+            self.fig, self.ax = plt.subplots(subplot_kw={'projection': 'polar'})
+
+            # Set 0° to top
+            self.ax.set_theta_zero_location("N")
+            self.ax.set_theta_direction(1)
+
+            # create ticks
+            tick_angles_deg = np.arange(0, 360, 30)
+            tick_labels = []
+            for ang in tick_angles_deg:
+                if ang < 180:
+                    tick_labels.append(f"{ang // 2}°")
+                elif ang == 180:
+                    tick_labels.append("+90°/-90°")
+                else:
+                    tick_labels.append(f"{(ang - 360) // 2}°")
+
+            self.ax.set_xticks(np.deg2rad(tick_angles_deg))
+            self.ax.set_xticklabels(tick_labels)
+        else:
+            self.fig, self.ax = plt.subplots(1, 1)
+
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
     def plot_kinematics(self,component_collection,color):
@@ -76,11 +101,28 @@ class KinematicPlot(object):
         self.ax.set_ylabel('Fractional Polarized Flux Density [%]', fontsize=font_size_axis_title)
 
     def plot_evpa(self, component_collection, color):
-        if component_collection.length() > 0:
-            self.ax.plot(component_collection.year, component_collection.evpas, c=color, label=component_collection.name,
-                         marker=".")
-        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
-        self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
+        if self.pol_plot:
+            evpas=component_collection.evpas.flatten()
+            mjds=component_collection.year.flatten()
+
+            plot_evpas = 2 * np.array(wrap_evpas(evpas)) / 180 * np.pi  # we will plot two times EVPA
+
+            # interpolate EVPA for the line plot
+            evpa_interp = interp1d(mjds, plot_evpas, kind="linear")
+            mjd_interp = np.linspace(min(mjds), max(mjds), 10000)
+            self.ax.plot(evpa_interp(mjd_interp), mjd_interp, color=color)
+
+            # scatter plot the actual values
+            self.ax.scatter(plot_evpas, mjds, color=color, label=component_collection.name)
+            mjd_range = max(mjds) - min(mjds)
+            self.ax.set_rmin(min(mjds) - 0.05 * mjd_range)
+            self.ax.set_rmax(max(mjds) + 0.05 * mjd_range)
+        else:
+            if component_collection.length() > 0:
+                self.ax.plot(component_collection.year, component_collection.evpas, c=color, label=component_collection.name,
+                             marker=".")
+            self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+            self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
     def plot_maj(self, component_collection, color):
         if component_collection.length() > 0:
@@ -305,18 +347,53 @@ class KinematicPlot(object):
             self.ax.fill_between(xr,y1,y2,alpha=0.2)
 
 class EvolutionPlot(object):
-    def __init__(self,xlabel="",ylabel="",font_size_axis_title=10):
+    def __init__(self,xlabel="",ylabel="",font_size_axis_title=10,pol_plot=False):
 
         super().__init__()
-        self.fig, self.ax = plt.subplots(1, 1)
+        if pol_plot:
+            self.fig, self.ax = plt.subplots(subplot_kw={'projection': 'polar'})
+
+            #Set 0° to top
+            self.ax.set_theta_zero_location("N")
+            self.ax.set_theta_direction(1)
+
+            #create ticks
+            tick_angles_deg = np.arange(0,360,30)
+            tick_labels = []
+            for ang in tick_angles_deg:
+                if ang<180:
+                    tick_labels.append(f"{ang // 2}°")
+                elif ang==180:
+                    tick_labels.append("+90°/-90°")
+                else:
+                    tick_labels.append(f"{(ang-360)//2}°")
+
+            self.ax.set_xticks(np.deg2rad(tick_angles_deg))
+            self.ax.set_xticklabels(tick_labels)
+        else:
+            self.fig, self.ax = plt.subplots(1, 1)
+            self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
+            self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
-        self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
-        self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
+
 
     def plotEvolution(self,mjds,value,c="black",marker=".",label="",linestyle="none"):
         self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
 
+    def plotEVPAevolution(self,mjds,evpas,c="black",marker=".",label="",linestyle="-"):
 
+        plot_evpas=2*np.array(wrap_evpas(evpas))/180*np.pi #we will plot two times EVPA
+
+        #interpolate EVPA for the line plot
+        evpa_interp=interp1d(mjds,plot_evpas,kind="linear")
+        mjd_interp=np.linspace(min(mjds),max(mjds),10000)
+        self.ax.plot(evpa_interp(mjd_interp),mjd_interp,color=c,linestyle=linestyle)
+
+        #scatter plot the actual values
+        self.ax.scatter(plot_evpas,mjds,color=c,marker=marker,label=label)
+        mjd_range=max(mjds)-min(mjds)
+        self.ax.set_rmin(min(mjds)-0.05*mjd_range)
+        self.ax.set_rmax(max(mjds)+0.05*mjd_range)
         
 class FitsImage(object):
     """Class that generates Matplotlib graph for a VLBI image.

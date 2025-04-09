@@ -13,7 +13,6 @@ import os
 from numpy import linalg
 from tqdm import tqdm
 from scipy.optimize import minimize
-import ehtim as eh
 
 #initialize logger
 from vcat.config import logger
@@ -374,6 +373,8 @@ def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=
         return None
 
 def modelfit_ehtim(uvf_file,components,niter,npix=1024,fov=10):
+    import ehtim as eh
+
     #fov in mas!!
     scale=components[0].scale
 

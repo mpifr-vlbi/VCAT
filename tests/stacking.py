@@ -11,6 +11,9 @@ stokes_u_files=glob.glob("../dataset_example/0235+164/**/*.ucn.fits",recursive=T
 #import files
 im_cube=ImageCube().import_files(fits_files=fits_files,uvf_files=uvf_files,stokes_q_files=stokes_q_files,stokes_u_files=stokes_u_files)
 
+
+im_cube.plot_evolution("evpa")
+
 #plot it
 im_cube.plot(plot_mode="lin_pol",plot_evpa=True)
 

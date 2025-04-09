@@ -1067,3 +1067,24 @@ def convert_image_to_polar(X,Y,Z,nrad="",ntheta=361):
     Z_polar=np.roll(Z_polar,shift=-ind,axis=0)
 
     return R, Theta, Z_polar
+
+def wrap_evpas(evpas):
+    """
+    Checks for EVPA changes >90 or <-90 degreees and wraps them
+
+    Args:
+        evpas (list[float]): List of EVPA values in degrees
+
+    Returns:
+        evpas (list[float]): List of wrapped EVPAs
+    """
+
+    for i in range(len(evpas)):
+        if i>0:
+            if evpas[i] - evpas[i - 1] > 90:
+                for l in range(i, len(evpas)):
+                    evpas[l] -= 180
+            if evpas[i] - evpas[i - 1] < -90:
+                for l in range(i, len(evpas)):
+                    evpas[l] += 180
+    return evpas

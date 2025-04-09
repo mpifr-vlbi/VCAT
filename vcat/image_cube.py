@@ -437,7 +437,8 @@ class ImageCube(object):
     def plot_evolution(self, value="flux",freq="",show=True, savefig="",
                        colors=["black","green","blue","red","purple","orange","magenta","brown"], #default colors
                        markers=["."], #default markers
-                       linestyles=["-"]):
+                       linestyles=["-"],
+                       evpa_pol_plot=True):
 
         #TODO also make ridgeline plot over several epochs possible
         if freq == "":
@@ -445,7 +446,10 @@ class ImageCube(object):
         elif not isinstance(epoch, list):
             raise Exception("Invalid input for 'freq'.")
 
-        plot = EvolutionPlot(xlabel="MJD [days]")
+        if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
+            plot = EvolutionPlot(pol_plot=True)
+        else:
+            plot = EvolutionPlot(xlabel="MJD [days]")
 
         for i,f in enumerate(freq):
             values = []
@@ -476,10 +480,16 @@ class ImageCube(object):
 
 
             label="{:.1f}".format(f*1e-9)+" GHz"
-            plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
+
+            if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
+                plot.plotEVPAevolution(np.array(mjds),np.array(values),c=colors[i%len(colors)],marker=markers[i%len(markers)],
+                                       label=label,linestyle=linestyles[i%len(linestyles)])
+            else:
+                plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
                                label=label,linestyle=linestyles[i % len(linestyles)])
 
-        plt.ylabel(ylabel)
+                plt.ylabel(ylabel)
+
         plt.legend()
         plt.tight_layout()
 
@@ -1322,7 +1332,7 @@ class ImageCube(object):
 
         return dists, values
 
-    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=["black","red","blue","orange"]):
+    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=["black","red","blue","orange"],evpa_pol_plot=True):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1338,13 +1348,13 @@ class ImageCube(object):
         else:
             raise Exception("Invalid input for 'id'.")
 
-        fits=[]
-
         for fr in freq:
             # One plot per frequency with all components
-            plot = KinematicPlot()
+            if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
+                plot=KinematicPlot(pol_plot=True)
+            else:
+                plot = KinematicPlot()
             for ind, cc in enumerate(ccs):
-
                 ind = ind % len(colors)
                 color = colors[ind]
                 if value=="flux":
