@@ -894,6 +894,7 @@ class ImageData(object):
             "evpa_len": -1,
             "lin_pol_sigma_cut": 3,
             "evpa_distance": -1,
+            "fractional_evpa_distance": 0.02,
             "rotate_evpa": 0,
             "evpa_color": "white",
             "title": "",
