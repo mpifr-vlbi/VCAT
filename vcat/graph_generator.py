@@ -1388,6 +1388,7 @@ class MultiFitsImage(object):
                                         plot_evpa=kwargs["plot_evpa"][image_i,image_j],
                                         evpa_width=kwargs["evpa_width"][image_i,image_j],
                                         evpa_len=kwargs["evpa_len"][image_i,image_j],
+                                        fractional_evpa_distance=kwargs["fractional_evpa_distance"][image_i,image_j],
                                         lin_pol_sigma_cut=kwargs["lin_pol_sigma_cut"][image_i,image_j],
                                         evpa_distance=kwargs["evpa_distance"][image_i,image_j],
                                         rotate_evpa=kwargs["rotate_evpa"][image_i,image_j],
