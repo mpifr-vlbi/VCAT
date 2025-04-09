@@ -19,7 +19,7 @@ import matplotlib.ticker as ticker
 from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar, wrap_evpas, closest_index, get_date, get_freq, write_mod_file
 import vcat.fit_functions as ff
 from vcat.kinematics import Component
-from vcat.config import logger
+from vcat.config import logger, font
 from scipy.interpolate import interp1d
 
 #optimized draw on Agg backend
@@ -28,9 +28,7 @@ mpl.rcParams['path.simplify_threshold'] = 1.0
 mpl.rcParams['agg.path.chunksize'] = 1000
 
 #define some matplotlib figure parameters
-#mpl.rcParams['font.family'] = 'Quicksand'
-#mpl.rcParams['axes.spines.top'] = False
-#mpl.rcParams['axes.spines.right'] = False
+mpl.rcParams['font.family'] = font
 mpl.rcParams['axes.linewidth'] = 1.0
 
 font_size_axis_title=13

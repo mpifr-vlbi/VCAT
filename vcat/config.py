@@ -24,6 +24,7 @@ def find_difmap_path(logger):
 def load_config(path=""):
     global difmap_path
     global uvw
+    global font
     if path=="":
 
         logging.basicConfig(
@@ -37,6 +38,7 @@ def load_config(path=""):
         logger.info("No environment variable VCAT_CONFIG found, will use defaults.")
         difmap_path=find_difmap_path(logger)
         uvw=[0,-1]
+        font="Times New Roman"
 
     else:
         with open(path, "r") as file:
@@ -71,7 +73,13 @@ def load_config(path=""):
             logger.info(f"Using uv-weighting: {uvw}")
         except:
             uvw = [0,-1]
-            logger.info(f"Using uvfadsoi")
+
+        try:
+            font = config["font"]
+            logger.info(f"Using font: {font}")
+        except:
+            font = "Times New Roman"
+
 
     return logger
 
