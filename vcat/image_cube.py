@@ -1354,9 +1354,11 @@ class ImageCube(object):
                 plot=KinematicPlot(pol_plot=True)
             else:
                 plot = KinematicPlot()
+            years = []
             for ind, cc in enumerate(ccs):
                 ind = ind % len(colors)
                 color = colors[ind]
+
                 if value=="flux":
                     plot.plot_fluxs(cc, color=color)
                 elif value=="tb":
@@ -1369,6 +1371,7 @@ class ImageCube(object):
                     plot.plot_linpol(cc, color=color)
                 elif value=="evpa" or value=="EVPA":
                     plot.plot_evpa(cc, color=color)
+                    years=np.concatenate((years,cc.year.flatten()))
                 elif value=="maj":
                     plot.plot_maj(cc, color=color)
                 elif value=="min":
@@ -1376,7 +1379,11 @@ class ImageCube(object):
                 elif value=="fracpol":
                     plot.plot_fracpol(cc, color=color)
 
-
+            #set plot lims for polar plot according to lowest and highest year
+            if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
+                years_range = max(years) - min(years)
+                plot.ax.set_rmin(min(years) - 0.05 * years_range)
+                plot.ax.set_rmax(max(years) + 0.05 * years_range)
 
 
             plt.legend()

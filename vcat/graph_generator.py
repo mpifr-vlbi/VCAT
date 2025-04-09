@@ -101,20 +101,18 @@ class KinematicPlot(object):
     def plot_evpa(self, component_collection, color):
         if self.pol_plot:
             evpas=component_collection.evpas.flatten()
-            mjds=component_collection.year.flatten()
+            years=component_collection.year.flatten()
 
             plot_evpas = 2 * np.array(wrap_evpas(evpas)) / 180 * np.pi  # we will plot two times EVPA
 
             # interpolate EVPA for the line plot
-            evpa_interp = interp1d(mjds, plot_evpas, kind="linear")
-            mjd_interp = np.linspace(min(mjds), max(mjds), 10000)
-            self.ax.plot(evpa_interp(mjd_interp), mjd_interp, color=color)
+            evpa_interp = interp1d(years, plot_evpas, kind="linear")
+            years_interp = np.linspace(min(years), max(years), 10000)
+            self.ax.plot(evpa_interp(years_interp), years_interp, color=color)
 
             # scatter plot the actual values
-            self.ax.scatter(plot_evpas, mjds, color=color, label=component_collection.name)
-            mjd_range = max(mjds) - min(mjds)
-            self.ax.set_rmin(min(mjds) - 0.05 * mjd_range)
-            self.ax.set_rmax(max(mjds) + 0.05 * mjd_range)
+            self.ax.scatter(plot_evpas, years, color=color, label=component_collection.name)
+
         else:
             if component_collection.length() > 0:
                 self.ax.plot(component_collection.year, component_collection.evpas, c=color, label=component_collection.name,
