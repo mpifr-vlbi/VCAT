@@ -5,13 +5,67 @@ from astropy.io import ascii
 from astropy.table import Table,vstack
 import os, sys
 from glob import glob
-from VLBIana.ridgeline.ridgeLine import *
-from VLBIana.modules.jet_calculus import *
-from VLBIana.modules.plotSet import *
 from itertools import cycle
 from cycler import cycler
 from matplotlib.pyplot import cm
 import matplotlib as mpl
+
+### from original Plot set: https://kavigupta.org/2019/05/18/Setting-the-size-of-figures-in-matplotlib/
+def get_size(fig, dpi=100):
+    with NamedTemporaryFile(suffix='.png') as f:
+        fig.savefig(f.name, bbox_inches='tight', dpi=dpi)
+        height, width, _channels = imread(f.name).shape
+        return width / dpi, height / dpi
+
+def set_size(width, fraction=1,subplots=(1,1),ratio=False):
+    """ Set aesthetic figure dimensions to avoid scaling in latex.
+    Taken from https://jwalton.info/Embed-Publication-Matplotlib-Latex/
+
+    Parameters
+    ----------
+    width: float or string
+       Width in pts, or string of predined document type
+    fraction: float,optional
+       Fraction of the width which you wish the figure to occupy
+    subplots: array-like, optional
+    The number of rows and columns of subplots
+
+    Returns
+    -------
+    fig_dim: tuple
+       Dimensions of figure in inches
+    """
+    if width.find('_')!=-1:
+        w = width.split('_')
+        width = w[0]
+        fraction= float(w[1])
+    if width =='aanda':
+        width_pt = 256.0748
+    elif width =='aanda*':
+        width_pt = 523.5307
+    elif width == 'beamer':
+        width_pt = 342
+    elif width == 'screen':
+        width_pt = 600
+    else:
+        width_pt = width
+    # Width of figure
+    fig_width_pt = width_pt * fraction
+
+    # Convert from pt to inches
+    inches_per_pt = 1 / 72.27
+
+    # Golden ratio to set aesthetic figure height
+    golden_ratio = (5**0.5 - 1) / 2.
+    if not ratio:
+        ratio = golden_ratio
+
+    # Figure width in inches
+    fig_width_in = fig_width_pt * inches_per_pt
+    # Figure height in inches
+    fig_height_in = fig_width_in * ratio* (subplots[0] / subplots[1])
+
+    return (fig_width_in, fig_height_in)
 
 ### for defining colors
 """ for VCAT we might think about using standard colors/linestyles and giving the
@@ -34,6 +88,49 @@ ls = ['-', '--', ':', '-.','-', '--', ':', '-.']
 
 #### I add here the functions for fitting, I suggest to move them to the helper script, if not already there
 from scipy.odr import *
+
+
+def mas2pc(z=None,d=None):
+    """To convert mas to parsec.
+
+    Uses either a redshift (z) or a distnace (d) to compute the conversion from mas to parsec.
+
+    Parameters
+    ----------
+    z : float
+      The redshift
+    d : distance
+
+    Returns
+    -------
+    float
+        the conversion between mas and parsec.
+    """
+    cosmo=FlatLambdaCDM(H0=71,Om0=0.27) #Komatsu+09
+#    cosmo=FlatLambdaCDM(H0=70,Om0=0.30) #Komatsu+09
+
+    if d:
+        D=d*1e6*u.parsec
+    else:
+        D   = cosmo.angular_diameter_distance(z)
+    return (D*np.pi/180/3.6e6).to(u.parsec)
+#   return 1/(60*60*1e3)*D
+
+
+def mas2Rs(x,M=10**8.2,z=0.005037,D=False):
+    rs =Rs(M)
+    if D:
+        mtp = mas2pc(d=D)
+    else:
+        mtp=mas3pc(z)
+    return x*mtp/rs
+def Rs2mas(x,M=10**8.2,z=0.005037,D=False):
+    rs =Rs(M)
+    if D:
+        mtp = mas2pc(d=D)
+    else:
+        mtp=mas2pc(z)
+    return x*rs/mtp
 
 def odr_fit(func,data,x0,fit_type=2,verbose=False,maxit=1e4):
     model=Model(func)
