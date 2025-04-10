@@ -264,10 +264,12 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
                              +','+str(ra+1*ps_x)
                              +','+str(dec-1*ps_y)
                              +','+str(dec+1*ps_y))
-    send_difmap_command('winmod')
-    send_difmap_command('restore 0,0,0,true')    # prevents difmap from adding
-        # the residuals to the clean map
-    send_difmap_command('mapl cln')
+    # send_difmap_command('winmod')
+    # send_difmap_command('restore 0,0,0,true')    # prevents difmap from adding
+        # # the residuals to the clean map
+    # send_difmap_command('mapl cln')
+    send_difmap_command('winmod true')
+    send_difmap_command('mapl map')
     send_difmap_command('print mapvalue('+str(ra)
                                      +','+str(dec)+')')
 
