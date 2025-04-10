@@ -16,11 +16,11 @@ import pexpect
 from datetime import datetime
 import colormaps as cmaps
 import matplotlib.ticker as ticker
-from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar
+from vcat.helpers import get_sigma_levs, getComponentInfo, convert_image_to_polar, wrap_evpas, closest_index, get_date, get_freq, write_mod_file
 import vcat.fit_functions as ff
-from vcat.helpers import closest_index, get_date, get_freq, write_mod_file
 from vcat.kinematics import Component
-from vcat.config import logger
+from vcat.config import logger, font
+from scipy.interpolate import interp1d
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -28,19 +28,42 @@ mpl.rcParams['path.simplify_threshold'] = 1.0
 mpl.rcParams['agg.path.chunksize'] = 1000
 
 #define some matplotlib figure parameters
-#mpl.rcParams['font.family'] = 'Quicksand'
-#mpl.rcParams['axes.spines.top'] = False
-#mpl.rcParams['axes.spines.right'] = False
+mpl.rcParams['font.family'] = font
 mpl.rcParams['axes.linewidth'] = 1.0
 
 font_size_axis_title=13
 font_size_axis_tick=12
 
 class KinematicPlot(object):
-    def __init__(self):
+    def __init__(self,pol_plot=False):
 
         super().__init__()
-        self.fig, self.ax = plt.subplots(1, 1)
+
+        self.pol_plot=pol_plot
+
+        if pol_plot:
+            self.fig, self.ax = plt.subplots(subplot_kw={'projection': 'polar'})
+
+            # Set 0° to top
+            self.ax.set_theta_zero_location("N")
+            self.ax.set_theta_direction(1)
+
+            # create ticks
+            tick_angles_deg = np.arange(0, 360, 30)
+            tick_labels = []
+            for ang in tick_angles_deg:
+                if ang < 180:
+                    tick_labels.append(f"{ang // 2}°")
+                elif ang == 180:
+                    tick_labels.append("+90°/-90°")
+                else:
+                    tick_labels.append(f"{(ang - 360) // 2}°")
+
+            self.ax.set_xticks(np.deg2rad(tick_angles_deg))
+            self.ax.set_xticklabels(tick_labels)
+        else:
+            self.fig, self.ax = plt.subplots(1, 1)
+
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
     def plot_kinematics(self,component_collection,color):
@@ -55,6 +78,62 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Flux Density [Jy]', fontsize=font_size_axis_title)
 
+    def plot_pas(self,component_collection,color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.posas, c=color, label=component_collection.name,marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Position Angle [deg]', fontsize=font_size_axis_title)
+
+    def plot_linpol(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.lin_pols, c=color, label=component_collection.name,
+                         marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Linearly Polarized Flux Density [Jy]', fontsize=font_size_axis_title)
+
+    def plot_fracpol(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, np.array(component_collection.lin_pols)/np.array(component_collection.fluxs)*100,
+                         c=color, label=component_collection.name,marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Fractional Polarized Flux Density [%]', fontsize=font_size_axis_title)
+
+    def plot_evpa(self, component_collection, color):
+        if self.pol_plot:
+            evpas=component_collection.evpas.flatten()
+            years=component_collection.year.flatten()
+
+            plot_evpas = 2 * np.array(wrap_evpas(evpas)) / 180 * np.pi  # we will plot two times EVPA
+
+            # interpolate EVPA for the line plot
+            evpa_interp = interp1d(years, plot_evpas, kind="linear")
+            years_interp = np.linspace(min(years), max(years), 10000)
+            self.ax.plot(evpa_interp(years_interp), years_interp, color=color)
+
+            # scatter plot the actual values
+            self.ax.scatter(plot_evpas, years, color=color, label=component_collection.name)
+
+        else:
+            if component_collection.length() > 0:
+                self.ax.plot(component_collection.year, component_collection.evpas, c=color, label=component_collection.name,
+                             marker=".")
+            self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+            self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
+
+    def plot_maj(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.majs, c=color, label=component_collection.name,
+                         marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
+
+    def plot_min(self, component_collection, color):
+        if component_collection.length() > 0:
+            self.ax.plot(component_collection.year, component_collection.mins, c=color, label=component_collection.name,
+                         marker=".")
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
+
     def plot_tbs(self,component_collection,color):
         if component_collection.length() > 0:
             lower_limit_inds = np.where(np.array(component_collection.tbs_lower_limit))[0]
@@ -67,7 +146,7 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)
         self.ax.set_yscale("log")
-    
+
     def plot_spectrum(self,component_collection,color,epochs=""):
 
         if epochs=="":
@@ -264,18 +343,53 @@ class KinematicPlot(object):
             self.ax.fill_between(xr,y1,y2,alpha=0.2)
 
 class EvolutionPlot(object):
-    def __init__(self,xlabel="",ylabel="",font_size_axis_title=10):
+    def __init__(self,xlabel="",ylabel="",font_size_axis_title=10,pol_plot=False):
 
         super().__init__()
-        self.fig, self.ax = plt.subplots(1, 1)
+        if pol_plot:
+            self.fig, self.ax = plt.subplots(subplot_kw={'projection': 'polar'})
+
+            #Set 0° to top
+            self.ax.set_theta_zero_location("N")
+            self.ax.set_theta_direction(1)
+
+            #create ticks
+            tick_angles_deg = np.arange(0,360,30)
+            tick_labels = []
+            for ang in tick_angles_deg:
+                if ang<180:
+                    tick_labels.append(f"{ang // 2}°")
+                elif ang==180:
+                    tick_labels.append("+90°/-90°")
+                else:
+                    tick_labels.append(f"{(ang-360)//2}°")
+
+            self.ax.set_xticks(np.deg2rad(tick_angles_deg))
+            self.ax.set_xticklabels(tick_labels)
+        else:
+            self.fig, self.ax = plt.subplots(1, 1)
+            self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
+            self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
-        self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
-        self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
 
     def plotEvolution(self,mjds,value,c="black",marker=".",label="",linestyle="none"):
         self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
 
+    def plotEVPAevolution(self,mjds,evpas,c="black",marker=".",label="",linestyle="-"):
 
+
+        plot_evpas=2*np.array(wrap_evpas(evpas))/180*np.pi #we will plot two times EVPA
+
+        #interpolate EVPA for the line plot
+        evpa_interp=interp1d(mjds,plot_evpas,kind="linear")
+        mjd_interp=np.linspace(min(mjds),max(mjds),10000)
+        self.ax.plot(evpa_interp(mjd_interp),mjd_interp,color=c,linestyle=linestyle)
+
+        #scatter plot the actual values
+        self.ax.scatter(plot_evpas,mjds,color=c,marker=marker,label=label)
+        mjd_range=max(mjds)-min(mjds)
+        self.ax.set_rmin(min(mjds)-0.05*mjd_range)
+        self.ax.set_rmax(max(mjds)+0.05*mjd_range)
         
 class FitsImage(object):
     """Class that generates Matplotlib graph for a VLBI image.
@@ -348,10 +462,11 @@ class FitsImage(object):
                  plot_polar=False, #choose to plot image in polar coordinates
                  ###HERE STARTS POLARIZATION INPUT
                  plot_evpa=False, #decide whether to plot EVPA or not
-                 evpa_width=2, #choose width of EVPA lines
-                 evpa_len=8,  # choose length of EVPA in pixels
+                 evpa_width=1.5, #choose width of EVPA lines
+                 evpa_len=-1,  # choose length of EVPA in pixels
                  lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
-                 evpa_distance=10,  # choose distance of EVPA vectors to draw in pixels
+                 evpa_distance=-1,  # choose distance of EVPA vectors to draw in pixels
+                 fractional_evpa_distance=0.02, #if evpa_distance==-1 and evpa_len==-1, this chooses the fractional evpa distance
                  rotate_evpa=0, # rotate EVPAs by a given angle in degrees (North through East)
                  evpa_color="white", # set EVPA color for plot
                  title="", # plot title (default is date)
@@ -388,6 +503,30 @@ class FitsImage(object):
         lin_pol=self.clean_image.lin_pol
         self.lin_pol=self.clean_image.lin_pol
         self.evpa_width=evpa_width
+        # set default evpa_len if not given
+        if evpa_len==-1:
+            npix=len(X)
+            if xlim!=[]:
+                factor=(max(xlim)-min(xlim))/(max(X)-min(X))
+            else:
+                factor=1
+            #make evpa len 2% of the image size
+            self.evpa_len = factor * npix // (1/fractional_evpa_distance)
+        else:
+            self.evpa_len=evpa_len
+
+        #set default evpa_distance if not provided
+        if evpa_distance==-1:
+            npix = len(X)
+            if xlim != []:
+                factor = (max(xlim) - min(xlim)) / (max(X) - min(X))
+            else:
+                factor = 1
+            # make evpa len 2% of the image size
+            self.evpa_distance = factor * npix // (1/fractional_evpa_distance)
+        else:
+            self.evpa_distance=evpa_distance
+        self.rotate_evpa=rotate_evpa
         # Set beam parameters
         beam_maj = self.clean_image.beam_maj
         beam_min = self.clean_image.beam_min
@@ -466,26 +605,29 @@ class FitsImage(object):
 
         self.levs=levs
         self.levs1=levs1
+        self.levs_linpol=levs_linpol
+        self.levs1_linpol=levs1_linpol
 
         # Image colormap
         if self.im_colormap == True and plot_mode=="stokes_i":
             self.plotColormap(Z,im_color,levs,levs1,extent,do_colorbar=self.do_colorbar)
             contour_color="white"
 
+        if np.sum(lin_pol)!=0:
+            if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
+                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+                self.levs_linpol = levs_linpol
+                self.levs1_linpol = levs1_linpol
 
         if (plot_mode=="lin_pol" or plot_mode=="frac_pol") and np.sum(lin_pol)!=0:
 
-            if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
-                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
-
-
             if plot_mode=="lin_pol":
-                self.plotColormap(lin_pol,im_color,levs_linpol,levs1_linpol,extent,
+                self.plotColormap(lin_pol,im_color,levs_linpol,self.levs1_linpol,extent,
                                   label="Linear Polarized Intensity [Jy/beam]",do_colorbar=self.do_colorbar)
             if plot_mode=="frac_pol":
                 plot_lin_pol = np.array(lin_pol)
                 plot_frac_pol = plot_lin_pol / np.array(self.clean_image.Z)
-                plot_frac_pol = np.ma.masked_where((plot_lin_pol < levs1_linpol[0]) | (self.clean_image.Z<levs1[0]),
+                plot_frac_pol = np.ma.masked_where((plot_lin_pol < self.levs1_linpol[0]) | (self.clean_image.Z<self.levs1[0]),
                                                   plot_frac_pol)
 
                 self.plotColormap(plot_frac_pol,im_color,np.zeros(100),[0.00],extent,
@@ -566,10 +708,9 @@ class FitsImage(object):
             self.plotColormap(to, im_color, levs, levs1, extent, label=r"Turnover $\chi^2$",
                               do_colorbar=self.do_colorbar)
 
+
         if plot_evpa and np.sum(lin_pol)!=0:
-            if not isinstance(levs_linpol,list) and not isinstance(levs1_linpol,list):
-                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
-            self.plotEvpa(self.clean_image.evpa, rotate_evpa, evpa_len, evpa_distance, levs1_linpol, levs1)
+            self.plotEvpa()
 
         # Contour plot
         if contour == True:
@@ -676,7 +817,7 @@ class FitsImage(object):
                 try:
                     component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
                 except:
-                    component_noise=self.clean_image.noise_3sigma
+                    component_noise=self.clean_image.noise
 
                 #This is needed for the GUI
                 component = Component(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], g_flux[j], g_date[j],
@@ -699,9 +840,6 @@ class FitsImage(object):
 
         self.xmin, self.xmax = ra_min, ra_max
         self.ymin, self.ymax = dec_min, dec_max
-
-        self.levs_linpol = levs_linpol
-        self.levs1_linpol = levs1_linpol
 
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)
 
@@ -975,24 +1113,23 @@ class FitsImage(object):
         self.ax.set_xlim(x_min, x_max)
         self.ax.set_ylim(y_min, y_max)
 
-    def plotEvpa(self,evpa,rotate_evpa,evpa_len,evpa_distance,levs1_linpol,levs1_i):
-
-        evpa_len=evpa_len*self.clean_image.degpp*self.clean_image.scale
+    def plotEvpa(self):
+        evpa=self.clean_image.evpa
+        evpa_len=self.evpa_len*self.clean_image.degpp*self.clean_image.scale
 
         stokes_i=self.Z
         # plot EVPA
-        evpa = evpa + rotate_evpa / 180 * np.pi
+        evpa = evpa + self.rotate_evpa / 180 * np.pi
 
         # create mask where to plot EVPA (only where stokes i and lin pol have plotted contours)
         mask = np.zeros(np.shape(stokes_i), dtype=bool)
-        mask[:] = (self.lin_pol > levs1_linpol[0]) * (stokes_i > levs1_i[0])
+        mask[:] = (self.lin_pol > self.levs1_linpol[0]) * (stokes_i > self.levs1[0])
         YLoc, XLoc = np.where(mask)
 
         y_evpa = evpa_len * np.cos(evpa[mask])
         x_evpa = evpa_len * np.sin(evpa[mask])
-        evpa=evpa[mask]
 
-        SelPix = range(0, len(stokes_i), int(evpa_distance))
+        SelPix = range(0, len(stokes_i), int(self.evpa_distance))
 
         lines = []
         for i in range(0, len(XLoc)):
@@ -1252,6 +1389,7 @@ class MultiFitsImage(object):
                                         plot_evpa=kwargs["plot_evpa"][image_i,image_j],
                                         evpa_width=kwargs["evpa_width"][image_i,image_j],
                                         evpa_len=kwargs["evpa_len"][image_i,image_j],
+                                        fractional_evpa_distance=kwargs["fractional_evpa_distance"][image_i,image_j],
                                         lin_pol_sigma_cut=kwargs["lin_pol_sigma_cut"][image_i,image_j],
                                         evpa_distance=kwargs["evpa_distance"][image_i,image_j],
                                         rotate_evpa=kwargs["rotate_evpa"][image_i,image_j],
@@ -1316,6 +1454,3 @@ class MultiFitsImage(object):
             self.fig.savefig(name, dpi=300, bbox_inches='tight', transparent=False)
         else:
             self.fig.savefig(name+".png",dpi=300,bbox_inches="tight", transparent=False)
-
-
-

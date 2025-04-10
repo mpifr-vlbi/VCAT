@@ -219,9 +219,12 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
         rms (list): List with residual image root-mean square for each
           component in mJy/beam.
     '''
-
+    
+    scale = comp.scale
+    
     #TODO: This entire first DIFMAP call can be handled by get_residual_map(uvf_file,mfit_file)
     #TODO: We also need to discuss whether we want to use the CLEAN or MODEL residual map!
+    # FMP: for this, we should definitely use the MODEL residual map for consistency.
 
     # Add difmap to PATH
     if difmap_path == None:
@@ -250,15 +253,23 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
     #TODO FE: In the paper it says: The respective component was then removed from the Gaussian model and the modified model was subtracted from the data, yielding an image that
     # contained only the contribution from the investigated component. The flux density (S p ) was measured at the peak position of the Gaussian.
     # -> This is not happening here
+    #FMP: it is indeed an approximation since the exact way it is described in the paper would be somewhat convoluted
+    # (would involve doing a FT of just the modified model to remove from the visibilities and then FT back to an
+    # image to read off the peak flux density, I am not even sure that it was meant to be that complex).
+    # So what is written below really subtracts the 'modified model' not from the data, but removes it so the
+    # contribution that is left is just the one model component in question. I leave it open to debate how to implement
+    # this in a better way...
     send_difmap_command('mapl cln')
     send_difmap_command('addwin '+str(ra-1*ps_x)
                              +','+str(ra+1*ps_x)
                              +','+str(dec-1*ps_y)
                              +','+str(dec+1*ps_y))
-    send_difmap_command('winmod')
-    send_difmap_command('restore 0,0,0,true')    # prevents difmap from adding
-        # the residuals to the clean map
-    send_difmap_command('mapl cln')
+    # send_difmap_command('winmod')
+    # send_difmap_command('restore 0,0,0,true')    # prevents difmap from adding
+        # # the residuals to the clean map
+    # send_difmap_command('mapl cln')
+    send_difmap_command('winmod true')
+    send_difmap_command('mapl map')
     send_difmap_command('print mapvalue('+str(ra)
                                      +','+str(dec)+')')
 
@@ -310,7 +321,6 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
     original_stdout=sys.stdout
     sys.stdout=open(writepath,'w')
 
-    #TODO this part is probably redundant since it is now already included in the model_df
     radius=[]
     theta=[]
     ratio=[]
@@ -355,18 +365,29 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
     typ_obj=np.array(typ_obj)[argsort]
 
     #check if we need to add "v" to the components to make them fittable
-    if adv:
-        ad="v"
+    if isinstance(adv,list):
+        ad=[]
+        for ads in adv:
+            if ads:
+                ad.append("v")
+            else:
+                ad.append("")
+        if len(adv)!=6:
+            #make sure ad has seven elements
+            for i in range(6-len(adv)):
+                ad.append("")
+    elif adv:
+        ad=["v","v","v","v","v","v"]
     else:
-        ad=""
+        ad=["","","","","",""]
 
     for ind in range(len(flux)):
-        print(" "+"{:.8f}".format(flux[ind])+ad+"   "+
-              "{:.8f}".format(radius[ind])+ad+"    "+
-              "{:.3f}".format(theta[ind])+ad+"   "+
-              "{:.7f}".format(maj[ind]*scale)+ad+"    "+
-              "{:.6f}".format(ratio[ind])+"   "+
-              "{:.4f}".format(pos[ind])+"  "+
+        print(" "+"{:.8f}".format(flux[ind])+ad[0]+"   "+
+              "{:.8f}".format(radius[ind])+ad[1]+"    "+
+              "{:.3f}".format(theta[ind])+ad[2]+"   "+
+              "{:.7f}".format(maj[ind]*scale)+ad[3]+"    "+
+              "{:.6f}".format(ratio[ind])+ad[4]+"   "+
+              "{:.4f}".format(pos[ind])+ad[5]+"  "+
               str(int(typ_obj[ind]))+" "+
               "{:.5E}".format(freq)+"   0")
 
@@ -1048,3 +1069,24 @@ def convert_image_to_polar(X,Y,Z,nrad="",ntheta=361):
     Z_polar=np.roll(Z_polar,shift=-ind,axis=0)
 
     return R, Theta, Z_polar
+
+def wrap_evpas(evpas):
+    """
+    Checks for EVPA changes >90 or <-90 degreees and wraps them
+
+    Args:
+        evpas (list[float]): List of EVPA values in degrees
+
+    Returns:
+        evpas (list[float]): List of wrapped EVPAs
+    """
+
+    for i in range(len(evpas)):
+        if i>0:
+            if evpas[i] - evpas[i - 1] > 90:
+                for l in range(i, len(evpas)):
+                    evpas[l] -= 180
+            if evpas[i] - evpas[i - 1] < -90:
+                for l in range(i, len(evpas)):
+                    evpas[l] += 180
+    return evpas

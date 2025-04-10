@@ -1,6 +1,7 @@
 #General settings:
 difmap_path: "/usr/local/difmap/uvf_difmap_2.5g/"
 uvw: [0,-1]
+font: "Quicksand"
 logging:
-  level: "DEBUG"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
-  log_file: "test.log"
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_file: ""

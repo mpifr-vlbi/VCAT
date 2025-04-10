@@ -437,15 +437,21 @@ class ImageCube(object):
     def plot_evolution(self, value="flux",freq="",show=True, savefig="",
                        colors=["black","green","blue","red","purple","orange","magenta","brown"], #default colors
                        markers=["."], #default markers
-                       linestyles=["-"]):
+                       linestyles=["-"],
+                       evpa_pol_plot=True):
 
         #TODO also make ridgeline plot over several epochs possible
         if freq == "":
             freq = self.freqs
-        elif not isinstance(epoch, list):
+        elif isinstance(freq,(float,int)):
+            freq = [freq]
+        elif not isinstance(freq, list):
             raise Exception("Invalid input for 'freq'.")
 
-        plot = EvolutionPlot(xlabel="MJD [days]")
+        if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
+            plot = EvolutionPlot(pol_plot=True)
+        else:
+            plot = EvolutionPlot(xlabel="MJD [days]")
 
         for i,f in enumerate(freq):
             values = []
@@ -476,10 +482,16 @@ class ImageCube(object):
 
 
             label="{:.1f}".format(f*1e-9)+" GHz"
-            plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
+
+            if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
+                plot.plotEVPAevolution(np.array(mjds),np.array(values),c=colors[i%len(colors)],marker=markers[i%len(markers)],
+                                       label=label,linestyle=linestyles[i%len(linestyles)])
+            else:
+                plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
                                label=label,linestyle=linestyles[i % len(linestyles)])
 
-        plt.ylabel(ylabel)
+                plt.ylabel(ylabel)
+
         plt.legend()
         plt.tight_layout()
 
@@ -533,10 +545,11 @@ class ImageCube(object):
             "shared_colorbar_label": "",  # choose custom colorbar label
             "shared_colorbar_labelsize" : 10,  # choose labelsize of custom colorbar
             "plot_evpa": False,
-            "evpa_width": 2,
-            "evpa_len": 8,
+            "evpa_width": 1.5,
+            "evpa_len": -1,
             "lin_pol_sigma_cut": 3,
-            "evpa_distance": 10,
+            "evpa_distance": -1,
+            "fractional_evpa_distance": 0.1,
             "rotate_evpa": 0,
             "evpa_color": "white",
             "title": " ",
@@ -1321,6 +1334,64 @@ class ImageCube(object):
             plt.show()
 
         return dists, values
+
+    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=["black","red","blue","orange"],evpa_pol_plot=True):
+        if freq=="":
+            freq=self.freqs
+        elif not isinstance(freq, list):
+            raise Exception("Invalid input for 'freq'.")
+
+        if id=="":
+            #do it for all components
+            ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
+        elif isinstance(id, list):
+            ccs=[]
+            for i in id:
+                ccs.append(self.get_comp_collection(i))
+        else:
+            raise Exception("Invalid input for 'id'.")
+
+        for fr in freq:
+            # One plot per frequency with all components
+            if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
+                plot=KinematicPlot(pol_plot=True)
+            else:
+                plot = KinematicPlot()
+            years = []
+            for ind, cc in enumerate(ccs):
+                ind = ind % len(colors)
+                color = colors[ind]
+
+                if value=="flux":
+                    plot.plot_fluxs(cc, color=color)
+                elif value=="tb":
+                    plot.plot_tbs(cc, color=color)
+                elif value=="dist":
+                    plot.plot_kinematics(cc, color=color)
+                elif value=="pos" or value=="PA":
+                    plot.plot_pas(cc, color=color)
+                elif value=="lin_pol" or value=="linpol":
+                    plot.plot_linpol(cc, color=color)
+                elif value=="evpa" or value=="EVPA":
+                    plot.plot_evpa(cc, color=color)
+                    years=np.concatenate((years,cc.year.flatten()))
+                elif value=="maj":
+                    plot.plot_maj(cc, color=color)
+                elif value=="min":
+                    plot.plot_min(cc, color=color)
+                elif value=="fracpol":
+                    plot.plot_fracpol(cc, color=color)
+
+            #set plot lims for polar plot according to lowest and highest year
+            if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
+                years_range = max(years) - min(years)
+                plot.ax.set_rmin(min(years) - 0.05 * years_range)
+                plot.ax.set_rmax(max(years) + 0.05 * years_range)
+
+
+            plt.legend()
+            if show:
+                plt.show()
 
     def get_speed(self,id="",freq="",order=1,show_plot=False, colors=["black","red","blue","orange"]):
 

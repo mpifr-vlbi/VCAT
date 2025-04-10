@@ -24,7 +24,7 @@ from vcat.ridgeline import Ridgeline
 from vcat.graph_generator import FitsImage
 from vcat.kinematics import Component
 from vcat.helpers import *
-from vcat.stacking_helpers import fold_with_beam
+from vcat.stacking_helpers import fold_with_beam, modelfit_difmap
 from skimage.measure import profile_line
 import warnings
 #initialize logger
@@ -117,8 +117,10 @@ class ImageData(object):
                  model_save_dir="tmp/",
                  is_casa_model=False,
                  noise_method="Histogram Fit", #choose noise method
+                 mfit_err_method="flat",    # FMP Apr25
                  correct_rician_bias=False,
-                 error=0.05, #relative error flux densities
+                 error=0.05, #relative error flux densities,
+                 fit_comp_polarization=False,
                  difmap_path=difmap_path):
 
         """
@@ -146,6 +148,7 @@ class ImageData(object):
             noise_method (str): Choose method to calculate image noise ('Histogram Fit', 'box', 'Image RMS', 'DIFMAP')
             correct_rician_bias (bool): Choose whether to correct polarization for Rician Bias
             error (float): Set relative error on the flux density scale
+            fit_comp_polarization (bool): Choose whether to fit polarization of modelfit components
             difmap_path (str): Path to the folder of your DIFMAP installation
         """
 
@@ -165,6 +168,7 @@ class ImageData(object):
         self.residual_map_path=""
         self.residual_map = []
         self.noise_method=noise_method
+        self.mfit_err_method=mfit_err_method    # FMP Apr25
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
@@ -419,34 +423,19 @@ class ImageData(object):
         #calculate image noise according to the method selected
         unused, levs_i = get_sigma_levs(self.Z, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for stokes i
 
-        try:
+        if np.sum(self.lin_pol)!=0:
             unused, levs_pol = get_sigma_levs(self.lin_pol, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for polarization
-        except:
+        else:
             levs_pol=[0]
-
-        # calculate image noise
-        unused, levs_i_3sigma = get_sigma_levs(self.Z, 3,noise_method=self.noise_method,noise=self.difmap_noise)  # get noise for stokes i
-        try:
-            unused, levs_pol_3sigma = get_sigma_levs(self.lin_pol, 3,noise_method=self.noise_method,noise=self.difmap_noise)  # get noise for polarization
-        except:
-            levs_pol_3sigma = [0]
 
         self.noise = levs_i[0]
         self.pol_noise = levs_pol[0]
-
-        self.noise_3sigma  = levs_i_3sigma[0]
-        self.pol_noise_3sigma = levs_pol_3sigma[0]
 
         #calculate integrated total flux in image
         self.integrated_flux_image = JyPerBeam2Jy(np.sum(self.Z), self.beam_maj, self.beam_min, self.degpp * self.scale)
 
         #calculate integrated pol flux in image
         self.integrated_pol_flux_image = JyPerBeam2Jy(np.sum(self.lin_pol),self.beam_maj,self.beam_min,self.degpp*self.scale)
-
-        #calculate average EVPA (mask where lin pol < 3 sigma or stokes i < 3 sigma (same as in plot)
-        integrate_evpa = np.ma.masked_where((self.lin_pol < self.pol_noise_3sigma) | (self.Z < self.noise_3sigma),
-                                            self.evpa)
-        self.evpa_average = np.average(integrate_evpa)
 
         if not is_casa_model:
             #TODO basic checks if file is valid
@@ -487,10 +476,21 @@ class ImageData(object):
             write_mod_file(self.model_u, self.stokes_u_mod_file, freq=self.freq)
         except:
             pass
+        
+        # FMP Apr 25: changed the order here so the get_errors() function can actually use the residual map that is created
+        #calculate residual map if uvf and modelfile present
+        if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
+            os.makedirs(model_save_dir+"residual_maps", exist_ok=True)
+            self.residual_map_path = model_save_dir + "residual_maps/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
+                                                                                                                 "_") + "GHz_residual.fits"
+            get_residual_map(self.uvf_file,model_save_dir+ "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
+                             difmap_path=self.difmap_path,
+                             save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp*self.scale)
 
+            self.residual_map=fits.open(self.residual_map_path)[0].data[0,0,:,:]
+        
         #save modelfit (or clean) components as Component objects
         self.components=[]
-
 
         if self.model_inp:
             #only do this if a model was specified explicitely
@@ -524,23 +524,21 @@ class ImageData(object):
                 self.components[i].delta_x_est=comp.x-self.components[core_id].x
                 self.components[i].delta_y_est=comp.y-self.components[core_id].y
                 self.components[i].distance_to_core=np.sqrt(self.components[i].delta_x_est**2+self.components[i].delta_y_est**2)
-                comp.get_errors(fits_file=self.fits_file,
-                                uvf_file=self.uvf_file,
-                                mfit_file=self.model_mod_file,
-                                resmap_file=self.residual_map_path,
-                                weighting=uvw,difmap_path=difmap_path, method='flat')
+                self.components[i].get_errors(fits_file=self.fits_file,
+                                              uvf_file=self.uvf_file,
+                                              mfit_file=self.model_mod_file,
+                                              resmap_file=self.residual_map_path,
+                                              weighting=uvw, difmap_path=difmap_path,
+                                              method=self.mfit_err_method)
 
-        #calculate residual map if uvf and modelfile present
-        if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
-            os.makedirs(model_save_dir+"residual_maps", exist_ok=True)
-            self.residual_map_path = model_save_dir + "residual_maps/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
-                                                                                                                 "_") + "GHz_residual.fits"
-            get_residual_map(self.uvf_file,model_save_dir+ "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
-                             difmap_path=self.difmap_path,
-                             save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp*self.scale)
-
-            self.residual_map=fits.open(self.residual_map_path)[0].data[0,0,:,:]
-
+                if self.uvf_file!="" and fit_comp_polarization:
+                    logger.debug("Retrieving polarization information for modelfit components.")
+                    self.fit_comp_polarization()
+                else:
+                    if fit_comp_polarization:
+                        logger.warning("Trying to fit component polarization, but no uvf file loaded!")
+                    else:
+                        logger.debug("Not fitting component polarization")
 
         hdu_list.close()
 
@@ -892,10 +890,11 @@ class ImageData(object):
             "xlim": [],
             "ylim": [],
             "plot_evpa": False,
-            "evpa_width": 2,
-            "evpa_len": 8,
+            "evpa_width": 1.5,
+            "evpa_len": -1,
             "lin_pol_sigma_cut": 3,
-            "evpa_distance": 10,
+            "evpa_distance": -1,
+            "fractional_evpa_distance": 0.02,
             "rotate_evpa": 0,
             "evpa_color": "white",
             "title": "",
@@ -1967,4 +1966,18 @@ class ImageData(object):
 
         raise Exception(f"No core component defined.")
 
+    def fit_comp_polarization(self):
+        write_mod_file_from_components(self.components,channel="i",export="tmp/model_q.mod",adv=[True])
+        os.system("cp tmp/model_q.mod tmp/model_u.mod")
+        comps_q=copy.deepcopy(self.components)
+        comps_u=copy.deepcopy(self.components)
+        comps_q=modelfit_difmap(self.uvf_file,"tmp/model_q.mod",50,difmap_path,components=comps_q,weighting=uvw,channel="q")
+        comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,weighting=uvw,channel="u")
 
+        for i, comp in enumerate(self.components):
+            #calculate lin_pol and EVPA from Q and U flux
+            lin_pol=np.sqrt(comps_q[i].flux**2+comps_u[i].flux**2)
+            evpa=0.5*np.arctan2(comps_u[i].flux,comps_q[i].flux)/np.pi*180
+            #set lin_pol and evpa of component
+            self.components[i].lin_pol = lin_pol
+            self.components[i].evpa = evpa

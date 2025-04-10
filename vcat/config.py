@@ -6,6 +6,10 @@ import shutil
 
 CONFIG_FILE = os.getenv("VCAT_CONFIG", "")
 
+#Initialize logging
+print("\rThank you for using VCAT. Have fun with VLBI!", end="\n")
+print("\rIf you are using this package please cite VCAT Team et al. 2025 ....")
+
 def find_difmap_path(logger):
     difmap_path = shutil.which("difmap")
     if difmap_path:
@@ -20,6 +24,7 @@ def find_difmap_path(logger):
 def load_config(path=""):
     global difmap_path
     global uvw
+    global font
     if path=="":
 
         logging.basicConfig(
@@ -33,6 +38,7 @@ def load_config(path=""):
         logger.info("No environment variable VCAT_CONFIG found, will use defaults.")
         difmap_path=find_difmap_path(logger)
         uvw=[0,-1]
+        font="DejaVu Sans"
 
     else:
         with open(path, "r") as file:
@@ -67,7 +73,13 @@ def load_config(path=""):
             logger.info(f"Using uv-weighting: {uvw}")
         except:
             uvw = [0,-1]
-            logger.info(f"Using uvfadsoi")
+
+        try:
+            font = config["font"]
+            logger.info(f"Using font: {font}")
+        except:
+            font = "DejaVu Sans"
+
 
     return logger
 

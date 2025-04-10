@@ -13,7 +13,6 @@ import os
 from numpy import linalg
 from tqdm import tqdm
 from scipy.optimize import minimize
-import ehtim as eh
 
 #initialize logger
 from vcat.config import logger
@@ -325,9 +324,7 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
 
         os.system("rm -rf difmap.log*")
 
-def modelfit_difmap(uvf_file,components,niter,difmap_path,weighting=[0,-1]):
-
-    write_mod_file_from_components(components,"i",export="/tmp/mod.mod",adv=True)
+def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=[0,-1],channel="i"):
 
     env = os.environ.copy()
 
@@ -350,28 +347,34 @@ def modelfit_difmap(uvf_file,components,niter,difmap_path,weighting=[0,-1]):
     #do the modelfit in DIFMAP
     send_difmap_command("obs " + uvf_file)
     send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  # use custom weighting
-    send_difmap_command("select i")
-    send_difmap_command("rmod " + "/tmp/mod.mod")
+    send_difmap_command("select "+channel)
+    send_difmap_command("rmod " + mod_file)
     send_difmap_command("modelfit  "+str(niter))
-    send_difmap_command("wmod " + "/tmp/mod.mod")
+    send_difmap_command("wmod " + mod_file)
 
     os.system("rm -rf difmap.log*")
 
-    #get fitted components from .mod file
-    model_df = getComponentInfo("/tmp/mod.mod")
+    if components!="":
+        #get fitted components from .mod file
+        model_df = getComponentInfo(mod_file)
 
-    for ind, comp in model_df.reset_index().iterrows():
-        # assign new values
-        components[ind].x=comp["Delta_x"]
-        components[ind].y=comp["Delta_y"]
-        components[ind].maj=comp["Major_axis"]
-        components[ind].min=comp["Minor_axis"]
-        components[ind].pos=comp["PA"]
-        components[ind].flux=comp["Flux"]
+        for ind, comp in model_df.reset_index().iterrows():
+            # assign new values
+            components[ind].x=comp["Delta_x"]
+            components[ind].y=comp["Delta_y"]
+            components[ind].maj=comp["Major_axis"]
+            components[ind].min=comp["Minor_axis"]
+            components[ind].pos=comp["PA"]
+            components[ind].flux=comp["Flux"]
 
-    return components
+        return components
+    else:
+        logger.warning("No components provided will only write modfile")
+        return None
 
 def modelfit_ehtim(uvf_file,components,niter,npix=1024,fov=10):
+    import ehtim as eh
+
     #fov in mas!!
     scale=components[0].scale
 

@@ -11,10 +11,13 @@ print(uvf_files)
 print(model_files)
 
 #Import as ImageCube
-im_cube=ImageCube().import_files(uvf_files=uvf_files,model_fits_files=model_files)
+im_cube=ImageCube().import_files(uvf_files=uvf_files,model_fits_files=model_files,fit_comp_polarization=True)
 
 #Import associations from GUI file
 im_cube.import_component_association("../dataset_example/0506+056_kinematic/component_info.csv")
+
+#make a plot of the component evolution
+im_cube.plot_component_evolution("evpa")
 
 #do kinematic fit
 im_cube.get_speed(order=3,show_plot=True)
