@@ -11,12 +11,12 @@ from vcat.helpers import closest_index, get_comp_peak_rms
 from scipy.interpolate import interp1d
 
 #initialize logger
-from vcat.config import logger
+from vcat.config import logger, uvw, difmap_path
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
                  component_number=-1, is_core=False, redshift=0, scale=60 * 60 * 10 ** 3,freq=15e9,noise=0,
-                 beam_maj=0, beam_min=0, beam_pa=0,lin_pol=0,evpa=0):
+                 beam_maj=0, beam_min=0, beam_pa=0, lin_pol=0, evpa=0, snr=1, error_method="flat"):
         self.x = x
         self.y = y
         self.mjd = mjd
@@ -81,11 +81,11 @@ class Component():
                 self.res_lim_min=0
             #check for circular components:
             elif self.maj == self.min:
-                self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,flux,noise)
+                self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,snr)
                 self.res_lim_min=self.res_lim_maj
                 is_circular=True
             else:
-                self.res_lim_maj, self.res_lim_min=get_resolution_limit(beam_maj,beam_min,beam_pa,pos,flux,noise) #Kovalev et al. 2005
+                self.res_lim_maj, self.res_lim_min=get_resolution_limit(beam_maj,beam_min,beam_pa,pos,snr) #Kovalev et al. 2005
 
         #check if component is resolved or not:
         if (self.res_lim_min>self.min) or (self.res_lim_maj>self.maj):
@@ -110,6 +110,8 @@ class Component():
             self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb / min_for_tb   #Kovalev et al. 2005
         self.scale = scale
 
+        self.get_errors(method=error_method)
+
     def __str__(self):
         line1 = f"Component with ID {self.component_number} at frequency {self.freq * 1e-9:.1f} GHz\n"
         line2 = f"x: {self.x * self.scale:.2f}mas, y:{self.y * self.scale:.2f}mas\n"
@@ -121,12 +123,9 @@ class Component():
             line5=""
 
         return line1 + line2 + line3 + line4 + line5
-    
-    '''FMP Apr25'''
-    def get_errors(self, fits_file="", uvf_file="", mfit_file="", resmap_file="",
-                   shift=None, weighting=[0,-1], rms_box=100, difmap_path="",
-                   method='flat', gain_err=0.1):
-        scale = self.scale
+
+    def get_errors(self, weighting=[0,-1], method='flat', gain_err=0.1):
+
         if method == 'flat':
             self.x_err = 0.1 * self.maj
             self.y_err = 0.1 * self.maj
@@ -137,128 +136,98 @@ class Component():
             self.theta_err = 20
 
         elif method == 'Schinzel12':
-            if any(x == None or x == [] or x == '' for x in [fits_file, uvf_file, mfit_file, resmap_file]):
-                logger.warning('Either .fits, .uvfits, .mfit or residual map .fits file missing. Cannot compute errors according to Schinzel et al. 2012. Will apply flat 10 % errors.')
-                self.get_errors(fits_file,uvf_file,mfit_file,resmap_file,shift,weighting,rms_box,difmap_path,"flat")
-            else:
-                ### Get peak flux density and rms around component position ###
-                S_p, rms = get_comp_peak_rms(self, fits_file=fits_file,
-                                             uvf_file=uvf_file,
-                                             mfit_file=mfit_file,
-                                             resmap_file=resmap_file,
-                                             weighting=weighting,
-                                             rms_box=rms_box,
-                                             difmap_path=difmap_path)
-                
-                if S_p < 0:
-                    # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
-                    S_p = rms
-                
-                ### Calculate errors ###
-                SNR = S_p/rms
-                sigma_p = rms*np.sqrt(1 + SNR)
-                SNR_p = S_p/sigma_p
-                
-                sigma_t = sigma_p*np.sqrt(1 + (self.flux**2/S_p**2))
-                self.flux_err = np.sqrt(sigma_t**2 + (gain_err*self.flux)**2)    # Add gain error in
-                    # quadrature to reflect individual telescopes' fundamental gain uncertainty
-                
-                ### Calculate minimum resolvable size based on SNR at modelfit positions ###
-                #TODO check this formula it seems to be different from what is in the paper
-                # It is indeed slightly different, it has been adjusted over time according to priv. comm. and the correct formula was not published
-                # Originally according to Lobanov'05, with corrections based on Lobanov'15, adjusted formula presented in Nair+'19, corrected for one typo in Poetzl+'25
-                if weighting[0] != 0:    # uniform weight
-                    d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
-                else:    # this is the condition for natural weight
-                    d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
 
-                ### Calculate other errors ###
-                size_maj = np.maximum(d_lim, self.maj)
-                if self.maj > d_lim/self.scale:
-                    self.maj_err = self.maj/SNR_p
-                else:
-                    self.maj_err = np.nan
-                if self.min > d_lim/self.scale:
-                    self.min_err = self.min/SNR_p
-                else:
-                    self.min_err = np.nan
-                self.radius_err = np.sqrt(self.beam_maj*self.beam_min + size_maj**2)/SNR_p
-                self.theta_err = np.arctan(self.radius_err/self.radius) * 180/np.pi
-                
-                # NOTE: this does not take into account the covariance of the radial coordinates!
-                # TODO: implement that
-                self.x_err = np.sqrt(  (self.radius_err/self.scale*np.sin(self.theta/180*np.pi))**2
-                                     + (self.radius/self.scale*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
-                self.y_err = np.sqrt(  (self.radius_err/self.scale*np.cos(self.theta/180*np.pi))**2
-                                     + (self.radius/self.scale*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
+            if self.snr < 0:
+                # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
+                self.snr=1
+
+            ### Calculate errors ###
+            S_p = self.snr*self.noise
+            SNR = self.snr
+            sigma_p = self.noise*np.sqrt(1 + self.snr)
+            SNR_p = self.snr*self.noise/sigma_p
+
+            sigma_t = sigma_p*np.sqrt(1 + (self.flux**2/S_p**2))
+            self.flux_err = np.sqrt(sigma_t**2 + (gain_err*self.flux)**2)    # Add gain error in
+                # quadrature to reflect individual telescopes' fundamental gain uncertainty
+
+            ### Calculate minimum resolvable size based on SNR at modelfit positions ###
+            ##TODO get the value from __init__
+            if weighting[0] != 0:    # uniform weight
+                d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
+            else:    # this is the condition for natural weight
+                d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
+
+            ### Calculate other errors ###
+            size_maj = np.maximum(d_lim, self.maj)
+            if self.maj > d_lim/self.scale:
+                self.maj_err = self.maj/SNR_p
+            else:
+                self.maj_err = np.nan
+            if self.min > d_lim/self.scale:
+                self.min_err = self.min/SNR_p
+            else:
+                self.min_err = np.nan
+            self.radius_err = np.sqrt(self.beam_maj*self.beam_min + size_maj**2)/SNR_p
+            self.theta_err = np.arctan(self.radius_err/self.radius) * 180/np.pi
+
+            # NOTE: this does not take into account the covariance of the radial coordinates!
+            # TODO: implement that
+            self.x_err = np.sqrt(  (self.radius_err/self.scale*np.sin(self.theta/180*np.pi))**2
+                                 + (self.radius/self.scale*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
+            self.y_err = np.sqrt(  (self.radius_err/self.scale*np.cos(self.theta/180*np.pi))**2
+                                 + (self.radius/self.scale*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
         elif method == 'Weaver22':
             scale = self.scale
-            if any(_file == None or _file == [] or _file == '' for _file in [fits_file, uvf_file, mfit_file, resmap_file]):
-                logger.warning('Either .fits, .uvfits, .mfit or residual map .fits file missing. Cannot compute errors according to Weaver et al. 2022. Will apply flat 10 % errors.')
-                self.x_err = 0.1*self.x
-                self.y_err = 0.1*self.y
-                self.maj_err = 0.1*self.maj
-                self.min_err = 0.1*self.min
-                self.flux_err = 0.1*self.flux
-                self.radius_err = 0.1*self.radius
-                self.theta_err = 20
-                # TODO: incorporate 'simple' method, only reading off peak flux densities from clean map.
+
+            ### Get peak flux density and rms around component position ###
+            S_p = self.snr * self.noise
+            rms = self.noise
+
+            if S_p < 0:
+                # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
+                S_p = rms
+
+            ### Calculate errors ###
+            SNR = S_p/rms
+            sigma_p = rms*np.sqrt(1 + SNR)
+            SNR_p = S_p/sigma_p
+
+            #TODO get this from __init__
+            if weighting[0] != 0:    # uniform weight
+                d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
+            else:    # this is the condition for natural weight
+                d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
+
+            ### Calculate other errors ###
+            size_maj = np.maximum(d_lim, self.maj*scale)
+            size_min = np.maximum(d_lim, self.min*scale)
+            if self.maj*scale > d_lim:
+                self.tb_lower_limit = False
+                self.maj_err = self.maj/SNR_p
             else:
-                ### Get peak flux density and rms around component position ###
-                S_p, rms = get_comp_peak_rms(self, fits_file=fits_file,
-                                             uvf_file=uvf_file,
-                                             mfit_file=mfit_file,
-                                             resmap_file=resmap_file,
-                                             weighting=weighting,
-                                             rms_box=rms_box,
-                                             difmap_path=difmap_path)
-                
-                if S_p < 0:
-                    # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
-                    S_p = rms
-            
-                ### Calculate errors ###
-                SNR = S_p/rms
-                sigma_p = rms*np.sqrt(1 + SNR)
-                SNR_p = S_p/sigma_p
-                
-                ### Calculate minimum resolvable size based on SNR at modelfit positions ###
-                # Originally according to Lobanov'05, with corrections based on Lobanov'15, adjusted formula presented in Nair+'19, corrected for one typo in Poetzl+'25
-                if weighting[0] != 0:    # uniform weight
-                    d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
-                else:    # this is the condition for natural weight
-                    d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
-            
-                ### Calculate other errors ###
-                size_maj = np.maximum(d_lim, self.maj*scale)
-                size_min = np.maximum(d_lim, self.min*scale)
-                if self.maj*scale > d_lim:
-                    self.tb_lower_limit = False
-                    self.maj_err = self.maj/SNR_p
-                else:
-                    self.tb_lower_limit = True
-                    self.maj_err = np.nan
-                
-                if self.min*scale > d_lim:
-                    self.tb_lower_limit = False
-                    self.min_err = self.min/SNR_p
-                else:
-                    self.tb_lower_limit = True
-                    self.min_err = np.nan
-                
-                Tb_obs = 7.5E8*self.flux/(size_maj*size_min)    # in K, adjusted from Weaver+'22 to include elliptical Gaussian components
-                self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/scale    # in deg
-                self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22
-                    # this assumes that the beam is ~ 2 times more elongated in North-South direction. TODO: generalize this.
-                self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (0.05*self.flux**2))    # in Jy
-                
-                self.maj_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
-                self.min_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
-                
-                self.radius_err = np.sqrt( (self.x_err*self.x/np.sqrt(self.x**2+self.y**2))**2
-                                          +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*scale    # in mas
-                self.theta_err = np.arctan(self.radius_err/self.radius)*180/np.pi    # in deg
-    '''FMP Apr25'''
+                self.tb_lower_limit = True
+                self.maj_err = np.nan
+
+            if self.min*scale > d_lim:
+                self.tb_lower_limit = False
+                self.min_err = self.min/SNR_p
+            else:
+                self.tb_lower_limit = True
+                self.min_err = np.nan
+
+            Tb_obs = 7.5E8*self.flux/(size_maj*size_min)    # in K, adjusted from Weaver+'22 to include elliptical Gaussian components
+            self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/scale    # in deg
+            self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22
+                # this assumes that the beam is ~ 2 times more elongated in North-South direction. TODO: generalize this.
+            self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (0.05*self.flux**2))    # in Jy
+
+            self.maj_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
+            self.min_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
+
+            self.radius_err = np.sqrt( (self.x_err*self.x/np.sqrt(self.x**2+self.y**2))**2
+                                      +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*scale    # in mas
+            self.theta_err = np.arctan(self.radius_err/self.radius)*180/np.pi    # in deg
 
     def set_distance_to_core(self, core_x, core_y):
         self.delta_x_est = self.x - core_x
@@ -700,10 +669,10 @@ class ComponentCollection():
                          beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
 
 
-def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,flux,noise):
+def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr):
     # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
     #here we need to check if the component is resolved or not!
-    factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(flux/noise)/(abs(flux/noise)-1))) #following Kovalev et al. 2005
+    factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
 
     #rotate the beam to the x-axis
     new_pos=beam_pos-comp_pos

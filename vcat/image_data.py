@@ -512,11 +512,21 @@ class ImageData(object):
                     core_id=ind
                 else:
                     is_core=False
-                    
+
+                #calculate component SNR
+                if self.uvf_file!="" and self.difmap_path!="":
+                    S_p, rms = get_comp_peak_rms(comp["Delta_x"]*self.scale,comp["Delta_y"]*self.scale,
+                                                 self.fits_file,self.uvf_file,self.model_mod_file,
+                                                 weighting=uvw, difmap_path=self.difmap_path)
+                    comp_snr = S_p/rms
+                else:
+                    # TODO handle exceptions where uvf_file and difmap are not available
+                    comp_snr = comp["Flux"]/JyPerBeam2Jy(self.noise,self.beam_maj,self.beam_min,self.degpp*self.scale)
+
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
                         comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
                                     redshift=redshift, is_core=is_core,beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,
-                                    freq=self.freq,noise=self.noise)
+                                    freq=self.freq,noise=self.noise, scale=self.scale, snr=comp_snr)
                 self.components.append(component)
 
             #set distance to core for every component
@@ -524,13 +534,7 @@ class ImageData(object):
                 self.components[i].delta_x_est=comp.x-self.components[core_id].x
                 self.components[i].delta_y_est=comp.y-self.components[core_id].y
                 self.components[i].distance_to_core=np.sqrt(self.components[i].delta_x_est**2+self.components[i].delta_y_est**2)
-                self.components[i].get_errors(fits_file=self.fits_file,
-                                              uvf_file=self.uvf_file,
-                                              mfit_file=self.model_mod_file,
-                                              resmap_file=self.residual_map_path,
-                                              weighting=uvw, difmap_path=difmap_path,
-                                              method=self.mfit_err_method)
-
+                
                 if self.uvf_file!="" and fit_comp_polarization:
                     logger.debug("Retrieving polarization information for modelfit components.")
                     self.fit_comp_polarization()

@@ -198,7 +198,7 @@ def get_ms_ps(fits_file):
     
     return ms_x, ps_x, ms_y, ps_y
 
-def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighting=[0,-1], rms_box=100, difmap_path=""):
+def get_comp_peak_rms(x,y, fits_file, uvf_file, mfit_file, weighting=[0,-1], rms_box=100, difmap_path=""):
     '''
     # Purpose: Short program to read in a .fits image and corresponding .uvfits
     and .mfit file (containing Gaussian modelfits) from difmap, to estimate the
@@ -207,6 +207,8 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
     Schinzel+ 2012, in which each component is handled individually.
     
     # Args:
+        x (float): Center position in mas
+        y (float): Center position in mas
         fits_file (str): Path to the .fits image file.
         uvf_file (str): Path to the .uvfits file containing the visibilities.
         mfit_file (str): Path to the text file containing the Gaussian
@@ -219,19 +221,18 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
         rms (list): List with residual image root-mean square for each
           component in mJy/beam.
     '''
-    
-    scale = comp.scale
-    
-    #TODO: This entire first DIFMAP call can be handled by get_residual_map(uvf_file,mfit_file)
-    #TODO: We also need to discuss whether we want to use the CLEAN or MODEL residual map!
-    # FMP: for this, we should definitely use the MODEL residual map for consistency.
 
-    # Add difmap to PATH
-    if difmap_path == None:
-        logger.warning('Difmap path not defined. Cannot compute errors according to Schinzel et al. 2012.')
+    env = os.environ.copy()
+
+    # add difmap to PATH
+    if difmap_path != None and not difmap_path in os.environ['PATH']:
+        env['PATH'] = env['PATH'] + ':{0}'.format(difmap_path)
+
+    # remove potential difmap boot files (we don't need them)
+    env["DIFMAP_LOGIN"] = ""
         
     # Initialize difmap call
-    child = pexpect.spawn('difmap', encoding='utf-8', echo=False)
+    child = pexpect.spawn('difmap', encoding='utf-8', echo=False,env=env)
     child.expect_exact('0>', None, 2)
 
     def send_difmap_command(command,prompt='0>'):
@@ -245,29 +246,16 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))    # use natural weighting as default
     send_difmap_command('rmod ' + mfit_file)
     send_difmap_command('mapsize '+str(2*ms_x)+','+str(ps_x)+','+ str(2*ms_y)+','+str(ps_y))
-    send_difmap_command(f'wdmap {resmap_file}')
-    ra = comp.x*comp.scale
-    dec = comp.y*comp.scale
+    send_difmap_command(f'wdmap tmp/resmap_model.fits')
+    ra = x
+    dec = y
 
     send_difmap_command('dev /NULL')
-    #TODO FE: In the paper it says: The respective component was then removed from the Gaussian model and the modified model was subtracted from the data, yielding an image that
-    # contained only the contribution from the investigated component. The flux density (S p ) was measured at the peak position of the Gaussian.
-    # -> This is not happening here
-    #FMP: it is indeed an approximation since the exact way it is described in the paper would be somewhat convoluted
-    # (would involve doing a FT of just the modified model to remove from the visibilities and then FT back to an
-    # image to read off the peak flux density, I am not even sure that it was meant to be that complex).
-    # So what is written below really subtracts the 'modified model' not from the data, but removes it so the
-    # contribution that is left is just the one model component in question. I leave it open to debate how to implement
-    # this in a better way...
     send_difmap_command('mapl cln')
     send_difmap_command('addwin '+str(ra-1*ps_x)
                              +','+str(ra+1*ps_x)
                              +','+str(dec-1*ps_y)
                              +','+str(dec+1*ps_y))
-    # send_difmap_command('winmod')
-    # send_difmap_command('restore 0,0,0,true')    # prevents difmap from adding
-        # # the residuals to the clean map
-    # send_difmap_command('mapl cln')
     send_difmap_command('winmod true')
     send_difmap_command('mapl map')
     send_difmap_command('print mapvalue('+str(ra)
@@ -284,18 +272,9 @@ def get_comp_peak_rms(comp, fits_file, uvf_file, mfit_file, resmap_file, weighti
         print(child.before)
         S_p = np.nan
 
-    #TODO FE: this part can be replaced with get_noise_from_residual_map
-    resMAP_data = fits.getdata(resmap_file)
-    resMAP_data = np.squeeze(resMAP_data)
-    xdim = len(np.array(resMAP_data)[0])
-    ydim = len(np.array(resMAP_data)[:,0])
-    rms = np.std(resMAP_data[ int(round(ydim/2 + dec/ps_y, 0))  - int(rms_box/2)
-                             :int(round(ydim/2 + dec/ps_y, 0))  + int(rms_box/2),
-                              int(round(xdim/2 - ra/ps_x, 0))-1 - int(rms_box/2)
-                             :int(round(xdim/2 - ra/ps_x, 0))-1 + int(rms_box/2)])
+    rms = get_noise_from_residual_map("tmp/resmap_model.fits",ra,dec,rms_box)
     
     return S_p, rms
-'''FMP Apr25'''
 
 #writes a .mod file given an input of from getComponentInfo(fitsfile)
 #the adv options adds a "v" character to the model to make the parameters fittable in DIFMAP
@@ -651,27 +630,29 @@ def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", sa
 
     os.system("rm -rf difmap.log*")
 
-def get_noise_from_residual_map(residual_fits, center_x, center_y, x_width, y_width,scale=0):
+def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100):
     """calculates the noise from the residual map in a given box
+
     Args:
         residual_fits: Path to .fits file with residual map
-        center_x: X-center of the box to use for noise calculation in pixels
-        center_y: Y-center of the box to use for noise calculation in pixels
-        x_width: X-width of the box in pixels
-        y_width: Y-width of the box in pixels
+        center_x: X-center of the box to use for noise calculation in mas
+        center_y: Y-center of the box to use for noise calculation in mas
+        rms_box: Width of the box in pixels
     Returns:
         Noise in the given box from the residual map
     """
 
-    residual_map = ImageData(residual_fits)
-    data=residual_map.Z
+    ms_x, ps_x, ms_y, ps_y = get_ms_ps(residual_fits)
+    resMAP_data = fits.getdata(residual_fits)
+    resMAP_data = np.squeeze(resMAP_data)
+    xdim = len(np.array(resMAP_data)[0])
+    ydim = len(np.array(resMAP_data)[:, 0])
+    rms = np.std(resMAP_data[int(round(ydim / 2 + center_y / ps_y, 0)) - int(rms_box / 2)
+                             :int(round(ydim / 2 + center_y / ps_y, 0)) + int(rms_box / 2),
+                 int(round(xdim / 2 - center_x / ps_x, 0)) - 1 - int(rms_box / 2)
+                 :int(round(xdim / 2 - center_x / ps_x, 0)) - 1 + int(rms_box / 2)])
 
-    x_max=np.argmin(abs(residual_map.X*scale-(center_x-x_width/2)))
-    y_min=np.argmin(abs(residual_map.Y*scale-(center_y-y_width/2)))
-    x_min=np.argmin(abs(residual_map.X*scale-(center_x+x_width/2)))
-    y_max=np.argmin(abs(residual_map.Y*scale-(center_y+y_width/2)))
-
-    return np.std(data[x_min:x_max,y_min:y_max]) #TODO check order of x/y here and if AVERAGE is the correct thing to do!!!
+    return rms
 
 #returns the reduced chi-square of a modelfit
 def get_model_chi_square_red(uvf_file,mod_file,difmap_path=difmap_path):
