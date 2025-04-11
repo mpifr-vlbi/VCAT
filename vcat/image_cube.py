@@ -17,7 +17,9 @@ import matplotlib.colors as colors
 from vcat.image_data import ImageData
 from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
                           sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit)
-from vcat.graph_generator import MultiFitsImage, EvolutionPlot, KinematicPlot
+from vcat.plots.evolution_plot import EvolutionPlot
+from vcat.plots.multi_fits_image import MultiFitsImage
+from vcat.plots.kinematic_plot import KinematicPlot
 from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits

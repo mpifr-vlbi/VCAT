@@ -1,5 +1,5 @@
 from vcat import ImageData
-from vcat.graph_generator import FitsImage
+from vcat.plots.fits_image import FitsImage
 import matplotlib.pyplot as plt
 
 im=ImageData(uvf_file="../dataset_example/0215_pol/Ku/0215+015.uvf")

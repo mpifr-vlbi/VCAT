@@ -9,8 +9,8 @@ dataQ=ImageData("../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.fits",
 
 
 
-dataU=dataU.center()
-dataQ=dataQ.center()
+#dataU=dataU.center()
+#dataQ=dataQ.center()
 
 images=[dataU,dataQ]
 

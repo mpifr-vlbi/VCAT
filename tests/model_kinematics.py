@@ -1,5 +1,5 @@
 from vcat import ImageData,ImageCube
-from vcat.graph_generator import KinematicPlot
+from vcat.plots.fits_image import KinematicPlot
 import matplotlib.pyplot as plt
 import numpy as np
 import glob

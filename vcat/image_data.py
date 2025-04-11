@@ -21,7 +21,7 @@ from astropy.nddata import Cutout2D
 from astropy.modeling import models, fitting
 from scipy import integrate
 from vcat.ridgeline import Ridgeline
-from vcat.graph_generator import FitsImage
+from vcat.plots.fits_image import FitsImage
 from vcat.kinematics import Component
 from vcat.helpers import *
 from vcat.stacking_helpers import fold_with_beam, modelfit_difmap
@@ -421,9 +421,11 @@ class ImageData(object):
             self.difmap_pol_noise = 0
     
         #calculate image noise according to the method selected
+        logger.debug("Calculating Stokes I noise")
         unused, levs_i = get_sigma_levs(self.Z, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for stokes i
 
         if np.sum(self.lin_pol)!=0:
+            logger.debug("Calculating Pol noise")
             unused, levs_pol = get_sigma_levs(self.lin_pol, 1,noise_method=self.noise_method,noise=self.difmap_noise) #get noise for polarization
         else:
             levs_pol=[0]

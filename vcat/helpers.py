@@ -2,6 +2,7 @@ from os import write
 import matplotlib as mpl
 import numpy as np
 import pandas as pd
+from scipy.odr import * #TODO dangerous, only import what we need!!!
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib.collections import LineCollection
@@ -1071,3 +1072,114 @@ def wrap_evpas(evpas):
                 for l in range(i, len(evpas)):
                     evpas[l] += 180
     return evpas
+
+def mas2pc(z=None,d=None):
+    """To convert mas to parsec.
+
+    Uses either a redshift (z) or a distance (d) to compute the conversion from mas to parsec.
+
+    Parameters
+    ----------
+    z : float
+      The redshift
+    d : distance
+
+    Returns
+    -------
+    float
+        the conversion between mas and parsec.
+    """
+    cosmo=FlatLambdaCDM(H0=71,Om0=0.27) #Komatsu+09
+#    cosmo=FlatLambdaCDM(H0=70,Om0=0.30) #Komatsu+09
+
+    if d:
+        D=d*1e6*u.parsec
+    else:
+        D   = cosmo.angular_diameter_distance(z)
+    return (D*np.pi/180/3.6e6).to(u.parsec)
+#   return 1/(60*60*1e3)*D
+
+
+def mas2Rs(x,M=10**8.2,z=0.005037,D=False):
+    rs =Rs(M)
+    if D:
+        mtp = mas2pc(d=D)
+    else:
+        mtp=mas3pc(z)
+    return x*mtp/rs
+def Rs2mas(x,M=10**8.2,z=0.005037,D=False):
+    rs =Rs(M)
+    if D:
+        mtp = mas2pc(d=D)
+    else:
+        mtp=mas2pc(z)
+    return x*rs/mtp
+
+def odr_fit(func,data,x0,fit_type=2,verbose=False,maxit=1e4):
+    model=Model(func)
+    if len(data)==3:
+        x,y,dy=data
+    elif len(data)==4:
+        x,y,dy,dx=data
+    else:
+        print ("Syntax: odr_log(func,[x,y,dy[,dx]],x0...)")
+    if 'dx' in vars() or 'dx' in globals():
+        print('fitting for x-errors')
+        fitdata=RealData(x,y,sx=dx,sy=dy)
+        fit_type = 0
+    else:
+        fitdata=RealData(x,y,sy=dy)
+        fit_type=2
+    print('fit_type='+str(fit_type))
+    myodr=ODR(fitdata,model,beta0=x0,maxit=int(maxit))
+    myodr.set_job(fit_type=fit_type)
+    if verbose == 2:
+        myodr.set_iprint(final=2)
+    out=myodr.run()
+    out.pprint()
+    if out.stopreason[0] == 'Iteration limit reached':
+        print ('(WWW) poly_lsq: Iteration limit reached, result not reliable!')
+    return out.beta,out.sd_beta,out.res_var ,out
+
+def powerlawVar(p,x):
+    a,b,c=p
+    return a*(x**(-1/b))+c
+
+def broken_powerlaw(p,x):
+    w0,au,ad,xb=p
+    s=10
+    return w0*2**((au-ad)/s)*(x/xb)**au*(1+(x/xb)**s)**((ad-au)/s)
+
+def fit_pl(x,y,sd,x0=False):
+    if type(x)==list:
+        x = np.concatenate(np.abs(x))
+        y = np.concatenate(np.abs(y))
+        sd = np.concatenate(sd)
+    if x0 is False:
+        x0 = np.array([0.1,1])
+    beta,sd_beta,chi2fit,out = odr_fit(powerlaw,[x,y,sd],x0,verbose=1)
+    return beta,sd_beta,chi2fit,out
+
+def fit_bpl(x,y,sd,sx=False,x0=False):
+    """ fit broken power law as definde in
+    """
+    if type(x)==list:
+        x = np.abs(np.concatenate(x))
+        y = np.abs(np.concatenate(y))
+        sd = np.concatenate(sd)
+    if x0 is False:
+        x0=np.array([min(np.concatenate(y)),0,1,2])
+    if sx:
+        if type(sx)==list:
+            sx = np.concatenate(sx)
+        print('include x error\n')
+        beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[x,y,sd,sx],x0,verbose=1)
+    else:
+        print('only use y-error')
+        beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[x,y,sd],x0,verbose=1)
+    return beta,sd_beta,chi2fit,out
+
+def scatter(p,x):
+    ws,wi = p
+    xx= 1
+    return np.sqrt(np.square(ws*x**-2.2) + np.square(wi*x*xx))

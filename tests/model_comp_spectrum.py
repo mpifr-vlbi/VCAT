@@ -1,6 +1,6 @@
 from vcat import ImageData
 from vcat.kinematics import ComponentCollection
-from vcat.graph_generator import KinematicPlot
+from vcat.plots.fits_image import KinematicPlot
 import matplotlib.pyplot as plt
 import numpy as np
 
