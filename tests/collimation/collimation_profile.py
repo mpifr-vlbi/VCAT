@@ -75,21 +75,7 @@ the keywords in the plot function to tweak the appearance:
     fit_color=['black','black'],
     fit_ls =['-','-'],
     fit_label=['combined','combined']
-
-Also the ridgeline need to already be shifted for the fitting to make sense.
-For this not being true, we could also add the option to provide a shift.
 """
-n=8
-colors = cmap(np.linspace(0,0.95,n))
-#colors = cycler(color=color)
-markers = ['x','>','<','+','d','*','p','o','2']
-ls = ['-', '--', ':', '-.','-', '--', ':', '-.']
-#markers = cycler(mm)
-
-#### I add here the functions for fitting, I suggest to move them to the helper script, if not already there
-
-
-## End of fitting functions
 
 def axesWidthPlot (ax, **kwargs):
     args ={'xlabel':r'Distance from core \small{[mas]}','ylabel':r'De-convolved width \small{[mas]}','xscale':'log','yscale':'log'}
@@ -157,151 +143,9 @@ def fit_width(width,dist,
     return beta, sd_beta, chi2, out
 #########################################################
 
-class Jet(object):
-    '''Class containing the jet width
-    '''
-    def __init__(self,
-                 inp_data,
-                 jet = 'Jet',
-                 label = '',
-                 shift = None,
-                 date = '',
-                 freq = '',
-                 data_4th_colum = 'dist_err' #if 4th column provided, specify what it is
-                ):
-        '''Read in jet width data as dictionary with the possible keys:
-            'dist':[]
-            'width':[]
-            'width_err':[]
-            'freq':[]
-            'date':str/timedate object
-            ('peak':[]) optional
-            ('peak_err':[]) optional
-            data = ascii table with dist,width, width_err,(dist_err),freq
-                for data_type='table'
-            data = {'mapFile':str, 'ridgeLine': str, 'logFile':str,'label':str,
-                'errFile': False, 'cjet':True, 'theta':0, 'shift':False}
-                for data_type = 'RL-Laura'
-
-        args:
-            jet: 'Jet' or 'Cjet' or 'Twin' for jet or counter jet
-            data_4th_column: 'dist_err' or 'freq' if a 4th column is provided in the input table
-                please specify what it is
-            label : '' the label for this jet type, is also used as label for plotting
-
-        '''
-        self.jet = jet
-        self.date = date
-        self.data = None
-        self.label = label
-        data = Table.read(inp_data, format='ascii')
-        data.rename_column(data.colnames[0],"dist")
-        data.rename_column(data.colnames[1],"width")
-        data.rename_column(data.colnames[2],"width_err")
-
-        if len(data.columns) == 4:
-            if data_4th_colum == 'freq':
-                data.rename_column(data.colnames[3],'freq')
-            elif data_4th_colum  == 'dist_err':
-                data.rename_column(data.colnames[3],'dist_err')
-            else:
-                sys.stdout.write('Please provide the data type for the 4th column.\n')
-        elif len(data.columns) > 4:
-            sys.stdout.write('Too many columns provided. Maximum is four.\n')
-
-        data.add_column(date, name='date')
-        data.add_column(label, name='label')
-
-        if not 'freq' in data.colnames:
-            try:
-                data.add_column(freq,name='freq')
-            except:
-                sys.stdout.write("No frequency given in data file, please provide the observing frequency as freq=float.\n")
-                sys.exit(0)
-        for cols in ['dist','width','width_err','freq']:
-            data[cols].info.format = '{:.2f}'
-
-        if jet == 'Jet':
-            data['dist'] = np.abs(data['dist'])
-            data.add_column('jet',name='jet')
-            self.data = data
-        elif jet == 'CJet':
-            data['dist'] = np.abs(data['dist'])
-            sys.stdout.write('Cjet type given, so column gets identifier cjet.\n')
-            data.add_column('cjet',name='jet')
-            self.data = data
-        elif jet == 'Twin':
-            dataj,datacj = [data[data['dist']>0],data[data['dist']<0]]
-            datacj['dist'] = np.abs(datacj['dist'])
-            dataj.add_column('jet',name='jet')
-            datacj.add_column('cjet',name='jet')
-            self.data = vstack([dataj,datacj])
-        else:
-            sys.stdout.write('Please provide a lable for the jet, is it "Jet", "CJet", or "Twin"?\n')
-
-
 class JetWidthCollection(object):
     '''A collection of jet width epochs
     '''
-    def __init__(self,
-                 Jet_list=[], #list of Jet objects
-                 label = ['']
-                ):
-        self.Jets = Jet_list
-        self.label = label
-        # Variable initializing for fittings
-        self.beta = []
-        self.sd_beta = []
-        self.chi2 = []
-        self.out = []
-        self.fit_label = []
-        self.fit_type = []
-        self.fit_data = []
-        self.filter_data = []
-
-        for i,j in enumerate(self.Jets):
-            if label[0] == '':
-                j['label'] = str(i)
-
-        self.jet_data = [j.data for j in self.Jets]
-        self.data = vstack(self.jet_data)
-
-    def filter_jet(self,filter_by):
-        '''Filter the jet data Table.
-        '''
-        filter_data = self.data
-        try:
-            filter_data = filter_data[filter_data['jet'] == filter_by['jet']]
-            sys.stdout.write('filter out jet = {}\n'.format(filter_by['jet']))
-        except:
-            pass
-        try:
-            filter_data = filter_data[filter_data['date'] < filter_by['date_max']]
-        except:
-            pass
-        try:
-            filter_data = filter_data[filter_data['date'] == filter_by['date']]
-            sys.stdout.write('filter out date = {}\n'.format(filter_by['date']))
-        except:
-            pass
-        try:
-            filter_data = self.data[filter_data['date'] > filter_by['date_min']]
-        except:
-            pass
-        try:
-            filter_data = filter_data[filter_data['freq'] < filter_by['freq_max']]
-        except:
-            pass
-        try:
-            filter_data = filter_data[filter_data['freq'] > filter_by['freq_min']]
-        except:
-            pass
-        try:
-            filter_data = filter_data[filter_data['label'] == filter_by['label']]
-        except:
-            pass
-        self.filter_data = filter_data
-        return filter_data
 
     def fitJet(self, filter_by = False, label = '', fit_type = 'brokenPowerlaw', **kwargs):
         '''Calls the fit function defined above after selectingt the data to be fitted.
@@ -345,8 +189,8 @@ class JetWidthCollection(object):
                         fig_size = 'aanda*',
                         saveFile = 'Plot_collimation',
                         label = [],
-                        color = colors,
-                        marker = markers,
+                        color = cmap(np.linspace(0,0.95,8)),
+                        marker = ['x','>','<','+','d','*','p','o','2'],
                         fit_color = 'k',
                         fit_ls = '-',
                         fit_label = False,
@@ -488,7 +332,7 @@ class JetWidthCollection(object):
                         annoxj = 0.1+0.5*kj
                     if kj>1:
                         write_fit_info = False
-                    plot_fit(xr,fit_type[i],beta[i],sd_beta[i],chi2[i],ax=axes[0],annotate=write_fit_info,asize=asize,ls=ls,lw='0.8',label=label, color=cc,annox=annoxj,annoy=0.05)
+                    plot_fit(xr,fit_type[i],beta[i],sd_beta[i],chi2[i],ax=axes[0],annotate=write_fit_info,asize=asize,ls=['-', '--', ':', '-.','-', '--', ':', '-.'],lw='0.8',label=label, color=cc,annox=annoxj,annoy=0.05)
                     kj += 1
                 elif any(np.unique(jj['jet']) == 'cjet'):
                     sys.stdout.write('Plot fit counter jet.\n')
@@ -496,7 +340,7 @@ class JetWidthCollection(object):
                         annoxcj = 0.6-0.5*kcj
                     if kcj>1:
                         write_fit_info = False
-                    plot_fit(xr,fit_type[i],beta[i],sd_beta[i],chi2[i],ax=axes[1],annotate=write_fit_info,asize=asize,ls=ls,lw='0.8',label=label, color=cc,annox=annoxcj,annoy=0.05)
+                    plot_fit(xr,fit_type[i],beta[i],sd_beta[i],chi2[i],ax=axes[1],annotate=write_fit_info,asize=asize,ls=['-', '--', ':', '-.','-', '--', ':', '-.'],lw='0.8',label=label, color=cc,annox=annoxcj,annoy=0.05)
                     kcj += 1
                 else:
                     sys.stdout.write('Somethings wrong, not plotting fit.\n')

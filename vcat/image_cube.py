@@ -1313,8 +1313,77 @@ class ImageCube(object):
 
         return fit
 
-    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=True):
-        #TODO add plots, de-projected distance, and collimation fits etc.
+    def get_ridgeline_profile(self,value="width",counter_ridgeline=False,freq="",epoch=""):
+        """
+        This function returns the ridgeline profiles combined over several epochs and frequencies
+
+        Args:
+            value (str): Value to extract ('flux', 'width', etc.)
+            counter_ridgeline (bool): Choose whether to extract info for ridgeline (default, False) or counter_ridgeline (True)
+            freq: Option to filter frequencies
+            epoch: Option to filter epochs
+
+        Returns:
+            dist, value, value_err
+        """
+
+        #get filtered images
+        images=self.get_images(freq=freq,epoch=epoch)
+
+        #initialize arrays
+        ridgelines=[]
+        dists=[]
+        values=[]
+        value_errs=[]
+
+        #retrieve ridgelines
+        for image in images:
+            if counter_ridgeline==False:
+                ridgelines.append(image.ridgeline)
+            else:
+                ridgelines.append(image.counter_ridgeline)
+
+        for ridgeline in ridgelines:
+            #we will use the first ridgeline as reference (can be any ridgeline)
+            ref_ridgeline=ridgelines[0]
+            #calculate distance between ridgeline start to reference ridgeline
+            delta_x=ridgeline.X[0] - ref_ridgeline.X[0]
+            delta_y=ridgeline.Y[0] - ref_ridgeline.Y[0]
+            delta=np.sqrt(delta_x**2+delta_y**2)
+
+            #check if we need to subtract or add
+            ridg_dist=np.array(ridgeline.dist)
+            if delta_x*(ridgeline.X[-1]-ridgeline.X[0])+delta_y*(ridgeline.Y[-1]-ridgeline.Y[0])<0:
+                #delta and jet direction anti-parallel
+                ridg_dist-=delta
+            else:
+                #delta and jet direction parallel
+                ridg_dist+=delta
+
+            dists.append(ridge_dist)
+
+            #extract values
+            if value=="width":
+                values.append(ridgeline.width)
+                value_errs.append(ridgeline.width_err)
+            elif value=="open_angle":
+                values.append(ridgeline.open_angle)
+                value_errs.append(ridgeline.open_angle_err)
+            elif value=="intensity" or value=="flux":
+                values.append(ridgeline.intensity)
+                value_errs.append(ridgeline.intensity_err)
+            else:
+                raise Exception(f"Invalid value '{value}' for 'value' parameter (allowed: 'width', 'open_angle', 'intensity')")
+
+
+        #now we re-reference everything so that the ridgeline distance starts at 0
+        dists=dists.flatten()
+        dists-=min(dist)
+
+        return dists, values.flatten(), value_errs.flatten()
+
+    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=True,core_position=False):
+
         if id=="":
             #do it for all components
             ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
@@ -1328,15 +1397,24 @@ class ImageCube(object):
         #extract data
         values = []
         dists = []
+
+        #get reference core position
+        if not core_position:
+            try:
+                core=self.images[0,0].get_core_component()
+                core_position=[core.x*core.scale,core.y*core.scale]
+            except:
+                core_position=[0,0]
+
         for cc in ccs:
-            info=cc.get_model_profile(freq=freq,epochs=epoch)
+            info=cc.get_model_profile(freq=freq,epochs=epoch,core_position=core_position)
             try:
                 values+=info[value]
             except:
                 raise Exception("Invalid 'value' parameter (use 'maj', 'flux' or 'tb').")
-            dists+=info["dist"]
+            dists=np.concatenate((dists,info["dist"]))
 
-
+        print(dists)
         plt.scatter(dists,values)
         plt.xlabel("Distance from Core [mas]")
         if value=="maj":
@@ -1348,7 +1426,7 @@ class ImageCube(object):
 
         if show:
             plt.show()
-
+        #TODO also return error
         return dists, values
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=["black","red","blue","orange"],evpa_pol_plot=True):

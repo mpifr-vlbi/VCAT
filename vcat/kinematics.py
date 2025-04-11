@@ -603,7 +603,8 @@ class ComponentCollection():
 
         return results
 
-    def get_model_profile(self,freq="",epochs=""):
+    def get_model_profile(self,freq="",epochs="",core_position=[0,0]):
+
         # read in settings
         if freq == "":
             freq = self.freqs_distinct*1e-9
@@ -639,7 +640,11 @@ class ComponentCollection():
                 fluxs.append(self.fluxs[ind_e, ind_f])
                 tbs.append(self.tbs[ind_e, ind_f])
                 tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
-                dists.append(self.dist[ind_e, ind_f])
+                dist=np.sqrt((self.xs[ind_e,ind_f]*self.scale-core_position[0])**2+(self.ys[ind_e,ind_f]*self.scale-core_position[1])**2)
+                dists.append(dist)
+
+        #make dists start from 0
+        dists-=min(dists)
 
         return {"maj": majs, "flux": fluxs, "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists}
 
@@ -672,7 +677,10 @@ class ComponentCollection():
 def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr):
     # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
     #here we need to check if the component is resolved or not!
-    factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
+    if snr!=1:
+        factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
+    else:
+        factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))  # following Kovalev et al. 2005
 
     #rotate the beam to the x-axis
     new_pos=beam_pos-comp_pos
