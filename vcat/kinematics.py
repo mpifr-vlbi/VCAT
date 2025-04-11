@@ -255,7 +255,7 @@ class ComponentCollection():
             self.scale = components[0].scale
         else:
             self.redshift = 0
-            self.scale = 1
+            self.scale = 60*60*1000
 
         self.name = name
 
@@ -315,8 +315,8 @@ class ComponentCollection():
                         self.mjds[i,j]=comp.mjd
                         self.dist[i,j]=comp.distance_to_core * self.scale
                         self.dist_err[i,j]=comp.maj*0.1 * self.scale #TODO fix this!
-                        self.xs[i,j]=comp.delta_x_est
-                        self.ys[i,j]=comp.delta_y_est
+                        self.xs[i,j]=comp.x
+                        self.ys[i,j]=comp.y
                         self.fluxs[i,j]=comp.flux
                         self.tbs[i,j]=comp.tb
                         self.tbs_lower_limit[i,j]=comp.tb_lower_limit
@@ -642,9 +642,6 @@ class ComponentCollection():
                 tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
                 dist=np.sqrt((self.xs[ind_e,ind_f]*self.scale-core_position[0])**2+(self.ys[ind_e,ind_f]*self.scale-core_position[1])**2)
                 dists.append(dist)
-
-        #make dists start from 0
-        dists-=min(dists)
 
         return {"maj": majs, "flux": fluxs, "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists}
 

@@ -1414,7 +1414,8 @@ class ImageCube(object):
                 raise Exception("Invalid 'value' parameter (use 'maj', 'flux' or 'tb').")
             dists=np.concatenate((dists,info["dist"]))
 
-        print(dists)
+        #make distance start at 0
+        dists-=min(dists)
         plt.scatter(dists,values)
         plt.xlabel("Distance from Core [mas]")
         if value=="maj":
@@ -1426,6 +1427,7 @@ class ImageCube(object):
 
         if show:
             plt.show()
+
         #TODO also return error
         return dists, values
 
