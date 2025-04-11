@@ -1638,11 +1638,11 @@ class ImageData(object):
                 rotate_mod_file(self.stokes_q_mod_file,angle,self.stokes_q_mod_file)
                 rotate_mod_file(self.stokes_u_mod_file,angle,self.stokes_u_mod_file)
             except:
-                logger.warning("Could not rotate polarization, probably not loaded.", UserWarning)
+                logger.debug("Could not rotate polarization, probably not loaded.")
             try:
                 rotate_mod_file(self.model_mod_file,angle,self.model_mod_file)
             except:
-                logger.warning("Could not rotate model, probably not loaded.", UserWarning)
+                logger.debug("Could not rotate model, probably not loaded.")
 
             newImageData.uvf_file=new_uvf
             newImageData.mask=new_mask

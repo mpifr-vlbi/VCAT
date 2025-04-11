@@ -1,21 +1,26 @@
 from vcat import ImageCube, ImageData, FitsImage, MultiFitsImage
 import matplotlib.pyplot as plt
 
-dataC=ImageData("../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.fits",
-        uvf_file="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.uvf",
-        model="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.mfit")
+dataU=ImageData("../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.fits",
+        uvf_file="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.uvf",
+        model="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.mfit")
 dataQ=ImageData("../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.fits",
         uvf_file="../dataset_example/3C111_Q_2014_05_08/3C111_Q_2014_05_08.uvf")
 
 
 
+dataU=dataU.center()
+dataQ=dataQ.center()
 
-
-images=[dataC,dataQ]
-
-print(dataC.components)
+images=[dataU,dataQ]
 
 im_cube=ImageCube(images)
+
+im_cube.plot()
+
+im_cube.get_ridgeline()
+
+im_cube.plot(plot_ridgeline=True)
 
 im_cube.plot_evolution()
 

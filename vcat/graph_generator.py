@@ -1185,6 +1185,7 @@ class MultiFitsImage(object):
             self.ncols, self.nrows = self.image_cube.shape
         if figsize=="":
             figsize=(3*self.ncols,3*self.nrows)
+
         self.fig, self.axes = plt.subplots(self.nrows, self.ncols, figsize=figsize)
         self.axes=np.atleast_2d(self.axes)
 

@@ -216,7 +216,7 @@ class Ridgeline(object):
                     data_err.append(pix_val * error)
 
             if (len(data) <= 5):
-                logger.info('Not this slice')
+                logger.debug('Not this slice')
                 cont += 1
                 continue
 
@@ -224,7 +224,7 @@ class Ridgeline(object):
             size_x = len(data)
 
             if (max_list <= cut_final * noise):
-                logger.info('Not this slice')
+                logger.debug('Not this slice')
                 cont += 1
                 continue
 
@@ -237,7 +237,7 @@ class Ridgeline(object):
                                       beam / 2 / np.sqrt(2 * np.log(2)))
             fitter = fitting.LevMarLSQFitter()
             fitted_model = fitter(model, X, data)
-            logger.info(fitted_model)
+            logger.debug(fitted_model)
 
             # Gaussian integral
             amplitude = fitted_model.parameters[0]
@@ -251,17 +251,17 @@ class Ridgeline(object):
             a = integrate.quad(gauss, x1, x2)
 
             FWHM = 2.0 * np.sqrt(2.0 * np.log(2)) * std
-            logger.info("The FWHM (convolved) is = " + str(FWHM))
+            logger.debug("The FWHM (convolved) is = " + str(FWHM))
             chi_sq = 0.0
             for z in range(0, size_x):
                 chi_sq += ((data[z] - amplitude * np.exp(-(X[z] - mean) ** 2 / (std ** 2 * 2))) ** 2 / (
                             data_err[z] ** 2.0))
             chi_sq_red = float(chi_sq / (size_x - 3))
-            logger.info('The chi_square_red is = ' + str(chi_sq_red))
+            logger.debug('The chi_square_red is = ' + str(chi_sq_red))
             if (chi_sq_red < chi_sq_val):
                 if ((FWHM ** 2 - beam ** 2) > 0.0):  # TODO check if this condition is actually the right thing to do
                     self.width.append(np.sqrt(FWHM ** 2 - beam ** 2))
-                    logger.info('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
+                    logger.debug('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
                     self.width_err.append(err_FWHM * np.sqrt(FWHM ** 2 - beam ** 2))
                     self.intensity.append(a[0])
                     self.intensity_err.append(a[0]*error_flux_slice)
@@ -369,9 +369,9 @@ class Ridgeline(object):
 
                 popt, pcov = curve_fit(func, dist_fit, width_fit, sigma=width_err_fit)
                 perr = np.sqrt(np.diag(pcov))
-                logger.info('Fit values (a*x**b) with a the first term and b the second -- First method')
-                logger.info(popt)
-                logger.info(perr)
+                logger.debug('Fit values (a*x**b) with a the first term and b the second -- First method')
+                logger.debug(popt)
+                logger.debug(perr)
 
                 ax.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='red', markersize=7.0)
                 xpoint = np.linspace(self.dist[0], self.dist[len(self.dist) - 1], 1000)
@@ -421,13 +421,13 @@ class Ridgeline(object):
 
                 popt, pcov = curve_fit(func, dist_fit, width_fit, sigma=width_err_fit)
                 perr = np.sqrt(np.diag(pcov))
-                logger.info('Fit values (a*x**b) with a the first term and b the second -- Second method')
-                logger.info(popt)
-                logger.info(perr)
+                logger.debug('Fit values (a*x**b) with a the first term and b the second -- Second method')
+                logger.debug(popt)
+                logger.debug(perr)
 
-                logger.info('Valori fit media')
-                logger.info(dist_fit)
-                logger.info(width_fit)
+                logger.debug('Valori fit media')
+                logger.debug(dist_fit)
+                logger.debug(width_fit)
                 ax.errorbar(dist_fit, width_fit, yerr=width_err_fit, fmt='o', color='purple', markersize=7.0)
                 a = float(popt[0])
                 b = float(popt[1])

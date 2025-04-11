@@ -925,7 +925,7 @@ class ImageCube(object):
     def get_spectral_index_map(self,freq1,freq2,ref_image="",epoch="",spix_vmin=-3,spix_vmax=5,sigma_lim=3,plot=False):
         #TODO implement fitting spix across more than two frequencies
 
-        #TODO basic check if images are aligned an same pixels if not, align automatically
+        #TODO basic check if images are aligned and same pixels if not, align automatically
 
         if isinstance(epoch, list):
             epochs=epoch
@@ -995,7 +995,7 @@ class ImageCube(object):
     def get_rm_map(self,freq1,freq2,epoch="",sigma_lim=3,rm_vmin="",rm_vmax="",sigma_lim_pol=5,plot=False):
         #TODO get RM map across more than 2 frequencies by fitting
 
-        # TODO basic check if images are aligned an same pixels if not, align automatically
+        # TODO basic check if images are aligned and same pixels if not, align automatically
 
         if isinstance(epoch, list):
             epochs=epoch
@@ -1181,6 +1181,20 @@ class ImageCube(object):
 
         return ImageCube(image_data_list=images)
 
+    def get_ridgeline(self,mode="all",**kwargs):
+        """
+        Function to call get_ridgeline for all images in the ImageCube to fit a ridgeline for all images.
+
+        Args:
+            mode (str): Choose apply mode ('all', 'freq', 'epoch', 'individual'), will apply independent mask for 'all', per 'epoch' or per 'frequency'
+            **kwargs: Options  for get_ridgeline() on ImageCube, need to passed as individual values (mode='all') or lists (mode='frequency' or 'epoch) or 2d-arrays (mode='individual')
+        """
+        kwargs=self.format_kwargs(kwargs,mode)
+
+        for i in range(len(self.images)):
+            for j in range(len(self.images[0])):
+                single_kwargs={key: value[i][j] for key, value in kwargs.items()}
+                self.images[i][j].get_ridgeline(**single_kwargs)
 
     def get_core_comp_collection(self):
         for cc in self.comp_collections:
@@ -1197,7 +1211,7 @@ class ImageCube(object):
         raise Exception(f"No component collection with id {comp_id} found.")
 
     def get_comp_collections(self,date_tolerance=1,freq_tolerance=1):
-        #find avaialable component ids
+        #find available component ids
         comp_ids=[]
         for image in self.images.flatten():
             try:
@@ -1646,5 +1660,70 @@ class ImageCube(object):
 
             ani.save(save[index],writer="ffmpeg",dpi=dpi,fps=round(1/interval*1000))
             logger.info(f"Movie for {f:.0f}GHz exported as '{save[index]}'")
+
+    def format_kwargs(self,kwargs,mode):
+
+        # read in input parameters for individual plots
+        if mode == "all":
+            # This means kwargs are just numbers
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(self.shape, dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+
+                for i in range(len(self.dates)):
+                    for j in range(len(self.freqs)):
+                        kwargs[key][i, j] = value
+        elif mode == "freq":
+            # allow input parameters per frequency
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(self.shape, dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+
+                if not isinstance(value, list):
+                    for i in range(len(self.dates)):
+                        for j in range(len(self.freqs)):
+                            kwargs[key][i, j] = value
+                elif len(value) == len(self.freqs):
+                    for i in range(len(self.dates)):
+                        for j in range(len(self.freqs)):
+                            kwargs[key][i, j] = value[j]
+                else:
+                    raise Exception(f"Please provide valid {key} parameter.")
+        elif mode == "epoch":
+
+            # allow input parameters per epoch
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(self.shape, dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+                if not isinstance(value, list):
+                    for i in range(len(self.dates)):
+                        for j in range(len(self.freqs)):
+                            kwargs[key][i, j] = value
+                elif len(value) == len(self.dates):
+                    for i in range(len(self.dates)):
+                        for j in range(len(self.freqs)):
+                            kwargs[key][i, j] = value[i]
+                else:
+                    raise Exception(f"Please provide valid {key} parameter.")
+
+        elif mode == "individual":
+            # allow input parameters per frequency
+            for key, value in kwargs.items():
+                kwargs[key] = np.empty(self.shape, dtype=object)
+                kwargs[key] = np.atleast_2d(kwargs[key])
+                if not isinstance(value, list):
+                    for i in range(len(self.dates)):
+                        for j in range(len(self.freqs)):
+                            kwargs[key][i, j] = value
+                elif len(value) == len(self.images) and len(value[0]) == len(self.images[0]):
+                    for i in range(len(self.dates)):
+                        for j in range(len(self.freqs)):
+                            kwargs[key][i, j] = value[i][j]
+                else:
+                    raise Exception(f"Please provide valid {key} parameter.")
+        else:
+            raise Exception("Please select valid mode ('individual','freq','epoch','all'")
+
+        return kwargs
 
 
