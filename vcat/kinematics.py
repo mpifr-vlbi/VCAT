@@ -39,6 +39,7 @@ class Component():
         self.freq=freq
         self.lin_pol=lin_pol
         self.evpa=evpa
+        self.snr=snr
         #Set default error value of 10%
         self.x_err = 0.1 * self.maj
         self.y_err = 0.1 * self.maj
@@ -48,7 +49,7 @@ class Component():
         self.radius_err = 0.1 * self.maj
         self.theta_err = 20
 
-
+        print(self.noise)
         def calculate_theta():
             if (self.delta_y_est > 0 and self.delta_x_est > 0) or (self.delta_y_est > 0 and self.delta_x_est < 0):
                 return np.arctan(self.delta_x_est / self.delta_y_est) / np.pi * 180
@@ -81,11 +82,11 @@ class Component():
                 self.res_lim_min=0
             #check for circular components:
             elif self.maj == self.min:
-                self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,snr)
+                self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,snr,method='Kovalev05')
                 self.res_lim_min=self.res_lim_maj
                 is_circular=True
             else:
-                self.res_lim_maj, self.res_lim_min=get_resolution_limit(beam_maj,beam_min,beam_pa,pos,snr) #Kovalev et al. 2005
+                self.res_lim_maj, self.res_lim_min=get_resolution_limit(beam_maj,beam_min,beam_pa,pos,snr,method='Kovalev05') #Kovalev et al. 2005
 
         #check if component is resolved or not:
         if (self.res_lim_min>self.min) or (self.res_lim_maj>self.maj):
@@ -125,7 +126,6 @@ class Component():
         return line1 + line2 + line3 + line4 + line5
 
     def get_errors(self, weighting=[0,-1], method='flat', gain_err=0.1):
-
         if method == 'flat':
             self.x_err = 0.1 * self.maj
             self.y_err = 0.1 * self.maj
@@ -136,38 +136,42 @@ class Component():
             self.theta_err = 20
 
         elif method == 'Schinzel12':
-
             if self.snr < 0:
                 # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
                 self.snr=1
 
             ### Calculate errors ###
             S_p = self.snr*self.noise
-            SNR = self.snr
             sigma_p = self.noise*np.sqrt(1 + self.snr)
-            SNR_p = self.snr*self.noise/sigma_p
+            SNR_p = S_p/sigma_p
 
             sigma_t = sigma_p*np.sqrt(1 + (self.flux**2/S_p**2))
             self.flux_err = np.sqrt(sigma_t**2 + (gain_err*self.flux)**2)    # Add gain error in
                 # quadrature to reflect individual telescopes' fundamental gain uncertainty
-
-            ### Calculate minimum resolvable size based on SNR at modelfit positions ###
-            ##TODO get the value from __init__
-            if weighting[0] != 0:    # uniform weight
-                d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
-            else:    # this is the condition for natural weight
-                d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
-
-            ### Calculate other errors ###
-            size_maj = np.maximum(d_lim, self.maj)
-            if self.maj > d_lim/self.scale:
+                # this was added to the description in Schinzel et al. 2012. TODO: evaluate kepping it.
+            
+            ### Calculate resolution limit ###
+            res_lim_maj, res_lim_min = get_resolution_limit(
+                beam_maj=self.beam_maj,
+                beam_min=self.beam_min,
+                beam_pos=self.beam_pa,
+                comp_pos=self.pos,
+                snr=self.snr,
+                method='Lobanov05',
+                weighting=weighting)
+            
+            size_maj = np.maximum(res_lim_maj, self.maj)
+            size_min = np.maximum(res_lim_min, self.min)
+            if self.maj > res_lim_maj/self.scale:
                 self.maj_err = self.maj/SNR_p
             else:
                 self.maj_err = np.nan
-            if self.min > d_lim/self.scale:
+            if self.min > res_lim_min/self.scale:
                 self.min_err = self.min/SNR_p
             else:
                 self.min_err = np.nan
+            
+            ### Calculate other errors ###
             self.radius_err = np.sqrt(self.beam_maj*self.beam_min + size_maj**2)/SNR_p
             self.theta_err = np.arctan(self.radius_err/self.radius) * 180/np.pi
 
@@ -182,40 +186,40 @@ class Component():
 
             ### Get peak flux density and rms around component position ###
             S_p = self.snr * self.noise
-            rms = self.noise
 
             if S_p < 0:
                 # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
                 S_p = rms
 
             ### Calculate errors ###
-            SNR = S_p/rms
-            sigma_p = rms*np.sqrt(1 + SNR)
+            sigma_p = self.noise*np.sqrt(1 + SNR)
             SNR_p = S_p/sigma_p
 
             #TODO get this from __init__
-            if weighting[0] != 0:    # uniform weight
-                d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
-            else:    # this is the condition for natural weight
-                d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*self.beam_maj*self.beam_min*np.log((SNR+1)/SNR))    # mas
-
-            ### Calculate other errors ###
-            size_maj = np.maximum(d_lim, self.maj*scale)
-            size_min = np.maximum(d_lim, self.min*scale)
-            if self.maj*scale > d_lim:
-                self.tb_lower_limit = False
+            # FMP: should we add a weighting attribute to the Components class?
+            ### Calculate resolution limit ###
+            res_lim_maj, res_lim_min = get_resolution_limit(
+                beam_maj=self.beam_maj,
+                beam_min=self.beam_min,
+                beam_pos=self.beam_pa,
+                comp_pos=self.pos,
+                snr=self.snr,
+                method='Lobanov05',
+                weighting=weighting)
+            
+            # TODO: check that limiting size is handled like this in Weaver et al. 2022
+            size_maj = np.maximum(res_lim_maj, self.maj)
+            size_min = np.maximum(res_lim_min, self.min)
+            if self.maj > res_lim_maj/self.scale:
                 self.maj_err = self.maj/SNR_p
             else:
-                self.tb_lower_limit = True
                 self.maj_err = np.nan
-
-            if self.min*scale > d_lim:
-                self.tb_lower_limit = False
+            if self.min > res_lim_min/self.scale:
                 self.min_err = self.min/SNR_p
             else:
-                self.tb_lower_limit = True
                 self.min_err = np.nan
-
+            
+            ### Calculate other errors ###
             Tb_obs = 7.5E8*self.flux/(size_maj*size_min)    # in K, adjusted from Weaver+'22 to include elliptical Gaussian components
             self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/scale    # in deg
             self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22
@@ -671,26 +675,61 @@ class ComponentCollection():
                          beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
 
 
-def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr):
-    # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
-    #here we need to check if the component is resolved or not!
-    if snr!=1:
-        factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
-    else:
-        factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))  # following Kovalev et al. 2005
+# def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr):
+    # # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
+    # #here we need to check if the component is resolved or not!
+    # if snr!=1:
+        # factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
+    # else:
+        # factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))  # following Kovalev et al. 2005
 
-    #rotate the beam to the x-axis
-    new_pos=beam_pos-comp_pos
+    # #rotate the beam to the x-axis
+    # new_pos=beam_pos-comp_pos
 
-    #TODO double check the angles and check that new_pos and pos are both in degree!
-    #We use SymPy to intersect the beam with the component maj/min directions
-    beam=Ellipse(Point(0,0),hradius=beam_maj/2,vradius=beam_min/2)
-    line_maj=Line(Point(0,0),Point(np.cos(new_pos/180*np.pi),np.sin(new_pos/180*np.pi)))
-    line_min=Line(Point(0,0),Point(np.cos((new_pos+90)/180*np.pi),np.sin((new_pos+90)/180*np.pi)))
-    p1,p2=beam.intersect(line_maj)
-    b_phi_maj=float(p1.distance(p2)) #as in Kovalev et al. 2005
-    p1,p2=beam.intersect(line_min)
-    b_phi_min=float(p1.distance(p2)) #as in Kovalev et al. 2005
-    theta_min = b_phi_min*factor
-    theta_maj = b_phi_maj*factor
-    return theta_maj,theta_min
+    # #TODO double check the angles and check that new_pos and pos are both in degree!
+    # #We use SymPy to intersect the beam with the component maj/min directions
+    # beam=Ellipse(Point(0,0),hradius=beam_maj/2,vradius=beam_min/2)
+    # line_maj=Line(Point(0,0),Point(np.cos(new_pos/180*np.pi),np.sin(new_pos/180*np.pi)))
+    # line_min=Line(Point(0,0),Point(np.cos((new_pos+90)/180*np.pi),np.sin((new_pos+90)/180*np.pi)))
+    # p1,p2=beam.intersect(line_maj)
+    # b_phi_maj=float(p1.distance(p2)) #as in Kovalev et al. 2005
+    # p1,p2=beam.intersect(line_min)
+    # b_phi_min=float(p1.distance(p2)) #as in Kovalev et al. 2005
+    # theta_min = b_phi_min*factor
+    # theta_maj = b_phi_maj*factor
+    # return theta_maj,theta_min
+
+def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method='Kovalev05',weighting=[0,-1]):
+    if method == 'Kovalev05':
+        # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
+        #here we need to check if the component is resolved or not!
+        if snr!=1:
+            factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
+        else:
+            factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))  # following Kovalev et al. 2005
+
+        #rotate the beam to the x-axis
+        new_pos=beam_pos-comp_pos
+
+        #TODO double check the angles and check that new_pos and pos are both in degree!
+        #We use SymPy to intersect the beam with the component maj/min directions
+        beam=Ellipse(Point(0,0),hradius=beam_maj/2,vradius=beam_min/2)
+        line_maj=Line(Point(0,0),Point(np.cos(new_pos/180*np.pi),np.sin(new_pos/180*np.pi)))
+        line_min=Line(Point(0,0),Point(np.cos((new_pos+90)/180*np.pi),np.sin((new_pos+90)/180*np.pi)))
+        p1,p2=beam.intersect(line_maj)
+        b_phi_maj=float(p1.distance(p2)) #as in Kovalev et al. 2005
+        p1,p2=beam.intersect(line_min)
+        b_phi_min=float(p1.distance(p2)) #as in Kovalev et al. 2005
+        theta_min = b_phi_min*factor
+        theta_maj = b_phi_maj*factor
+        return theta_maj,theta_min
+    
+    elif method == 'Lobanov05':
+        if weighting[0] != 0:    # uniform weight
+            d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*beam_maj*beam_min*np.log((abs(snr)+1)/abs(snr)))    # mas
+        else:    # this is the condition for natural weight
+            d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*beam_maj*beam_min*np.log((abs(snr)+1)/abs(snr)))    # mas
+        theta_maj = d_lim
+        theta_min = d_lim
+    
+        return theta_maj,theta_min

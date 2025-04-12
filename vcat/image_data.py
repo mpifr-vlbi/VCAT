@@ -524,11 +524,14 @@ class ImageData(object):
                 else:
                     # TODO handle exceptions where uvf_file and difmap are not available
                     comp_snr = comp["Flux"]/JyPerBeam2Jy(self.noise,self.beam_maj,self.beam_min,self.degpp*self.scale)
-
+                    rms = self.noise
+                
+                # TODO: add mfit_err_method directly here when initiating components? For now it is done below when calling
+                    # get_comp_errors(). Component class already has default value defined in __init__
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
-                        comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
+                                    comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
                                     redshift=redshift, is_core=is_core,beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,
-                                    freq=self.freq,noise=self.noise, scale=self.scale, snr=comp_snr)
+                                    freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr)
                 self.components.append(component)
 
             #set distance to core for every component
@@ -545,7 +548,18 @@ class ImageData(object):
                         logger.warning("Trying to fit component polarization, but no uvf file loaded!")
                     else:
                         logger.debug("Not fitting component polarization")
-
+                
+                comp.get_errors(weighting=uvw, method=mfit_err_method)
+                
+                print(f'flux: {comp.flux:.5f} +/- {comp.flux_err:.5f} Jy')
+                print(f'radius: {comp.radius:.3f} +/- {comp.radius_err:.3f} mas')
+                print(f'theta: {comp.theta:.1f} +/- {comp.theta_err:.1f} deg')
+                print(f'RA: {comp.x:.2e} +/- {comp.x_err:.2e} deg')
+                print(f'Dec: {comp.y:.2e} +/- {comp.y_err:.2e} deg')
+                print(f'Major axis: {comp.maj:.2e} +/- {comp.maj_err:.2e} deg')
+                print(f'Minor axis: {comp.min:.2e} +/- {comp.min_err:.2e} deg')
+                print('\n')
+        
         hdu_list.close()
 
         #calculate cleaned flux density from mod files
