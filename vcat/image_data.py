@@ -549,16 +549,8 @@ class ImageData(object):
                     else:
                         logger.debug("Not fitting component polarization")
                 
+                # determine errors of modelfit components based on selected method
                 comp.get_errors(weighting=uvw, method=mfit_err_method)
-                
-                print(f'flux: {comp.flux:.5f} +/- {comp.flux_err:.5f} Jy')
-                print(f'radius: {comp.radius:.3f} +/- {comp.radius_err:.3f} mas')
-                print(f'theta: {comp.theta:.1f} +/- {comp.theta_err:.1f} deg')
-                print(f'RA: {comp.x:.2e} +/- {comp.x_err:.2e} deg')
-                print(f'Dec: {comp.y:.2e} +/- {comp.y_err:.2e} deg')
-                print(f'Major axis: {comp.maj:.2e} +/- {comp.maj_err:.2e} deg')
-                print(f'Minor axis: {comp.min:.2e} +/- {comp.min_err:.2e} deg')
-                print('\n')
         
         hdu_list.close()
 

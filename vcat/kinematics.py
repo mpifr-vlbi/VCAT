@@ -48,8 +48,7 @@ class Component():
         self.flux_err = 0.1 * self.flux
         self.radius_err = 0.1 * self.maj
         self.theta_err = 20
-
-        print(self.noise)
+        
         def calculate_theta():
             if (self.delta_y_est > 0 and self.delta_x_est > 0) or (self.delta_y_est > 0 and self.delta_x_est < 0):
                 return np.arctan(self.delta_x_est / self.delta_y_est) / np.pi * 180
