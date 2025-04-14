@@ -4,7 +4,7 @@ uvw: [0,-1]
 
 #Method selection
 noise_method: "Histogram Fit"
-mfit_err_method: "flat"
+mfit_err_method: "Schinzel12"
 res_lim_method: "Kovalev05"
 
 #Plot settings

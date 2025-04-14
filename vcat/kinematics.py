@@ -40,7 +40,7 @@ class Component():
         self.lin_pol=lin_pol
         self.evpa=evpa
         self.snr=snr
-
+        self.scale = scale
 
         
         def calculate_theta():
@@ -62,7 +62,6 @@ class Component():
         # Calculate ratio
         self.ratio = self.min / self.maj if self.maj > 0 else 0
 
-
         self.size=self.maj*scale
         skip_tb=False
         is_circular=False
@@ -70,17 +69,20 @@ class Component():
             self.res_lim_min=0
             self.res_lim_maj=0
         else:
-            if self.maj==0 and self.min==0:
+            if self.beam_maj==0 and self.beam_min==0:
                 skip_tb=True
                 self.res_lim_maj=0
                 self.res_lim_min=0
             #check for circular components:
             elif self.maj == self.min:
                 self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,snr,method=res_lim_method)
+                self.res_lim_maj=self.res_lim_maj/self.scale
                 self.res_lim_min=self.res_lim_maj
                 is_circular=True
             else:
                 self.res_lim_maj, self.res_lim_min=get_resolution_limit(beam_maj,beam_min,beam_pa,pos,snr,method=res_lim_method)
+                self.res_lim_maj=self.res_lim_maj/self.scale
+                self.res_lim_min=self.res_lim_min/self.scale
 
         #check if component is resolved or not:
         if (self.res_lim_min>self.min) or (self.res_lim_maj>self.maj):
@@ -99,8 +101,8 @@ class Component():
         if skip_tb:
             self.tb = 0
         else:
-            self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb / min_for_tb   #Kovalev et al. 2005
-        self.scale = scale
+            self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb*self.scale / min_for_tb*self.scale   #Kovalev et al. 2005
+
 
         # determine errors
         self.get_errors(method=error_method)
@@ -147,11 +149,11 @@ class Component():
             
             size_maj = np.maximum(res_lim_maj, self.maj)
             size_min = np.maximum(res_lim_min, self.min)
-            if self.maj > res_lim_maj/self.scale:
+            if self.maj > res_lim_maj:
                 self.maj_err = self.maj/SNR_p
             else:
                 self.maj_err = np.nan
-            if self.min > res_lim_min/self.scale:
+            if self.min > res_lim_min:
                 self.min_err = self.min/SNR_p
             else:
                 self.min_err = np.nan
@@ -186,11 +188,11 @@ class Component():
             # TODO: check that limiting size is handled like this in Weaver et al. 2022
             size_maj = np.maximum(res_lim_maj, self.maj)
             size_min = np.maximum(res_lim_min, self.min)
-            if self.maj > res_lim_maj/self.scale:
+            if self.maj > res_lim_maj:
                 self.maj_err = self.maj/SNR_p
             else:
                 self.maj_err = np.nan
-            if self.min > res_lim_min/self.scale:
+            if self.min > res_lim_min:
                 self.min_err = self.min/SNR_p
             else:
                 self.min_err = np.nan
@@ -657,7 +659,7 @@ def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method=res_lim_
         if snr!=1:
             factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
         else:
-            factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))  # following Kovalev et al. 2005
+            factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))
 
         #rotate the beam to the x-axis
         new_pos=beam_pos-comp_pos
