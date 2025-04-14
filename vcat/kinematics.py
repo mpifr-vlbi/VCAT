@@ -11,7 +11,7 @@ from vcat.helpers import closest_index, get_comp_peak_rms
 from scipy.interpolate import interp1d
 
 #initialize logger
-from vcat.config import logger, uvw, difmap_path, mfit_err_method, res_lim_method
+from vcat.config import logger, uvw, difmap_path, mfit_err_method, res_lim_method, H0, Om0
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
@@ -329,7 +329,7 @@ class ComponentCollection():
     def length(self):
         return len(self.components)
 
-    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
+    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=H0, Om0=Om0)):
 
         #we use the one dimensional function for x and y separately
         dist=self.dist

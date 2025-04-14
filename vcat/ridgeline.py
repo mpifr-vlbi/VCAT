@@ -122,7 +122,6 @@ class Ridgeline(object):
 
         return self
 
-
     def get_ridgeline_luca(self,image_data,noise,error,pixel_size,beam,X_ra,Y_dec,counterjet=False,angle_for_slices=0,cut_radial=5.0,
                            cut_final=10.0,width=40,j_len=100,chi_sq_val=100.0,err_FWHM=0.1,error_flux_slice=0.1):
         # TODO use actual beam width at angle instead of self.beam_maj

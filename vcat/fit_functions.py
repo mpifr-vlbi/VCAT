@@ -126,10 +126,6 @@ def fit_func(x,y,sd,function,x0=False):
     return beta,sd_beta,chi2fit,out
 
 def fit_pl(x,y,sd,x0=False):
-    if type(x)==list:
-        x = np.concatenate(np.abs(x))
-        y = np.concatenate(np.abs(y))
-        sd = np.concatenate(sd)
     if x0 is False:
         x0 = np.array([0.1,1])
     beta,sd_beta,chi2fit,out = odr_fit(powerlaw,[x,y,sd],x0,verbose=1)
@@ -146,10 +142,6 @@ def fit_scatter(x,y,sd,x0=False):
     return beta,sd_beta,chi2fit,out
 
 def fit_bpl(x,y,sd,sx=False,x0=False):
-    if type(x)==list:
-        x = np.concatenate(np.abs(x))
-        y = np.concatenate(np.abs(y))
-        sd = np.concatenate(sd)
     if x0 is False:
         x0=np.array([min(np.concatenate(y)),0,1,2])
     if sx is False:
@@ -179,5 +171,6 @@ def log_error(x,dx):
 
 def keyfunc(s):
       return [int(''.join(g)) if k else ''.join(g) for k, g in groupby(s, str.isdigit)]
+
 
 

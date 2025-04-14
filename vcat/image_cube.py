@@ -1337,7 +1337,7 @@ class ImageCube(object):
         value_errs=[]
 
         #retrieve ridgelines
-        for image in images:
+        for image in images.flatten():
             if counter_ridgeline==False:
                 ridgelines.append(image.ridgeline)
             else:
@@ -1347,40 +1347,39 @@ class ImageCube(object):
             #we will use the first ridgeline as reference (can be any ridgeline)
             ref_ridgeline=ridgelines[0]
             #calculate distance between ridgeline start to reference ridgeline
-            delta_x=ridgeline.X[0] - ref_ridgeline.X[0]
-            delta_y=ridgeline.Y[0] - ref_ridgeline.Y[0]
+            delta_x=ridgeline.X_ridg[0] - ref_ridgeline.X_ridg[0]
+            delta_y=ridgeline.Y_ridg[0] - ref_ridgeline.Y_ridg[0]
             delta=np.sqrt(delta_x**2+delta_y**2)
 
             #check if we need to subtract or add
             ridg_dist=np.array(ridgeline.dist)
-            if delta_x*(ridgeline.X[-1]-ridgeline.X[0])+delta_y*(ridgeline.Y[-1]-ridgeline.Y[0])<0:
+            if delta_x*(ridgeline.X_ridg[-1]-ridgeline.X_ridg[0])+delta_y*(ridgeline.Y_ridg[-1]-ridgeline.Y_ridg[0])<0:
                 #delta and jet direction anti-parallel
                 ridg_dist-=delta
             else:
                 #delta and jet direction parallel
                 ridg_dist+=delta
 
-            dists.append(ridge_dist)
+            dists=np.concatenate((dists,ridg_dist))
 
             #extract values
             if value=="width":
-                values.append(ridgeline.width)
-                value_errs.append(ridgeline.width_err)
+                values=np.concatenate((values,ridgeline.width))
+                value_errs=np.concatenate((value_errs,ridgeline.width_err))
             elif value=="open_angle":
-                values.append(ridgeline.open_angle)
-                value_errs.append(ridgeline.open_angle_err)
+                values=np.concatenate((values,ridgeline.open_angle))
+                value_errs=np.concatenate((value_errs,ridgeline.open_angle_err))
             elif value=="intensity" or value=="flux":
-                values.append(ridgeline.intensity)
-                value_errs.append(ridgeline.intensity_err)
+                values=np.concatenate((values,ridgeline.intensity))
+                value_errs=np.concatenate((value_errs,ridgeline.intensity_err))
             else:
                 raise Exception(f"Invalid value '{value}' for 'value' parameter (allowed: 'width', 'open_angle', 'intensity')")
 
 
         #now we re-reference everything so that the ridgeline distance starts at 0
-        dists=dists.flatten()
-        dists-=min(dist)
+        dists-=np.min(dists)
 
-        return dists, values.flatten(), value_errs.flatten()
+        return dists, values, value_errs
 
     def get_model_profile(self,value="maj",id="",freq="",epoch="",show=True,core_position=False):
 
@@ -1807,5 +1806,3 @@ class ImageCube(object):
             raise Exception("Please select valid mode ('individual','freq','epoch','all'")
 
         return kwargs
-
-

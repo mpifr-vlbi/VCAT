@@ -22,13 +22,15 @@ from astropy.modeling import models, fitting
 from scipy import integrate
 from vcat.ridgeline import Ridgeline
 from vcat.plots.fits_image import FitsImage
+from vcat.plots.jet_profile_plot import JetProfilePlot
 from vcat.kinematics import Component
 from vcat.helpers import *
 from vcat.stacking_helpers import fold_with_beam, modelfit_difmap
 from skimage.measure import profile_line
 import warnings
+
 #initialize logger
-from vcat.config import logger,difmap_path,uvw,mfit_err_method,res_lim_method,noise_method
+from vcat.config import logger,difmap_path,uvw,mfit_err_method,res_lim_method,noise_method, plot_colors, plot_markers
 warnings.simplefilter('ignore', ErfaWarning)
 
 class ImageData(object):
@@ -1989,3 +1991,106 @@ class ImageData(object):
             #set lin_pol and evpa of component
             self.components[i].lin_pol = lin_pol
             self.components[i].evpa = evpa
+
+    def fit_collimation_profile(self,method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
+                                plot_data=True,plot_fit=True,plot="",show=False,label="",color=plot_colors[0],marker=plot_markers[0]):
+        """
+        Function to fit a collimation profile to the jet/counterjet
+
+        Args:
+            method (str): Method to use for collimation profile ('model' to use model components, 'ridgeline' to use ridgeline fit)
+            jet (str): Choose whether to do Jet ('Jet'), Counterjet ('Cjet') or both ('Twin')
+        Returns:
+            plot (JetProfilePlot)
+
+        """
+
+        fit_fail_jet=False
+        fit_fail_counterjet=False
+
+        if method=="model":
+            #TODO make it work also for counterjet
+            #jet info
+            dists=[]
+            widths=[]
+            width_errs=[]
+
+            #counter jet info
+            cdists = []
+            cwidths = []
+            cwidth_errs = []
+
+            for comp in self.components:
+                #if component Jet
+                dists.append(comp.distance_to_core*self.scale)
+                #TODO calculate deconvolved width!!!
+                widths.append(comp.maj*self.scale)
+                width_errs.append(comp.maj_err*self.scale)
+                #else component counterjet
+                    #cdists.append(comp.distance_to_core * self.scale)
+                    # TODO calculate deconvolved width!!!
+                    #cwidths.append(comp.maj * self.scale)
+                    #cwidth_errs.append(comp.maj_err * self.scale)
+
+        elif method=="ridgeline":
+
+            #jet info
+            dists=self.ridgeline.dist
+            widths=self.ridgeline.width
+            width_errs=self.ridgeline.width_err
+
+            #counterjet info
+            cdists = self.counter_ridgeline.dist
+            cwidths = self.counter_ridgeline.width
+            cwidth_errs = self.counter_ridgeline.width_err
+
+        else:
+            raise Exception("Please specify valid 'method' for fit_collimation_profile ('model', 'ridgeline').")
+
+        if jet=="Jet" or jet=="Twin":
+            try:
+                beta, sd_beta, chi2, out = fit_width(dists, widths, width_err=width_errs, dist_err=False,
+                                                     fit_type=fit_type,x0_bpl=x0_bpl,x0_pl=x0_pl)
+            except:
+                logger.warning("Collimation fit did not work for jet!")
+                fit_fail_jet=True
+
+        if jet=="CJet" or jet=="Twin":
+            try:
+                cbeta, csd_beta, cchi2, cout = fit_width(cdists, cwidths, width_err=cwidth_errs, dist_err=False,
+                                                     fit_type=fit_type,x0_bpl=x0_bpl,x0_pl=x0_pl)
+            except:
+                logger.warning("Collimation fit did not work for counter jet!")
+                fit_fail_counterjet=True
+
+        if plot=="":
+            plot=JetProfilePlot(jet=jet)
+        else:
+            try:
+                if plot.jet != jet:
+                    raise Exception("Plot has wrong 'jet' type.")
+            except:
+                raise Exception("Plot is not a valid 'JetProfilePlot'.")
+
+        if plot_data:
+            if jet=="Jet":
+                plot.plot_profile(dists,widths,width_errs,color,marker,label=label)
+            elif jet=="CJet":
+                plot.plot_profile(cdists,cwidths,cwidth_errs,color,marker,label=label)
+            else:
+                plot.plot_profile([dists,cdists],[widths,cwidths],[width_errs,cwidth_errs],color,marker,label=label)
+
+        x=np.linspace(min(dists),max(dists),1000)
+        if plot_fit:
+            if jet=="Jet" or jet=="Twin":
+                if not fit_fail_jet:
+                    plot.plot_fit(x, fit_type, beta, sd_beta, chi2, "Jet", color, label=label)
+            if jet=="CJet" or jet=="Twin":
+                if not fit_fail_counterjet:
+                    plot.plot_fit(x, fit_type, cbeta, csd_beta, cchi2, "CJet", color, label=label)
+
+        plot.plot_legend()
+        if show:
+            plt.show()
+
+        return plot

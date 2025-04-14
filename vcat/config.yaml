@@ -9,8 +9,13 @@ res_lim_method: "Kovalev05"
 
 #Plot settings
 font: "Quicksand"
-plot_colors: ["#FED789FF", "#023743FF", "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
+plot_colors: ["#023743FF","#FED789FF", "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
 plot_markers: [".",".",".",".",".","."]
+
+#Cosmology
+#Values from Planck Collaboration et al. 2020
+H0: 67.4
+Om0: 0.315
 
 logging:
   level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL

@@ -31,6 +31,8 @@ def load_config(path=""):
     global plot_colors
     global plot_markers
     global plot_linestyles
+    global H0
+    global Om0
 
     if path=="":
 
@@ -51,10 +53,11 @@ def load_config(path=""):
         noise_method="Histogram Fit"
         mfit_err_method="flat"
         res_lim_method="Kovalev05"
-        plot_colors=["#FED789FF", "#023743FF", "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
+        plot_colors=["#023743FF","#FED789FF", "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
         plot_markers=[".",".",".",".",".","."]
         plot_linestyles=["-","-","-","-","-","-"]
-
+        H0=67.4 #Planck Collaboration 2020
+        Om0=0.315 #Planck Collaboration 2020
     else:
         with open(path, "r") as file:
             config = yaml.safe_load(file)
@@ -116,7 +119,7 @@ def load_config(path=""):
         try:
             plot_colors = config["plot_colors"]
         except:
-            plot_colors = ["#FED789FF", "#023743FF", "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
+            plot_colors = ["#023743FF", "#FED789FF",  "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
 
         try:
             plot_markers = config["plot_markers"]
@@ -127,6 +130,16 @@ def load_config(path=""):
             plot_linestyles = config["plot_linestyles"]
         except:
             plot_linestyles = ["-","-","-","-","-","-"]
+
+        try:
+            H0 = config["H0"]
+        except:
+            H0 = 67.4
+
+        try:
+            Om0 = config["Om0"]
+        except:
+            Om0 = 0.315
 
     return logger
 

@@ -20,7 +20,11 @@ from numpy import linalg
 import scipy.ndimage
 import scipy.signal
 from scipy.interpolate import RegularGridInterpolator,griddata
-from vcat.config import difmap_path
+from vcat.config import difmap_path, H0, Om0
+import astropy.units as u
+import astropy.constants as const
+from astropy.cosmology import FlatLambdaCDM
+from vcat.fit_functions import broken_powerlaw,powerlaw
 
 #initialize logger
 from vcat.config import logger
@@ -261,6 +265,8 @@ def get_comp_peak_rms(x,y, fits_file, uvf_file, mfit_file, weighting=[0,-1], rms
     send_difmap_command('mapl map')
     send_difmap_command('print mapvalue('+str(ra)
                                      +','+str(dec)+')')
+
+    os.system("rm -rf difmap.log*")
 
     try:
         for j, str_ in enumerate(child.before[::-1]):
@@ -686,7 +692,7 @@ def get_model_chi_square_red(uvf_file,mod_file,difmap_path=difmap_path):
         if "Iteration 00" in line:
             chi_sq_red=float(line.split("=")[1].split()[0])
 
-    os.system("rm -rf difmap.log")
+    os.system("rm -rf difmap.log*")
     return chi_sq_red
 
 def format_scientific(number):
@@ -1089,8 +1095,7 @@ def mas2pc(z=None,d=None):
     float
         the conversion between mas and parsec.
     """
-    cosmo=FlatLambdaCDM(H0=71,Om0=0.27) #Komatsu+09
-#    cosmo=FlatLambdaCDM(H0=70,Om0=0.30) #Komatsu+09
+    cosmo=FlatLambdaCDM(H0=H0,Om0=Om0) #Planck Collaboration 2020
 
     if d:
         D=d*1e6*u.parsec
@@ -1099,14 +1104,16 @@ def mas2pc(z=None,d=None):
     return (D*np.pi/180/3.6e6).to(u.parsec)
 #   return 1/(60*60*1e3)*D
 
-
+#TODO change M and z here!!
 def mas2Rs(x,M=10**8.2,z=0.005037,D=False):
     rs =Rs(M)
     if D:
         mtp = mas2pc(d=D)
     else:
-        mtp=mas3pc(z)
+        mtp=mas2pc(z)
     return x*mtp/rs
+
+#TODO change M and z here!!!
 def Rs2mas(x,M=10**8.2,z=0.005037,D=False):
     rs =Rs(M)
     if D:
@@ -1114,6 +1121,12 @@ def Rs2mas(x,M=10**8.2,z=0.005037,D=False):
     else:
         mtp=mas2pc(z)
     return x*rs/mtp
+
+def Rs(m,return_pc=True):
+    R   = 2*const.G*m*const.M_sun/const.c**2
+    if return_pc:
+        R=R.to(u.parsec)
+    return R
 
 def odr_fit(func,data,x0,fit_type=2,verbose=False,maxit=1e4):
     model=Model(func)
@@ -1123,13 +1136,7 @@ def odr_fit(func,data,x0,fit_type=2,verbose=False,maxit=1e4):
         x,y,dy,dx=data
     else:
         print ("Syntax: odr_log(func,[x,y,dy[,dx]],x0...)")
-    if 'dx' in vars() or 'dx' in globals():
-        print('fitting for x-errors')
-        fitdata=RealData(x,y,sx=dx,sy=dy)
-        fit_type = 0
-    else:
-        fitdata=RealData(x,y,sy=dy)
-        fit_type=2
+    fitdata=RealData(x,y,sy=dy)
     print('fit_type='+str(fit_type))
     myodr=ODR(fitdata,model,beta0=x0,maxit=int(maxit))
     myodr.set_job(fit_type=fit_type)
@@ -1141,20 +1148,8 @@ def odr_fit(func,data,x0,fit_type=2,verbose=False,maxit=1e4):
         print ('(WWW) poly_lsq: Iteration limit reached, result not reliable!')
     return out.beta,out.sd_beta,out.res_var ,out
 
-def powerlawVar(p,x):
-    a,b,c=p
-    return a*(x**(-1/b))+c
-
-def broken_powerlaw(p,x):
-    w0,au,ad,xb=p
-    s=10
-    return w0*2**((au-ad)/s)*(x/xb)**au*(1+(x/xb)**s)**((ad-au)/s)
 
 def fit_pl(x,y,sd,x0=False):
-    if type(x)==list:
-        x = np.concatenate(np.abs(x))
-        y = np.concatenate(np.abs(y))
-        sd = np.concatenate(sd)
     if x0 is False:
         x0 = np.array([0.1,1])
     beta,sd_beta,chi2fit,out = odr_fit(powerlaw,[x,y,sd],x0,verbose=1)
@@ -1163,10 +1158,6 @@ def fit_pl(x,y,sd,x0=False):
 def fit_bpl(x,y,sd,sx=False,x0=False):
     """ fit broken power law as definde in
     """
-    if type(x)==list:
-        x = np.abs(np.concatenate(x))
-        y = np.abs(np.concatenate(y))
-        sd = np.concatenate(sd)
     if x0 is False:
         x0=np.array([min(np.concatenate(y)),0,1,2])
     if sx:
@@ -1179,7 +1170,80 @@ def fit_bpl(x,y,sd,sx=False,x0=False):
         beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[x,y,sd],x0,verbose=1)
     return beta,sd_beta,chi2fit,out
 
+def fit_width(dist,width,
+                width_err=False,
+                dist_err=False,
+                fit_type='brokenPowerlaw',
+                x0_bpl=[0.3,0,1,2],
+                x0_pl=[0.1,1]):
+    '''Fit a power-law or broken-powerlaw to jet width'''
+
+    if fit_type == 'Powerlaw':
+        if dist_err:
+            beta,sd_beta,chi2,out = fit_pl(dist,width,width_err,sx=dist_err,x0=x0_pl)
+        else:
+            beta,sd_beta,chi2,out = fit_pl(dist,width,width_err,x0=x0_pl)
+
+    elif fit_type=='brokenPowerlaw':
+        if dist_err:
+            beta,sd_beta,chi2,out = fit_bpl(dist,width,width_err,sx=dist_err,x0=x0_bpl)
+        else:
+            beta,sd_beta,chi2,out = fit_bpl(dist,width,width_err,x0=x0_bpl)
+
+    return beta, sd_beta, chi2, out
+
+
 def scatter(p,x):
     ws,wi = p
     xx= 1
     return np.sqrt(np.square(ws*x**-2.2) + np.square(wi*x*xx))
+
+def set_figsize(width, fraction=1,subplots=(1,1),ratio=False):
+    """ Set aesthetic figure dimensions to avoid scaling in latex.
+    Taken from https://jwalton.info/Embed-Publication-Matplotlib-Latex/
+
+    Parameters
+    ----------
+    width: float or string
+       Width in pts, or string of predined document type
+    fraction: float,optional
+       Fraction of the width which you wish the figure to occupy
+    subplots: array-like, optional
+    The number of rows and columns of subplots
+
+    Returns
+    -------
+    fig_dim: tuple
+       Dimensions of figure in inches
+    """
+    if width.find('_')!=-1:
+        w = width.split('_')
+        width = w[0]
+        fraction= float(w[1])
+    if width =='aanda':
+        width_pt = 256.0748
+    elif width =='aanda*':
+        width_pt = 523.5307
+    elif width == 'beamer':
+        width_pt = 342
+    elif width == 'screen':
+        width_pt = 600
+    else:
+        width_pt = width
+    # Width of figure
+    fig_width_pt = width_pt * fraction
+
+    # Convert from pt to inches
+    inches_per_pt = 1 / 72.27
+
+    # Golden ratio to set aesthetic figure height
+    golden_ratio = (5**0.5 - 1) / 2.
+    if not ratio:
+        ratio = golden_ratio
+
+    # Figure width in inches
+    fig_width_in = fig_width_pt * inches_per_pt
+    # Figure height in inches
+    fig_height_in = fig_width_in * ratio* (subplots[0] / subplots[1])
+
+    return (fig_width_in, fig_height_in)
