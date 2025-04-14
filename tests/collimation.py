@@ -21,40 +21,11 @@ im_cube.get_ridgeline()
 im_cube.plot(plot_ridgeline=True,plot_counter_ridgeline=True)
 
 #Test collimation profile for single image
-
 im1=im_cube.images.flatten()[0]
-
 plot=im1.fit_collimation_profile(method="ridgeline",jet="Twin",label="Ridgeline",color="black",show=True)
 
-#im1.fit_collimation_profile(method="ridgeline",plot=plot,label="Ridgeline",color="blue",show=True)
+#Test collimation profile for image cube
+plot=im_cube.fit_collimation_profile(method="model",jet="Twin",label="Model",color="black")
 
-
-
-
-im_cube.get_ridgeline_profile()
-
-im_cube.plot_evolution()
-
-print(im_cube)
-
-#plot it
-im_cube.plot(mode="freq",xlim=[[10,-10],[5,-5]])
-
-
-#regrid it
-im_cube=im_cube.regrid(mode="all",npix=1024,pixel_size=0.1,useDIFMAP=True)
-print("Regridded to 1024,0.1")
-im_cube.plot()
-
-#restore it
-im_cube=im_cube.restore(useDIFMAP=True)
-print("Restored with common beam")
-im_cube.plot()
-
-#shift it
-im_cube=im_cube.shift(shift_x=10,shift_y=10,mode="freq",useDIFMAP=True)
-print("shifted by 5,5")
-im_cube.plot()
-
-
+im_cube.fit_collimation_profile(method="ridgeline",jet="Twin",label="Ridgeline",color="green",show=True)
 

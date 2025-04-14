@@ -276,11 +276,13 @@ class ComponentCollection():
         self.xs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.ys = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.fluxs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.fluxs_err = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.tbs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.tbs_lower_limit= np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.freqs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.ids = np.empty((self.n_epochs,self.n_freqs),dtype=int)
         self.majs =  np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.majs_err =  np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.mins = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.posas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.delta_x_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
@@ -300,11 +302,13 @@ class ComponentCollection():
                         self.xs[i,j]=comp.x
                         self.ys[i,j]=comp.y
                         self.fluxs[i,j]=comp.flux
+                        self.fluxs_err[i,j]=comp.flux_err
                         self.tbs[i,j]=comp.tb
                         self.tbs_lower_limit[i,j]=comp.tb_lower_limit
                         self.freqs[i,j]=comp.freq
                         self.ids[i,j]=comp.component_number
                         self.majs[i,j]=comp.maj
+                        self.majs_err[i,j]=comp.maj_err
                         self.mins[i,j]=comp.min
                         self.posas[i,j]=comp.pos
                         self.delta_x_ests[i,j]=comp.delta_x_est
@@ -613,19 +617,24 @@ class ComponentCollection():
         tbs = []
         tbs_lower_limit = []
         dists = []
+        majs_err = []
+        fluxs_err = []
 
         for i, freq in enumerate(freq):
             for j, epoch in enumerate(epochs):
                 ind_f = closest_index(self.freqs_distinct, freq * 1e9)
                 ind_e = closest_index(self.epochs_distinct, epoch)
                 majs.append(self.majs[ind_e, ind_f]*self.scale)
+                majs_err.append(self.majs_err[ind_e,ind_f]*self.scale)
                 fluxs.append(self.fluxs[ind_e, ind_f])
+                fluxs_err.append(self.fluxs_err[ind_e,ind_f])
                 tbs.append(self.tbs[ind_e, ind_f])
                 tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
                 dist=np.sqrt((self.xs[ind_e,ind_f]*self.scale-core_position[0])**2+(self.ys[ind_e,ind_f]*self.scale-core_position[1])**2)
                 dists.append(dist)
 
-        return {"maj": majs, "flux": fluxs, "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists}
+        return {"maj": majs,"maj_err": majs_err, "flux": fluxs, "flux_err": fluxs_err,
+                "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists}
 
     def interpolate(self, mjd, freq):
         freq_ind=closest_index(self.freqs_distinct,freq*1e9)

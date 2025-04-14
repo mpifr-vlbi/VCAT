@@ -2000,6 +2000,16 @@ class ImageData(object):
         Args:
             method (str): Method to use for collimation profile ('model' to use model components, 'ridgeline' to use ridgeline fit)
             jet (str): Choose whether to do Jet ('Jet'), Counterjet ('Cjet') or both ('Twin')
+            fit_type (str): Choose fit_type to use ('brokenPowerlaw' or 'Powerlaw')
+            x0_bpl (list[float]): Start values for broken power law fit
+            x0_pl (list[float]): Start values for powerlaw fit
+            plot_data (bool): Choose whether to plot the fitted data
+            plot_fit (bool): Choose whether to plot the fit
+            plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
+            show (bool): Choose whether to show the plot
+            label (str): Label for the fitted data/fit
+            color (str): Plot color
+            marker (str): Plot marker
         Returns:
             plot (JetProfilePlot)
 
@@ -2089,8 +2099,9 @@ class ImageData(object):
                 if not fit_fail_counterjet:
                     plot.plot_fit(x, fit_type, cbeta, csd_beta, cchi2, "CJet", color, label=label)
 
-        plot.plot_legend()
+
         if show:
+            plot.plot_legend()
             plt.show()
 
         return plot

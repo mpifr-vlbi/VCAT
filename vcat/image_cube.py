@@ -16,7 +16,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from vcat.image_data import ImageData
 from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
-                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit)
+                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit,fit_width)
 from vcat.plots.evolution_plot import EvolutionPlot
 from vcat.plots.multi_fits_image import MultiFitsImage
 from vcat.plots.kinematic_plot import KinematicPlot
@@ -24,10 +24,11 @@ from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
 from tqdm import tqdm
-from vcat.config import uvw
+from vcat.config import uvw, plot_colors, plot_markers, plot_linestyles
+from vcat.plots.jet_profile_plot import JetProfilePlot
 
 #initialize logger
-from vcat.config import logger, plot_colors, plot_markers, plot_linestyles
+from vcat.config import logger
 
 class ImageCube(object):
 
@@ -1377,11 +1378,12 @@ class ImageCube(object):
 
 
         #now we re-reference everything so that the ridgeline distance starts at 0
-        dists-=np.min(dists)
+        if len(dists)>0:
+            dists-=np.min(dists)
 
         return dists, values, value_errs
 
-    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=True,core_position=False):
+    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False):
 
         if id=="":
             #do it for all components
@@ -1396,6 +1398,7 @@ class ImageCube(object):
         #extract data
         values = []
         dists = []
+        value_errs = []
 
         #get reference core position
         if not core_position:
@@ -1409,24 +1412,122 @@ class ImageCube(object):
             info=cc.get_model_profile(freq=freq,epochs=epoch,core_position=core_position)
             try:
                 values+=info[value]
+                if value=="maj" or value=="flux":
+                    value_errs+=info[value+"_err"]
             except:
                 raise Exception("Invalid 'value' parameter (use 'maj', 'flux' or 'tb').")
             dists=np.concatenate((dists,info["dist"]))
 
-        plt.scatter(dists,values)
-        plt.xlabel("Distance from Core [mas]")
-        if value=="maj":
-            plt.ylabel("Component Size [mas]")
-        elif value=="flux":
-            plt.ylabel("Flux Density [Jy]")
-        else:
-            plt.ylabel("Brightness Temperature [K]")
-
         if show:
+            plt.scatter(dists, values)
+            plt.xlabel("Distance from Core [mas]")
+            if value == "maj":
+                plt.ylabel("Component Size [mas]")
+            elif value == "flux":
+                plt.ylabel("Flux Density [Jy]")
+            else:
+                plt.ylabel("Brightness Temperature [K]")
             plt.show()
 
         #TODO also return error
-        return dists, values
+        return dists, values, value_errs
+
+    def fit_collimation_profile(self,freq="",epoch="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
+                                plot_data=True,plot_fit=True,plot="",show=False,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
+        """
+        Function to fit a collimation profile to the jet/counterjet
+
+        Args:
+            method (str): Method to use for collimation profile ('model' to use model components, 'ridgeline' to use ridgeline fit)
+            jet (str): Choose whether to do Jet ('Jet'), Counterjet ('Cjet') or both ('Twin')
+            fit_type (str): Choose fit_type to use ('brokenPowerlaw' or 'Powerlaw')
+            x0_bpl (list[float]): Start values for broken power law fit
+            x0_pl (list[float]): Start values for powerlaw fit
+            plot_data (bool): Choose whether to plot the fitted data
+            plot_fit (bool): Choose whether to plot the fit
+            plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
+            show (bool): Choose whether to show the plot
+            label (str): Label for the fitted data/fit
+            color (str): Plot color
+            marker (str): Plot marker
+            core_position (list[float]): Core position in image coordinates (mas) for distance calculation
+        Returns:
+            plot (JetProfilePlot)
+
+        """
+
+        fit_fail_jet=False
+        fit_fail_counterjet=False
+
+        if method=="model":
+            #TODO get actual de-convolved width from modelcomps, currently it is just the maj
+
+            #jet info
+            dists, widths, width_errs = self.get_model_profile("maj",freq=freq,epoch=epoch,core_position=core_position)
+
+            #TODO get counter jet info
+            cdists = []
+            cwidths = []
+            cwidth_errs = []
+
+        elif method=="ridgeline":
+
+            #jet info
+            dists, widths, width_errs = self.get_ridgeline_profile(value="width",counter_ridgeline=False,freq=freq,epoch=epoch)
+
+            #counterjet info
+            cdists, cwidths, cwidth_errs = self.get_ridgeline_profile(value="width",counter_ridgeline=True,freq=freq,epoch=epoch)
+
+        else:
+            raise Exception("Please specify valid 'method' for fit_collimation_profile ('model', 'ridgeline').")
+
+        if jet=="Jet" or jet=="Twin":
+            try:
+                beta, sd_beta, chi2, out = fit_width(dists, widths, width_err=width_errs, dist_err=False,
+                                                     fit_type=fit_type,x0_bpl=x0_bpl,x0_pl=x0_pl)
+            except:
+                logger.warning("Collimation fit did not work for jet!")
+                fit_fail_jet=True
+
+        if jet=="CJet" or jet=="Twin":
+            try:
+                cbeta, csd_beta, cchi2, cout = fit_width(cdists, cwidths, width_err=cwidth_errs, dist_err=False,
+                                                     fit_type=fit_type,x0_bpl=x0_bpl,x0_pl=x0_pl)
+            except:
+                logger.warning("Collimation fit did not work for counter jet!")
+                fit_fail_counterjet=True
+
+        if plot=="":
+            plot=JetProfilePlot(jet=jet)
+        else:
+            try:
+                if plot.jet != jet:
+                    raise Exception("Plot has wrong 'jet' type.")
+            except:
+                raise Exception("Plot is not a valid 'JetProfilePlot'.")
+
+        if plot_data:
+            if jet=="Jet":
+                plot.plot_profile(dists,widths,width_errs,color,marker,label=label)
+            elif jet=="CJet":
+                plot.plot_profile(cdists,cwidths,cwidth_errs,color,marker,label=label)
+            else:
+                plot.plot_profile([dists,cdists],[widths,cwidths],[width_errs,cwidth_errs],color,marker,label=label)
+
+        x=np.linspace(min(dists),max(dists),1000)
+        if plot_fit:
+            if jet=="Jet" or jet=="Twin":
+                if not fit_fail_jet:
+                    plot.plot_fit(x, fit_type, beta, sd_beta, chi2, "Jet", color, label=label)
+            if jet=="CJet" or jet=="Twin":
+                if not fit_fail_counterjet:
+                    plot.plot_fit(x, fit_type, cbeta, csd_beta, cchi2, "CJet", color, label=label)
+
+        if show:
+            plot.plot_legend()
+            plt.show()
+
+        return plot
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,evpa_pol_plot=True):
         if freq=="":
