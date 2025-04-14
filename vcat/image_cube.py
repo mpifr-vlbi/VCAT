@@ -27,7 +27,7 @@ from tqdm import tqdm
 from vcat.config import uvw
 
 #initialize logger
-from vcat.config import logger
+from vcat.config import logger, plot_colors, plot_markers, plot_linestyles
 
 class ImageCube(object):
 
@@ -437,9 +437,9 @@ class ImageCube(object):
 
     #This function generates lightcurve-like plots to plot the evolution of flux, lin_pol etc. vs. time
     def plot_evolution(self, value="flux",freq="",show=True, savefig="",
-                       colors=["black","green","blue","red","purple","orange","magenta","brown"], #default colors
-                       markers=["."], #default markers
-                       linestyles=["-"],
+                       colors=plot_colors, #default colors
+                       markers=plot_markers, #default markers
+                       linestyles=plot_linestyles,
                        evpa_pol_plot=True):
 
         #TODO also make ridgeline plot over several epochs possible
@@ -1429,7 +1429,7 @@ class ImageCube(object):
         #TODO also return error
         return dists, values
 
-    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=["black","red","blue","orange"],evpa_pol_plot=True):
+    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,evpa_pol_plot=True):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1453,28 +1453,30 @@ class ImageCube(object):
                 plot = KinematicPlot()
             years = []
             for ind, cc in enumerate(ccs):
-                ind = ind % len(colors)
+                color_ind = ind % len(colors)
                 color = colors[ind]
+                marker_ind = ind % len(markers)
+                marker = markers[ind]
 
                 if value=="flux":
-                    plot.plot_fluxs(cc, color=color)
+                    plot.plot_fluxs(cc, color=color,marker=marker)
                 elif value=="tb":
-                    plot.plot_tbs(cc, color=color)
+                    plot.plot_tbs(cc, color=color,marker=marker)
                 elif value=="dist":
-                    plot.plot_kinematics(cc, color=color)
+                    plot.plot_kinematics(cc, color=color,marker=marker)
                 elif value=="pos" or value=="PA":
-                    plot.plot_pas(cc, color=color)
+                    plot.plot_pas(cc, color=color,marker=marker)
                 elif value=="lin_pol" or value=="linpol":
-                    plot.plot_linpol(cc, color=color)
+                    plot.plot_linpol(cc, color=color,marker=marker)
                 elif value=="evpa" or value=="EVPA":
-                    plot.plot_evpa(cc, color=color)
+                    plot.plot_evpa(cc, color=color,marker=marker)
                     years=np.concatenate((years,cc.year.flatten()))
                 elif value=="maj":
-                    plot.plot_maj(cc, color=color)
+                    plot.plot_maj(cc, color=color,marker=marker)
                 elif value=="min":
-                    plot.plot_min(cc, color=color)
+                    plot.plot_min(cc, color=color,marker=marker)
                 elif value=="fracpol":
-                    plot.plot_fracpol(cc, color=color)
+                    plot.plot_fracpol(cc, color=color,marker=marker)
 
             #set plot lims for polar plot according to lowest and highest year
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
@@ -1487,7 +1489,7 @@ class ImageCube(object):
             if show:
                 plt.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=["black","red","blue","orange"]):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors):
 
         if freq=="":
             freq=self.freqs
@@ -1532,7 +1534,7 @@ class ImageCube(object):
 
         return fits
 
-    def get_speed2d(self,id="",order=1,freq="",show_plot=False,colors=["black","red","blue","orange"]):
+    def get_speed2d(self,id="",order=1,freq="",show_plot=False,colors=plot_colors):
 
         if freq == "":
             freq = self.freqs

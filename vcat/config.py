@@ -28,6 +28,9 @@ def load_config(path=""):
     global noise_method
     global mfit_err_method
     global res_lim_method
+    global plot_colors
+    global plot_markers
+    global plot_linestyles
 
     if path=="":
 
@@ -48,6 +51,9 @@ def load_config(path=""):
         noise_method="Histogram Fit"
         mfit_err_method="flat"
         res_lim_method="Kovalev05"
+        plot_colors=["#FED789FF", "#023743FF", "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
+        plot_markers=[".",".",".",".",".","."]
+        plot_linestyles=["-","-","-","-","-","-"]
 
     else:
         with open(path, "r") as file:
@@ -106,6 +112,21 @@ def load_config(path=""):
             logger.info(f"Using resolution limit method: {res_lim_method}")
         except:
             res_lim_method = "Kovalev05"
+
+        try:
+            plot_colors = config["plot_colors"]
+        except:
+            plot_colors = ["#FED789FF", "#023743FF", "#72874EFF", "#476F84FF", "#A4BED5FF", "#453947FF"]
+
+        try:
+            plot_markers = config["plot_markers"]
+        except:
+            plot_markers = [".",".",".",".",".","."]
+
+        try:
+            plot_linestyles = config["plot_linestyles"]
+        except:
+            plot_linestyles = ["-","-","-","-","-","-"]
 
     return logger
 

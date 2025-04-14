@@ -1,0 +1,149 @@
+! Started logfile: difmap.log on Mon Apr 14 11:49:45 2025
+! Starting new interactive shell. Use the EOF character to exit.
+! Obeying initialization file: 
+obs ../dataset_example/0506+056_kinematic/0506+056.u.2015_09_06.uvf
+! Reading UV FITS file: ../dataset_example/0506+056_kinematic/0506+056.u.2015_09_06.uvf
+! AN table 1: 304 integrations on 45 of 45 possible baselines.
+! Apparent sampling: 0.837208 visibilities/baseline/integration-bin.
+! Found source: 0506+056
+! 
+! There are 8 IFs, and a total of 8 channels:
+! 
+!  IF  Channel    Frequency  Freq offset  Number of   Overall IF
+!       origin    at origin  per channel   channels    bandwidth
+!  ------------------------------------------------------------- (Hz)
+!  01        1  1.52399e+10      3.2e+07          1      3.2e+07
+!  02        2  1.52719e+10      3.2e+07          1      3.2e+07
+!  03        3  1.53039e+10      3.2e+07          1      3.2e+07
+!  04        4  1.53359e+10      3.2e+07          1      3.2e+07
+!  05        5  1.53679e+10      3.2e+07          1      3.2e+07
+!  06        6  1.53999e+10      3.2e+07          1      3.2e+07
+!  07        7  1.54319e+10      3.2e+07          1      3.2e+07
+!  08        8  1.54639e+10      3.2e+07          1      3.2e+07
+! 
+! Polarization(s): RR LL RL LR
+! 
+! Read 1411 lines of history.
+! 
+! Reading 366496 visibilities.
+uvw 0,-1
+! Uniform weighting is not currently selected.
+! Gridding weights will be scaled by errors raised to the power -1.
+! Radial weighting is not currently selected.
+select q
+! Selecting polarization: Q,  channels: 1..8
+! Reading IF 1 channels: 1..1
+! Reading IF 2 channels: 2..2
+! Reading IF 3 channels: 3..3
+! Reading IF 4 channels: 4..4
+! Reading IF 5 channels: 5..5
+! Reading IF 6 channels: 6..6
+! Reading IF 7 channels: 7..7
+! Reading IF 8 channels: 8..8
+rmod tmp/model_q.mod
+! A total of 4 model components were read from file tmp/model_q.mod
+modelfit  50
+! Partitioning the model into established and variable parts.
+! The fixed established model contains 0 components (0 Jy).
+! The variable part of the model contains 4 components (0.385372 Jy).
+! There are 4 variables and 91581 usable visibilities.
+! This gives 2 x 91581 - 4 = 183158 degrees of freedom.
+! Reduced Chi-squared = Chi-squared / 183158.
+! 
+! Iteration 00: Reduced Chi-squared=70.466453  Degrees of Freedom=183158
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+!   0.182388v    0.104990    -0.713000      0.00000      1.00000     0.00000  0 \
+!      15.3519           0 
+!   0.124187v    0.276805      178.862     0.307464      1.00000    -155.742  1 \
+!      15.3519           0 
+!  0.0546804v     1.46589     -167.316      1.07438      1.00000    -151.764  1 \
+!      15.3519           0 
+!  0.0241166v     3.23661      173.480      1.58226      1.00000    -147.512  1 \
+!      15.3519           0 
+! 
+! Iteration 01: Reduced Chi-squared=1.1882304  Degrees of Freedom=183158
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! 0.00486274v    0.104990    -0.713000      0.00000      1.00000     0.00000  0 \
+!      15.3519           0 
+! 0.00134915v    0.276805      178.862     0.307464      1.00000    -155.742  1 \
+!      15.3519           0 
+! -0.000144707v     1.46589     -167.316      1.07438      1.00000    -151.764  1 \
+!      15.3519           0 
+! 0.000780941v     3.23661      173.480      1.58226      1.00000    -147.512  1 \
+!      15.3519           0 
+! 
+! Iteration 02: Reduced Chi-squared=1.1882226  Degrees of Freedom=183158
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! 0.00472908v    0.104990    -0.713000      0.00000      1.00000     0.00000  0 \
+!      15.3519           0 
+! 0.00141432v    0.276805      178.862     0.307464      1.00000    -155.742  1 \
+!      15.3519           0 
+! -0.000153528v     1.46589     -167.316      1.07438      1.00000    -151.764  1 \
+!      15.3519           0 
+! 0.000761192v     3.23661      173.480      1.58226      1.00000    -147.512  1 \
+!      15.3519           0 
+! 
+! Iteration 03: Reduced Chi-squared=1.1882226  Degrees of Freedom=183158
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! 0.00472894v    0.104990    -0.713000      0.00000      1.00000     0.00000  0 \
+!      15.3519           0 
+! 0.00141447v    0.276805      178.862     0.307464      1.00000    -155.742  1 \
+!      15.3519           0 
+! -0.000153563v     1.46589     -167.316      1.07438      1.00000    -151.764  1 \
+!      15.3519           0 
+! 0.000761185v     3.23661      173.480      1.58226      1.00000    -147.512  1 \
+!      15.3519           0 
+! 
+! Iteration 04: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 05: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 06: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 07: Reduced Chi-squared=1.1882226 (Increased)
+! 
+! Iteration 08: Reduced Chi-squared=1.1882226  Degrees of Freedom=183158
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! 0.00472894v    0.104990    -0.713000      0.00000      1.00000     0.00000  0 \
+!      15.3519           0 
+! 0.00141447v    0.276805      178.862     0.307464      1.00000    -155.742  1 \
+!      15.3519           0 
+! -0.000153563v     1.46589     -167.316      1.07438      1.00000    -151.764  1 \
+!      15.3519           0 
+! 0.000761185v     3.23661      173.480      1.58226      1.00000    -147.512  1 \
+!      15.3519           0 
+! 
+! Iteration 09: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 10: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 11: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 12: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 13: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 14: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 15: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 16: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 17: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 18: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 19: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 20: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 21: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 22: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 23: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 24: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 25: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 26: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 27: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 28: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 29: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 30: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 31: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 32: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 33: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 34: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 35: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 36: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 37: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 38: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 39: Reduced Chi-squared=1.1882226 (Increased)
+! Iteration 40: Reduced Chi-squared=1.1882226 (Increased)
