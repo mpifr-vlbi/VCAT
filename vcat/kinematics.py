@@ -101,7 +101,7 @@ class Component():
         if skip_tb:
             self.tb = 0
         else:
-            self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb*self.scale / min_for_tb*self.scale   #Kovalev et al. 2005
+            self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / (maj_for_tb*self.scale) / (min_for_tb*self.scale)   #Kovalev et al. 2005
 
 
         # determine errors
