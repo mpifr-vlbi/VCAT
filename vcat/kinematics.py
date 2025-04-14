@@ -11,12 +11,12 @@ from vcat.helpers import closest_index, get_comp_peak_rms
 from scipy.interpolate import interp1d
 
 #initialize logger
-from vcat.config import logger, uvw, difmap_path
+from vcat.config import logger, uvw, difmap_path, mfit_err_method, res_lim_method
 
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
                  component_number=-1, is_core=False, redshift=0, scale=60 * 60 * 10 ** 3,freq=15e9,noise=0,
-                 beam_maj=0, beam_min=0, beam_pa=0, lin_pol=0, evpa=0, snr=1, error_method="flat"):
+                 beam_maj=0, beam_min=0, beam_pa=0, lin_pol=0, evpa=0, snr=1, error_method=mfit_err_method,res_lim_method=res_lim_method):
         self.x = x
         self.y = y
         self.mjd = mjd
@@ -40,14 +40,8 @@ class Component():
         self.lin_pol=lin_pol
         self.evpa=evpa
         self.snr=snr
-        #Set default error value of 10%
-        self.x_err = 0.1 * self.maj
-        self.y_err = 0.1 * self.maj
-        self.maj_err = 0.1 * self.maj
-        self.min_err = 0.1 * self.min
-        self.flux_err = 0.1 * self.flux
-        self.radius_err = 0.1 * self.maj
-        self.theta_err = 20
+
+
         
         def calculate_theta():
             if (self.delta_y_est > 0 and self.delta_x_est > 0) or (self.delta_y_est > 0 and self.delta_x_est < 0):
@@ -68,6 +62,7 @@ class Component():
         # Calculate ratio
         self.ratio = self.min / self.maj if self.maj > 0 else 0
 
+
         self.size=self.maj*scale
         skip_tb=False
         is_circular=False
@@ -81,11 +76,11 @@ class Component():
                 self.res_lim_min=0
             #check for circular components:
             elif self.maj == self.min:
-                self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,snr,method='Kovalev05')
+                self.res_lim_maj, dummy = get_resolution_limit(beam_maj,beam_min,beam_pa,beam_pa,snr,method=res_lim_method)
                 self.res_lim_min=self.res_lim_maj
                 is_circular=True
             else:
-                self.res_lim_maj, self.res_lim_min=get_resolution_limit(beam_maj,beam_min,beam_pa,pos,snr,method='Kovalev05') #Kovalev et al. 2005
+                self.res_lim_maj, self.res_lim_min=get_resolution_limit(beam_maj,beam_min,beam_pa,pos,snr,method=res_lim_method)
 
         #check if component is resolved or not:
         if (self.res_lim_min>self.min) or (self.res_lim_maj>self.maj):
@@ -101,15 +96,13 @@ class Component():
             maj_for_tb = self.maj
             min_for_tb = self.min
 
-        maj_for_tb=np.max(np.array([self.res_lim_maj,self.maj]))
-        min_for_tb=np.max(np.array([self.res_lim_min,self.min]))
-
         if skip_tb:
             self.tb = 0
         else:
             self.tb = 1.22e12/(self.freq*1e-9)**2 * self.flux * (1 + self.redshift) / maj_for_tb / min_for_tb   #Kovalev et al. 2005
         self.scale = scale
 
+        # determine errors
         self.get_errors(method=error_method)
 
     def __str__(self):
@@ -124,7 +117,7 @@ class Component():
 
         return line1 + line2 + line3 + line4 + line5
 
-    def get_errors(self, weighting=[0,-1], method='flat', gain_err=0.1):
+    def get_errors(self, method=mfit_err_method, gain_err=0.1):
         if method == 'flat':
             self.x_err = 0.1 * self.maj
             self.y_err = 0.1 * self.maj
@@ -136,7 +129,7 @@ class Component():
 
         elif method == 'Schinzel12':
             if self.snr < 0:
-                # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
+                logger.debug('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
                 self.snr=1
 
             ### Calculate errors ###
@@ -149,15 +142,8 @@ class Component():
                 # quadrature to reflect individual telescopes' fundamental gain uncertainty
                 # this was added to the description in Schinzel et al. 2012. TODO: evaluate kepping it.
             
-            ### Calculate resolution limit ###
-            res_lim_maj, res_lim_min = get_resolution_limit(
-                beam_maj=self.beam_maj,
-                beam_min=self.beam_min,
-                beam_pos=self.beam_pa,
-                comp_pos=self.pos,
-                snr=self.snr,
-                method='Lobanov05',
-                weighting=weighting)
+            ### Get resolution limit ###
+            res_lim_maj, res_lim_min = self.res_lim_maj, self.res_lim_min
             
             size_maj = np.maximum(res_lim_maj, self.maj)
             size_min = np.maximum(res_lim_min, self.min)
@@ -187,24 +173,15 @@ class Component():
             S_p = self.snr * self.noise
 
             if S_p < 0:
-                # print('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
+                logger.debug('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
                 S_p = rms
 
             ### Calculate errors ###
             sigma_p = self.noise*np.sqrt(1 + SNR)
             SNR_p = S_p/sigma_p
 
-            #TODO get this from __init__
-            # FMP: should we add a weighting attribute to the Components class?
             ### Calculate resolution limit ###
-            res_lim_maj, res_lim_min = get_resolution_limit(
-                beam_maj=self.beam_maj,
-                beam_min=self.beam_min,
-                beam_pos=self.beam_pa,
-                comp_pos=self.pos,
-                snr=self.snr,
-                method='Lobanov05',
-                weighting=weighting)
+            res_lim_maj, res_lim_min = self.res_lim_maj, self.res_lim_min
             
             # TODO: check that limiting size is handled like this in Weaver et al. 2022
             size_maj = np.maximum(res_lim_maj, self.maj)
@@ -674,33 +651,8 @@ class ComponentCollection():
                          beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
 
 
-# def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr):
-    # # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
-    # #here we need to check if the component is resolved or not!
-    # if snr!=1:
-        # factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
-    # else:
-        # factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))  # following Kovalev et al. 2005
-
-    # #rotate the beam to the x-axis
-    # new_pos=beam_pos-comp_pos
-
-    # #TODO double check the angles and check that new_pos and pos are both in degree!
-    # #We use SymPy to intersect the beam with the component maj/min directions
-    # beam=Ellipse(Point(0,0),hradius=beam_maj/2,vradius=beam_min/2)
-    # line_maj=Line(Point(0,0),Point(np.cos(new_pos/180*np.pi),np.sin(new_pos/180*np.pi)))
-    # line_min=Line(Point(0,0),Point(np.cos((new_pos+90)/180*np.pi),np.sin((new_pos+90)/180*np.pi)))
-    # p1,p2=beam.intersect(line_maj)
-    # b_phi_maj=float(p1.distance(p2)) #as in Kovalev et al. 2005
-    # p1,p2=beam.intersect(line_min)
-    # b_phi_min=float(p1.distance(p2)) #as in Kovalev et al. 2005
-    # theta_min = b_phi_min*factor
-    # theta_maj = b_phi_maj*factor
-    # return theta_maj,theta_min
-
-def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method='Kovalev05',weighting=[0,-1]):
+def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method=res_lim_method,weighting=uvw):
     if method == 'Kovalev05':
-        # TODO check the resolution limits, if they make sense and are reasonable (it looks okay though...)!!!!
         #here we need to check if the component is resolved or not!
         if snr!=1:
             factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
@@ -732,3 +684,6 @@ def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method='Kovalev
         theta_min = d_lim
     
         return theta_maj,theta_min
+
+    elif method == "beam":
+        return beam_maj, beam_min

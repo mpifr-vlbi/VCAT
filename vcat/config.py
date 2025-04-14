@@ -25,6 +25,10 @@ def load_config(path=""):
     global difmap_path
     global uvw
     global font
+    global noise_method
+    global mfit_err_method
+    global res_lim_method
+
     if path=="":
 
         logging.basicConfig(
@@ -37,8 +41,13 @@ def load_config(path=""):
         logger.info("Logging initialized. Log file: Console only.")
         logger.info("No environment variable VCAT_CONFIG found, will use defaults.")
         difmap_path=find_difmap_path(logger)
+
+        #DEFAULTS
         uvw=[0,-1]
         font="DejaVu Sans"
+        noise_method="Histogram Fit"
+        mfit_err_method="flat"
+        res_lim_method="Kovalev05"
 
     else:
         with open(path, "r") as file:
@@ -80,6 +89,23 @@ def load_config(path=""):
         except:
             font = "DejaVu Sans"
 
+        try:
+            noise_method = config["noise_method"]
+            logger.info(f"Using noise method: {noise_method}")
+        except:
+            noise_method = "Histogram Fit"
+
+        try:
+            mfit_err_method = config["mfit_err_method"]
+            logger.info(f"Using modelfit error method: {mfit_err_method}")
+        except:
+            mfit_err_method = "flat"
+
+        try:
+            res_lim_method = config["res_lim_method"]
+            logger.info(f"Using resolution limit method: {res_lim_method}")
+        except:
+            res_lim_method = "Kovalev05"
 
     return logger
 

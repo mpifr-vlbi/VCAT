@@ -1,5 +1,5 @@
 from vcat import ImageData,ImageCube
-from vcat.plots.fits_image import KinematicPlot
+from vcat.plots.kinematic_plot import KinematicPlot
 import matplotlib.pyplot as plt
 import numpy as np
 import glob
@@ -17,7 +17,7 @@ im_cube=ImageCube().import_files(uvf_files=uvf_files,model_fits_files=model_file
 im_cube.import_component_association("../dataset_example/0506+056_kinematic/component_info.csv")
 
 #make a plot of the component evolution
-im_cube.plot_component_evolution("evpa")
+im_cube.plot_component_evolution("tb")
 
 #do kinematic fit
 im_cube.get_speed(order=3,show_plot=True)

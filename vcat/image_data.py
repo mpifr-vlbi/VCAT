@@ -28,7 +28,7 @@ from vcat.stacking_helpers import fold_with_beam, modelfit_difmap
 from skimage.measure import profile_line
 import warnings
 #initialize logger
-from vcat.config import logger,difmap_path,uvw
+from vcat.config import logger,difmap_path,uvw,mfit_err_method,res_lim_method,noise_method
 warnings.simplefilter('ignore', ErfaWarning)
 
 class ImageData(object):
@@ -116,8 +116,9 @@ class ImageData(object):
                  redshift=0,
                  model_save_dir="tmp/",
                  is_casa_model=False,
-                 noise_method="Histogram Fit", #choose noise method
-                 mfit_err_method="flat",    # FMP Apr25
+                 noise_method=noise_method, #choose noise method
+                 mfit_err_method=mfit_err_method,
+                 res_lim_method=res_lim_method,
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities,
                  fit_comp_polarization=False,
@@ -146,6 +147,8 @@ class ImageData(object):
             model_save_dir (str): Directory where temporary data for VCAT operations will be stored
             is_casa_model (bool): If using a CASA .fits model for 'model', set to True
             noise_method (str): Choose method to calculate image noise ('Histogram Fit', 'box', 'Image RMS', 'DIFMAP')
+            mfit_err_method (str): Choose method to compute modelcomponent errors ('flat', 'Schinzel12', 'Weaver22')
+            res_lim_method (str): Choose method to compute component resolution limit ('Kovalev05', 'Lobanov05','beam')
             correct_rician_bias (bool): Choose whether to correct polarization for Rician Bias
             error (float): Set relative error on the flux density scale
             fit_comp_polarization (bool): Choose whether to fit polarization of modelfit components
@@ -168,7 +171,6 @@ class ImageData(object):
         self.residual_map_path=""
         self.residual_map = []
         self.noise_method=noise_method
-        self.mfit_err_method=mfit_err_method    # FMP Apr25
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
@@ -478,8 +480,7 @@ class ImageData(object):
             write_mod_file(self.model_u, self.stokes_u_mod_file, freq=self.freq)
         except:
             pass
-        
-        # FMP Apr 25: changed the order here so the get_errors() function can actually use the residual map that is created
+
         #calculate residual map if uvf and modelfile present
         if self.uvf_file!="" and self.model_file_path!="" and not is_casa_model and  self.difmap_path!="":
             os.makedirs(model_save_dir+"residual_maps", exist_ok=True)
@@ -525,13 +526,11 @@ class ImageData(object):
                     # TODO handle exceptions where uvf_file and difmap are not available
                     comp_snr = comp["Flux"]/JyPerBeam2Jy(self.noise,self.beam_maj,self.beam_min,self.degpp*self.scale)
                     rms = self.noise
-                
-                # TODO: add mfit_err_method directly here when initiating components? For now it is done below when calling
-                    # get_comp_errors(). Component class already has default value defined in __init__
+
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
                                     comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
                                     redshift=redshift, is_core=is_core,beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,
-                                    freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr)
+                                    freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr,error_method=mfit_err_method,res_lim_method=res_lim_method)
                 self.components.append(component)
 
             #set distance to core for every component
@@ -548,9 +547,6 @@ class ImageData(object):
                         logger.warning("Trying to fit component polarization, but no uvf file loaded!")
                     else:
                         logger.debug("Not fitting component polarization")
-                
-                # determine errors of modelfit components based on selected method
-                comp.get_errors(weighting=uvw, method=mfit_err_method)
         
         hdu_list.close()
 

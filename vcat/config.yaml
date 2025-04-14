@@ -1,7 +1,16 @@
 #General settings:
 difmap_path: "/usr/local/difmap/uvf_difmap_2.5g/"
 uvw: [0,-1]
+
+#Method selection
+noise_method: "Histogram Fit"
+mfit_err_method: "flat"
+res_lim_method: "Kovalev05"
+
+#Plot settings
 font: "Quicksand"
+
+
 logging:
   level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
   log_file: ""
