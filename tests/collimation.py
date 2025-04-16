@@ -25,7 +25,7 @@ im1=im_cube.images.flatten()[0]
 plot=im1.fit_collimation_profile(method="ridgeline",jet="Twin",label="Ridgeline",color="black",show=True)
 
 #Test collimation profile for image cube
-plot=im_cube.fit_collimation_profile(method="model",jet="Twin",label="Model",color="black")
+plot=im_cube.fit_collimation_profile(method="model",jet="Twin",label="Model",color="black",show=False)
 
 im_cube.fit_collimation_profile(method="ridgeline",jet="Twin",label="Ridgeline",color="green",show=True)
 

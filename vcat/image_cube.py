@@ -54,7 +54,8 @@ class ImageCube(object):
     def __init__(self,
                  image_data_list=[], #list of ImageData objects
                  date_tolerance=1, #date tolerance to consider "simultaneous"
-                 freq_tolerance=1, #frequency tolerance to consider the same
+                 freq_tolerance=1, #frequency tolerance to consider the same,
+                 new_import=True
                  ):
         """
         Initialize ImageCube class.
@@ -76,7 +77,7 @@ class ImageCube(object):
         for image in image_data_list:
             if self.name=="":
                 self.name=image.name
-            elif self.name != image.name:
+            elif self.name != image.name and new_import:
                 logger.warning(f"ImageCube setup for source {self.name} but {image.name} detected in one input file!")
             if not any(abs(num - image.freq) <= freq_tolerance*1e9 for num in self.freqs):
                 self.freqs.append(image.freq)
@@ -139,7 +140,8 @@ class ImageCube(object):
 
         return line1+line2+line3
 
-    def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files="",**kwargs):
+    def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files="",
+                     date_tolerance=1,freq_tolerance=1,**kwargs):
         """
         Function to import ImageCube directly from (.fits-)files.
 
@@ -181,7 +183,7 @@ class ImageCube(object):
 
         logger.info(f"Imported {len(fits_files)} images successfully.")
         #reinitialize instance
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=date_tolerance,freq_tolerance=freq_tolerance)
 
     def masking(self,mode="all",mask_type="ellipse",args=False):
         """
@@ -223,7 +225,8 @@ class ImageCube(object):
         else:
             raise Exception("Please specify valid masking mode ('all', 'epoch', 'freq')!")
 
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def stack(self,mode="freq", stack_linpol=False):
         """
@@ -323,7 +326,8 @@ class ImageCube(object):
             images.append(ImageData(file,noise_method=self.images.flatten()[0].noise_method,difmap_path=self.images.flatten()[0].difmap_path))
 
         #return new ImageCube
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def get_common_beam(self,mode="all",arg="common",ppe=100,tolerance=0.0001,plot_beams=False):
         """
@@ -434,7 +438,8 @@ class ImageCube(object):
 
         logger.info(f"Image modifications completed.")
 
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     #This function generates lightcurve-like plots to plot the evolution of flux, lin_pol etc. vs. time
     def plot_evolution(self, value="flux",freq="",show=True, savefig="",
@@ -604,7 +609,8 @@ class ImageCube(object):
         else:
             raise Exception("Please specify valid regrid mode ('all', 'epoch', 'freq')!")
 
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def shift(self, mode="all", shift_x=0, shift_y=0, npix="",pixel_size="",weighting=uvw,useDIFMAP=True):
         # initialize empty array
@@ -644,7 +650,8 @@ class ImageCube(object):
         else:
             raise Exception("Please specify valid shift mode ('all', 'epoch', 'freq')!")
 
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def align(self,mode="all",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",
               ref_freq="",ref_epoch="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001):
@@ -793,7 +800,8 @@ class ImageCube(object):
         else:
             raise Exception("Please use a valid align mode ('all', 'epoch', 'freq').")
 
-        return ImageCube(image_data_list=images_new)
+        return ImageCube(image_data_list=images_new,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def slice(self,epoch_lim="",freq_lim=""):
         """
@@ -845,13 +853,15 @@ class ImageCube(object):
                       np.logical_and(mjds>=mjd_min,mjds<=mjd_max)))
 
 
-        return ImageCube(image_data_list=images[inds])
+        return ImageCube(image_data_list=images[inds],date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
 
     def concatenate(self,ImageCube2):
         images=np.append(self.images.flatten(),ImageCube2.images.flatten())
 
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
 
     def removeFreq(self, freq="",window=1.):
@@ -974,7 +984,8 @@ class ImageCube(object):
 
             spec_ind_maps.append(image_copy)
 
-        return ImageCube(image_data_list=spec_ind_maps)
+        return ImageCube(image_data_list=spec_ind_maps,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def get_images(self,freq="",epoch=""):
         if isinstance(epoch,str) and epoch!="":
@@ -1049,7 +1060,8 @@ class ImageCube(object):
 
             rm_maps.append(image_copy)
 
-        return ImageCube(image_data_list=rm_maps)
+        return ImageCube(image_data_list=rm_maps,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def get_turnover_map(self,epoch="",ref_image="",sigma_lim=10,max_feval=1000000,alphat=2.5,specific_pixel=(-1,-1),limit_freq=True):
         #Largely imported from Luca Ricci's Turnover frequency code
@@ -1145,7 +1157,8 @@ class ImageCube(object):
 
             final_images.append(image_copy)
 
-        return ImageCube(image_data_list=final_images)
+        return ImageCube(image_data_list=final_images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def rotate(self,angle,mode="all",useDIFMAP=True):
         images = []
@@ -1174,7 +1187,8 @@ class ImageCube(object):
         else:
             raise Exception("Please specify valid rotate mode ('all', 'epoch', 'freq')!")
 
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def center(self,mode="stokes_i",useDIFMAP=True):
         images=[]
@@ -1182,7 +1196,8 @@ class ImageCube(object):
         for image in self.images.flatten():
             images.append(image.center(mode=mode,useDIFMAP=useDIFMAP))
 
-        return ImageCube(image_data_list=images)
+        return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
 
     def get_ridgeline(self,mode="all",**kwargs):
         """
