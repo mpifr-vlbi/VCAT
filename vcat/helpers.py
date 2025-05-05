@@ -203,7 +203,7 @@ def get_ms_ps(fits_file):
     
     return ms_x, ps_x, ms_y, ps_y
 
-def get_comp_peak_rms(x,y, fits_file, uvf_file, mfit_file, weighting=[0,-1], rms_box=100, difmap_path=""):
+def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=[0,-1], rms_box=100, difmap_path=""):
     '''
     # Purpose: Short program to read in a .fits image and corresponding .uvfits
     and .mfit file (containing Gaussian modelfits) from difmap, to estimate the
@@ -279,7 +279,29 @@ def get_comp_peak_rms(x,y, fits_file, uvf_file, mfit_file, weighting=[0,-1], rms
         print(child.before)
         S_p = np.nan
 
-    rms = get_noise_from_residual_map("tmp/resmap_model.fits",ra,dec,rms_box)
+    rms = get_noise_from_residual_map("tmp/resmap_model.fits", ra, dec, rms_box)
+    
+    return S_p, rms
+
+def get_comp_peak_rms_image(x, y, fits_file, rms_box=100):
+    
+    ms_x, ps_x, ms_y, ps_y = get_ms_ps(fits_file)
+    fits_img = fits.getdata(fits_file)
+    fits_img = np.squeeze(fits_img)
+    
+    S_p = fits_img[int(round(ms_y/2 + y/ps_y, 0)),
+                   int(round(ms_x/2 - x/ps_x, 0)) - 1]
+    '''
+    The x-coordinates of the modelfit component have to be shifted by 1 pixel.
+    This issue appeared while testing if the values at a specified pixel read
+    off in difmap are the same as in the script. It turns out that difmap can
+    not return the values at the eastermost (to the left) of the x (RA) axis.
+    For some reason, this leads to the fact that when the map is saved from
+    difmap, that the eastermost 'column' of pixels (referring to the pixel no.
+    '0' of the x-axis in the 2D-array) does not exist.
+    '''
+    
+    rms = get_noise_from_residual_map("tmp/resmap_model.fits", x, y, rms_box)
     
     return S_p, rms
 

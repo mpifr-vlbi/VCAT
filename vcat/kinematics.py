@@ -54,7 +54,7 @@ class Component():
                 return 0
 
         # Calculate radius
-        self.radius = np.sqrt(self.delta_x_est ** 2 + self.delta_y_est ** 2) * scale
+        self.radius = np.sqrt(self.delta_x_est ** 2 + self.delta_y_est ** 2)
 
         # Calculate theta
         self.theta = calculate_theta()
@@ -109,9 +109,23 @@ class Component():
 
     def __str__(self):
         line1 = f"Component with ID {self.component_number} at frequency {self.freq * 1e-9:.1f} GHz\n"
-        line2 = f"x: {self.x * self.scale:.2f}mas, y:{self.y * self.scale:.2f}mas\n"
-        line3 = f"Maj: {self.maj * self.scale:.2f}mas, Min: {self.min * self.scale:.2f}, PA: {self.pos}°\n"
-        line4 = f"Flux: {self.flux*1e3} mJy, Distance to Core: {self.distance_to_core * self.scale:.2f} mas\n"
+        if self.scale == 1.:
+            line2 = f"x: {self.x * self.scale:.2e} deg, y:{self.y * self.scale:.2e} deg\n"
+            line3 = f"Maj: {self.maj * self.scale:.2e} deg, Min: {self.min * self.scale:.2e} deg, PA: {self.pos} °\n"
+            line4 = f"Flux: {self.flux*1e3} mJy, Distance to Core: {self.distance_to_core * self.scale:.2e} deg\n"
+        if self.scale == 60.:
+            line2 = f"x: {self.x * self.scale:.2e} arcmin, y:{self.y * self.scale:.2e} arcmin\n"
+            line3 = f"Maj: {self.maj * self.scale:.2e} arcmin, Min: {self.min * self.scale:.2e} arcmin, PA: {self.pos} °\n"
+            line4 = f"Flux: {self.flux*1e3} mJy, Distance to Core: {self.distance_to_core * self.scale:.2e} arcmin\n"
+        if self.scale == 360.:
+            line2 = f"x: {self.x * self.scale:.2e} arcsec, y:{self.y * self.scale:.2e} arcsec\n"
+            line3 = f"Maj: {self.maj * self.scale:.2e} arcsec, Min: {self.min * self.scale:.2e} arcsec, PA: {self.pos} °\n"
+            line4 = f"Flux: {self.flux*1e3} mJy, Distance to Core: {self.distance_to_core * self.scale:.2e} arcsec\n"
+        else:
+            line2 = f"x: {self.x * self.scale:.2f} mas, y:{self.y * self.scale:.2f} mas\n"
+            line3 = f"Maj: {self.maj * self.scale:.2f} mas, Min: {self.min * self.scale:.2f} mas, PA: {self.pos} °\n"
+            line4 = f"Flux: {self.flux*1e3} mJy, Distance to Core: {self.distance_to_core * self.scale:.2f} mas\n"
+        
         if self.lin_pol!=0:
             line5=f"Lin Pol: {self.lin_pol*1e3} mJy ({self.lin_pol/self.flux*1e2}%), EVPA: {self.evpa}°\n"
         else:
@@ -130,6 +144,8 @@ class Component():
             self.theta_err = 20
 
         elif method == 'Schinzel12':
+            scale = self.scale
+            
             if self.snr < 0:
                 logger.debug('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
                 self.snr=1
@@ -159,15 +175,15 @@ class Component():
                 self.min_err = np.nan
             
             ### Calculate other errors ###
-            self.radius_err = np.sqrt(self.beam_maj*self.beam_min + size_maj**2)/SNR_p
+            self.radius_err = np.sqrt(self.beam_maj/self.scale*self.beam_min/self.scale + size_maj**2)/SNR_p
             self.theta_err = np.arctan(self.radius_err/self.radius) * 180/np.pi
 
             # NOTE: this does not take into account the covariance of the radial coordinates!
             # TODO: implement that
-            self.x_err = np.sqrt(  (self.radius_err/self.scale*np.sin(self.theta/180*np.pi))**2
-                                 + (self.radius/self.scale*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
-            self.y_err = np.sqrt(  (self.radius_err/self.scale*np.cos(self.theta/180*np.pi))**2
-                                 + (self.radius/self.scale*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
+            self.x_err = np.sqrt(  (self.radius_err*np.sin(self.theta/180*np.pi))**2
+                                 + (self.radius*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
+            self.y_err = np.sqrt(  (self.radius_err*np.cos(self.theta/180*np.pi))**2
+                                 + (self.radius*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
         elif method == 'Weaver22':
             scale = self.scale
 
@@ -179,7 +195,7 @@ class Component():
                 S_p = rms
 
             ### Calculate errors ###
-            sigma_p = self.noise*np.sqrt(1 + SNR)
+            sigma_p = self.noise*np.sqrt(1 + self.snr)
             SNR_p = S_p/sigma_p
 
             ### Calculate resolution limit ###
@@ -198,17 +214,17 @@ class Component():
                 self.min_err = np.nan
             
             ### Calculate other errors ###
-            Tb_obs = 7.5E8*self.flux/(size_maj*size_min)    # in K, adjusted from Weaver+'22 to include elliptical Gaussian components
-            self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/scale    # in deg
-            self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22
+            Tb_obs = 7.5E8*self.flux/(size_maj*size_min*self.scale**2)    # in K, adjusted from Weaver+'22 to include elliptical Gaussian components
+            self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/self.scale    # in deg
+            self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22.
                 # this assumes that the beam is ~ 2 times more elongated in North-South direction. TODO: generalize this.
-            self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (0.05*self.flux**2))    # in Jy
+            self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (0.05*self.flux**2))    # in Jy, assumes 5 % gain error added in quadrature
 
-            self.maj_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
-            self.min_err = 6.5*Tb_obs**(-0.25)/scale    # in deg
+            self.maj_err = 6.5*Tb_obs**(-0.25)/self.scale    # in deg
+            self.min_err = 6.5*Tb_obs**(-0.25)/self.scale    # in deg
 
             self.radius_err = np.sqrt( (self.x_err*self.x/np.sqrt(self.x**2+self.y**2))**2
-                                      +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*scale    # in mas
+                                      +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)    # in deg
             self.theta_err = np.arctan(self.radius_err/self.radius)*180/np.pi    # in deg
 
     def set_distance_to_core(self, core_x, core_y):
@@ -227,6 +243,42 @@ class Component():
                 "delta_x_est": self.delta_x_est, "delta_y_est": self.delta_y_est,
                 "distance_to_core": self.distance_to_core, "redshift": self.redshift,
                 "freq": self.freq, "tb": self.tb, "scale": self.scale, "lin_pol": self.lin_pol, "evpa": self.evpa}
+    
+    def print_errors(self):
+        print(f'! Info on component {self.component_number}')
+        print(f'flux: {self.flux:.5f} +/- {self.flux_err:.5f} Jy')
+        if self.scale == 1.:
+            print(f'radius: {comp.radius:.3f} +/- {comp.radius_err:.3f} mas')
+            print(f'theta: {comp.theta:.1f} +/- {comp.theta_err:.1f} °')
+            print(f'RA: {comp.x:.2e} +/- {comp.x_err:.2e} deg')
+            print(f'Dec: {comp.y:.2e} +/- {comp.y_err:.2e} deg')
+            print(f'Major axis: {comp.maj:.2e} +/- {comp.maj_err:.2e} deg')
+            print(f'Minor axis: {comp.min:.2e} +/- {comp.min_err:.2e} deg')
+            print('\n')
+        elif self.scale == 60.:
+            print(f'radius: {self.radius*self.scale:.2e} +/- {self.radius_err*self.scale:.2e} arcmin')
+            print(f'theta: {self.theta:.1f} +/- {self.theta_err:.1f} °')
+            print(f'RA: {self.x*self.scale:.2e} +/- {self.x_err*self.scale:.2e} arcmin')
+            print(f'Dec: {self.y*self.scale:.2e} +/- {self.y_err*self.scale:.2e} arcmin')
+            print(f'Major axis: {self.maj*self.scale:.2e} +/- {self.maj_err*self.scale:.2e} arcmin')
+            print(f'Minor axis: {self.min*self.scale:.2e} +/- {self.min_err*self.scale:.2e} arcmin')
+            print('\n')
+        elif self.scale == 360.:
+            print(f'radius: {self.radius*self.scale:.2e} +/- {self.radius_err*self.scale:.2e} arcsec')
+            print(f'theta: {self.theta:.1f} +/- {self.theta_err:.1f} °')
+            print(f'RA: {self.x*self.scale:.2e} +/- {self.x_err*self.scale:.2e} arcsec')
+            print(f'Dec: {self.y*self.scale:.2e} +/- {self.y_err*self.scale:.2e} arcsec')
+            print(f'Major axis: {self.maj*self.scale:.2e} +/- {self.maj_err*self.scale:.2e} arcsec')
+            print(f'Minor axis: {self.min*self.scale:.2e} +/- {self.min_err*self.scale:.2e} arcsec')
+            print('\n')
+        else:
+            print(f'radius: {self.radius*self.scale:.3f} +/- {self.radius_err*self.scale:.3f} mas')
+            print(f'theta: {self.theta:.1f} +/- {self.theta_err:.1f} °')
+            print(f'RA: {self.x*self.scale:.2f} +/- {self.x_err*self.scale:.2f} mas')
+            print(f'Dec: {self.y*self.scale:.2f} +/- {self.y_err*self.scale:.2f} mas')
+            print(f'Major axis: {self.maj*self.scale:.3f} +/- {self.maj_err*self.scale:.3f} mas')
+            print(f'Minor axis: {self.min*self.scale:.3f} +/- {self.min_err*self.scale:.3f} mas')
+            print('\n')
 
 class ComponentCollection():
     def __init__(self, components=[], name="",date_tolerance=1,freq_tolerance=1):

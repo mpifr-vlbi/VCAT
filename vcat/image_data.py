@@ -256,6 +256,7 @@ class ImageData(object):
         else:
             self.scale = 60. * 60. * 1000.
             self.unit = 'mas'
+        # FMP suggestion: add microarcseconds for possible scale
 
         # Set beam parameters
         try:
@@ -525,9 +526,13 @@ class ImageData(object):
                                                  weighting=uvw, difmap_path=self.difmap_path)
                     comp_snr = S_p/rms
                 else:
-                    # TODO handle exceptions where uvf_file and difmap are not available
-                    comp_snr = comp["Flux"]/JyPerBeam2Jy(self.noise,self.beam_maj,self.beam_min,self.degpp*self.scale)
-                    rms = self.noise
+                    if ind == 0:
+                        logger.warning('No .uvfits file or difmap path provided. Calculate modelfit component SNR based on the clean map only.')
+                    # TODO: use .fits file from Gaussian modelfit instead of clean map
+                    S_p, rms = get_comp_peak_rms_image(comp["Delta_x"]*self.scale,
+                                                       comp["Delta_y"]*self.scale,
+                                                       self.fits_file)
+                    comp_snr = S_p/rms
 
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
                                     comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
