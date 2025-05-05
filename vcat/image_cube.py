@@ -1475,8 +1475,6 @@ class ImageCube(object):
         fit_fail_counterjet=False
 
         if method=="model":
-            #TODO get actual de-convolved width from modelcomps, currently it is just the maj
-
             #jet info
             dists, widths, width_errs = self.get_model_profile("maj",freq=freq,epoch=epoch,core_position=core_position)
 

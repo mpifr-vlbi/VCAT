@@ -2033,12 +2033,10 @@ class ImageData(object):
             for comp in self.components:
                 #if component Jet
                 dists.append(comp.distance_to_core*self.scale)
-                #TODO calculate deconvolved width!!!
                 widths.append(comp.maj*self.scale)
                 width_errs.append(comp.maj_err*self.scale)
                 #else component counterjet
                     #cdists.append(comp.distance_to_core * self.scale)
-                    # TODO calculate deconvolved width!!!
                     #cwidths.append(comp.maj * self.scale)
                     #cwidth_errs.append(comp.maj_err * self.scale)
 
