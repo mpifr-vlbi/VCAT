@@ -5,8 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 #Import Data
-dataC=ImageData(model="../dataset_example/3C111_C_2014_05_08/3C111_C_2014_05_08.modelfits")
+dataC=ImageData(model="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.modelfits")
 
-#dataC.set_core_component(0)
+dataC.plot(plot_model=True,plot_comp_ids=True)
 
-#dataC.remove_core()
+dataC.remove_component(0)
+dataC.remove_component(1)
+dataC.remove_component(2)
+dataC.remove_component(3)
+dataC.remove_component(5)
+
+dataC.plot()

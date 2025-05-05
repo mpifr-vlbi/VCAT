@@ -1987,15 +1987,15 @@ class ImageData(object):
 
         raise Exception(f"No core component defined.")
 
-    def remove_core(self):
+    def remove_component(self,id):
         """
         Function to remove the core component from the Stokes I image
 
-        Returns:
         """
 
-        core=self.get_core()
+        core=self.get_component(id)
 
+        #TODO rewrite to work without ehtim
         import ehtim as eh
         mod=eh.model.Model()
 
@@ -2003,14 +2003,21 @@ class ImageData(object):
                           FWHM_maj=core.maj*core.scale*eh.RADPERUAS*1e3,
                           FWHM_min=core.min*core.scale*eh.RADPERUAS*1e3,
                           PA=core.pos/180*np.pi,
-                          x0=core.x/core.scale/180*np.pi,
-                          y0=core.y/core.scale/180*np.pi)
+                          x0=core.x/180*np.pi,
+                          y0=core.y/180*np.pi)
 
-        im=mod.makeimage((np.max(self.X)-np.min(self.X))*1e3*eh.RADPERUAS, len(self.X))
+        im=mod.make_image((np.max(self.X)-np.min(self.X))*1e3*eh.RADPERUAS, len(self.X))
+        im=im.blur_gauss([self.beam_maj/self.scale/180*np.pi,self.beam_min/self.scale/180*np.pi,self.beam_pa/180*np.pi])
 
-        im.display(show=True)
-        plt.show()
+        image=im.imvec.reshape((im.ydim, im.xdim))
+        image=Jy2JyPerBeam(image,self.beam_maj,self.beam_min,self.degpp*self.scale)
 
+        image=np.flip(image,axis=0)
+
+        #subtract core from stokes I image
+        self.Z=np.array(self.Z)-image
+
+        return self
 
     def fit_comp_polarization(self):
         write_mod_file_from_components(self.components,channel="i",export="tmp/model_q.mod",adv=[True])
