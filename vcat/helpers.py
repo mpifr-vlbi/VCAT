@@ -27,7 +27,7 @@ from astropy.cosmology import FlatLambdaCDM
 from vcat.fit_functions import broken_powerlaw,powerlaw
 
 #initialize logger
-from vcat.config import logger
+from vcat.config import logger,uvw
 
 # takes a an image (2d) array as input and calculates the sigma levels for plotting, sigma_contour_limit denotes the sigma level of the lowest contour
 def get_sigma_levs(image,  # 2d array/list
@@ -203,7 +203,7 @@ def get_ms_ps(fits_file):
     
     return ms_x, ps_x, ms_y, ps_y
 
-def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=[0,-1], rms_box=100, difmap_path=""):
+def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=uvw, rms_box=100, difmap_path=""):
     '''
     # Purpose: Short program to read in a .fits image and corresponding .uvfits
     and .mfit file (containing Gaussian modelfits) from difmap, to estimate the
@@ -283,7 +283,7 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=[0,-1], rm
     
     return S_p, rms
 
-def get_comp_peak_rms_image(x, y, fits_file, rms_box=100):
+def get_pixel_value(x, y, fits_file):
     
     ms_x, ps_x, ms_y, ps_y = get_ms_ps(fits_file)
     fits_img = fits.getdata(fits_file)
@@ -301,9 +301,7 @@ def get_comp_peak_rms_image(x, y, fits_file, rms_box=100):
     '0' of the x-axis in the 2D-array) does not exist.
     '''
     
-    rms = get_noise_from_residual_map("tmp/resmap_model.fits", x, y, rms_box)
-    
-    return S_p, rms
+    return S_p
 
 #writes a .mod file given an input of from getComponentInfo(fitsfile)
 #the adv options adds a "v" character to the model to make the parameters fittable in DIFMAP
@@ -619,8 +617,8 @@ def JyPerBeam2Jy(jpb,b_maj,b_min,px_inc):
     return jpb/PXPERBEAM(b_maj,b_min,px_inc)
 
 # calculates the residual map given a uvf file and a mod file
-def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", save_location="residual.fits", npix=2048,pxsize=0.05,
-                     do_selfcal=False):
+def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", save_location="residual.fits", weighting=uvw,
+                     npix=2048,pxsize=0.05,do_selfcal=False):
     """ calculates residual map and stores it as .fits file.
     Args:
         uvf_file: Path to a .uvf file
@@ -652,7 +650,7 @@ def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", sa
     send_difmap_command(f"select {channel}")
     if do_selfcal:
         send_difmap_command("selfcal")
-    send_difmap_command("uvw 0,-1")  # use natural weighting
+    send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))  # use natural weighting
     send_difmap_command("rmod "+mod_file)
     send_difmap_command("maps " + str(npix) + "," + str(pxsize))
     send_difmap_command("wdmap " + save_location) #save the residual map to a fits file
@@ -684,7 +682,7 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100):
     return rms
 
 #returns the reduced chi-square of a modelfit
-def get_model_chi_square_red(uvf_file,mod_file,difmap_path=difmap_path):
+def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_path):
     env = os.environ.copy()
 
     # add difmap to PATH
@@ -704,7 +702,7 @@ def get_model_chi_square_red(uvf_file,mod_file,difmap_path=difmap_path):
 
     send_difmap_command("obs " + uvf_file)
     send_difmap_command("select i")
-    send_difmap_command("uvw 0,-1")  # use natural weighting
+    send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))
     send_difmap_command("rmod " + mod_file)
     #send modelfit 0 command to calculate chi-squared
     output=send_difmap_command("modelfit 0")

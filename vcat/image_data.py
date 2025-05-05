@@ -527,11 +527,11 @@ class ImageData(object):
                     comp_snr = S_p/rms
                 else:
                     if ind == 0:
-                        logger.warning('No .uvfits file or difmap path provided. Calculate modelfit component SNR based on the clean map only.')
+                        logger.warning('No .uvfits file or difmap path provided. Calculating modelfit component SNR based on the clean map only.')
                     # TODO: use .fits file from Gaussian modelfit instead of clean map
-                    S_p, rms = get_comp_peak_rms_image(comp["Delta_x"]*self.scale,
-                                                       comp["Delta_y"]*self.scale,
-                                                       self.fits_file)
+                    S_p = self.get_pixel_value(comp["Delta_x"]*self.scale,
+                                                   comp["Delta_y"]*self.scale)
+                    rms=self.noise
                     comp_snr = S_p/rms
 
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
@@ -649,6 +649,12 @@ class ImageData(object):
             return "".join(output)
         except:
             return "No data loaded yet."
+
+    def get_pixel_value(self,x,y):
+        Xind=closest_index(self.X,x)
+        Yind=closest_index(self.Y,y)
+
+        return self.Z[Yind,Xind]
 
     def copy(self):
         return copy.copy(self)
@@ -1980,6 +1986,31 @@ class ImageData(object):
                 return comp
 
         raise Exception(f"No core component defined.")
+
+    def remove_core(self):
+        """
+        Function to remove the core component from the Stokes I image
+
+        Returns:
+        """
+
+        core=self.get_core()
+
+        import ehtim as eh
+        mod=eh.model.Model()
+
+        mod=mod.add_gauss(F0=core.flux,
+                          FWHM_maj=core.maj*core.scale*eh.RADPERUAS*1e3,
+                          FWHM_min=core.min*core.scale*eh.RADPERUAS*1e3,
+                          PA=core.pos/180*np.pi,
+                          x0=core.x/core.scale/180*np.pi,
+                          y0=core.y/core.scale/180*np.pi)
+
+        im=mod.makeimage((np.max(self.X)-np.min(self.X))*1e3*eh.RADPERUAS, len(self.X))
+
+        im.display(show=True)
+        plt.show()
+
 
     def fit_comp_polarization(self):
         write_mod_file_from_components(self.components,channel="i",export="tmp/model_q.mod",adv=[True])
