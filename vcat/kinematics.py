@@ -506,9 +506,8 @@ class ComponentCollection():
             for i,comp in enumerate(components):
                 coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
                 coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
-
-                result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r)
-                results.append(result)
+            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r)
+            results.append(result)
 
         return results
 
