@@ -287,16 +287,16 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=uvw, rms_b
 def coreshift_fit(freqs,coreshifts,coreshift_err,ref_freq,k_r="",print=False):
 
         #define core shift function (Lobanov 1998)
-        def delta_r(nu,k_r,r0,ref_freq):
+        def delta_r(nu,r0,k_r,ref_freq):
             return r0*((nu/ref_freq)**(-1/k_r)-1)
 
         if k_r=="":
-            params, covariance = curve_fit(lambda nu, k, r0: delta_r(nu,k,r0,ref_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
+            params, covariance = curve_fit(lambda nu, k, r0: delta_r(nu,r0,k,ref_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
             k_r_fitted, r0_fitted = params
         else:
-            params, covariance = curve_fit(lambda nu, r0: delta_r(nu,k_r,r0,ref_freq),freqs,coreshifts,p0=[1],sigma=coreshift_err)
+            params, covariance = curve_fit(lambda nu, r0: delta_r(nu,r0,k_r,ref_freq),freqs,coreshifts,p0=[1],sigma=coreshift_err)
             k_r_fitted=k_r
-            r0_fitted = params
+            r0_fitted = params[0]
 
         if print:
             logger.info(f"Fitted k_r: {k_r_fitted}")
