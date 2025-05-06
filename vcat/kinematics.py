@@ -6,7 +6,6 @@ import pandas as pd
 from sympy import Ellipse, Point, Line
 import vcat.fit_functions as ff
 import sys
-from scipy.optimize import curve_fit
 from vcat.helpers import closest_index, get_comp_peak_rms, calculate_dist_with_err, coreshift_fit
 from scipy.interpolate import interp1d
 

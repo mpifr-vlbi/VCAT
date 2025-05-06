@@ -25,6 +25,7 @@ import astropy.units as u
 import astropy.constants as const
 from astropy.cosmology import FlatLambdaCDM
 from vcat.fit_functions import broken_powerlaw,powerlaw
+from scipy.optimize import curve_fit
 
 #initialize logger
 from vcat.config import logger,uvw
