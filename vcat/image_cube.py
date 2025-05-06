@@ -1309,7 +1309,7 @@ class ImageCube(object):
 
         return fit
 
-    def fit_coreshift(self,id,epoch="",plot=False):
+    def fit_coreshift(self,ids,epoch="",plot=False,combine_epoch=True,combine_comp=True):
 
         if epoch=="":
             epochs=Time(self.dates).decimalyear
@@ -1318,13 +1318,60 @@ class ImageCube(object):
         elif not isinstance(epoch, list):
             raise Exception("Invalid input for 'epoch'.")
 
-        cc=self.get_comp_collection(id)
-        fit=cc.get_coreshift(epochs=epochs)
+        if isinstance(ids,int):
+            ids=[ids]
+        elif not isinstance(id,list):
+            raise Exception("Please provide valid id (int or list[int])")
 
-        for i in range(len(epochs)):
+        fits=[]
+
+        for i in ids:
+            cc=self.get_comp_collection(i)
+            fit=cc.get_coreshift(epochs=epochs)
+            fits.append(fit)
+
+        freq_to_fit = []
+        coreshift_to_fit = []
+        coreshift_err_to_fit = []
+        for j in range(len(epochs)):
+            for i in range(len(ids)):
+                freq_to_fit.concatenate(fits[i][j]["freqs"])
+                coreshift_to_fit.concatenate(fits[i][j]["coreshifts"])
+                coreshift_err_to_fit.concatenate(fits[i][j]["coreshift_err"])
+
+                if not combine_comp and not combine_epoch:
+                    #do the fit
+                    fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit)
+
+                    if plot:
+                        plot=KinematicPlot()
+                        plot.plot_coreshift_fit(fit)
+                        plt.show()
+
+                    freq_to_fit = []
+                    coreshift_to_fit = []
+                    coreshift_err_to_fit = []
+
+            if not combine_epoch and combine_comp:
+                # do the fit
+                fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit)
+
+                if plot:
+                    plot = KinematicPlot()
+                    plot.plot_coreshift_fit(fit)
+                    plt.show()
+
+                freq_to_fit = []
+                coreshift_to_fit = []
+                coreshift_err_to_fit = []
+
+        if combine_epoch and combine_comp:
+            # do the fit
+            fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit)
+
             if plot:
-                plot=KinematicPlot()
-                plot.plot_coreshift_fit(fit[i])
+                plot = KinematicPlot()
+                plot.plot_coreshift_fit(fit)
                 plt.show()
 
         return fit

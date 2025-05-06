@@ -7,7 +7,7 @@ from sympy import Ellipse, Point, Line
 import vcat.fit_functions as ff
 import sys
 from scipy.optimize import curve_fit
-from vcat.helpers import closest_index, get_comp_peak_rms, calculate_dist_with_err
+from vcat.helpers import closest_index, get_comp_peak_rms, calculate_dist_with_err, coreshift_fit
 from scipy.interpolate import interp1d
 
 #initialize logger
@@ -471,7 +471,7 @@ class ComponentCollection():
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
 
-    def get_coreshift(self, epochs=""):
+    def get_coreshift(self, epochs="",do_fit=False):
 
         if epochs=="":
             epochs=self.epochs_distinct
@@ -508,19 +508,8 @@ class ComponentCollection():
                 coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
                 coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
 
-            #define core shift function (Lobanov 1998)
-            def delta_r(nu,k_r,r0,ref_freq):
-                return r0*((nu/ref_freq)**(-1/k_r)-1)
-
-            params, covariance = curve_fit(lambda nu, k_r, r0: delta_r(nu,k_r,r0,max_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
-
-            k_r_fitted, r0_fitted = params
-
-            logger.info(f"Fitted k_r: {k_r_fitted}")
-            logger.info(f"Fitted r0: {r0_fitted}")
-
-            results.append({"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":max_freq,"freqs":freqs,"coreshifts":coreshifts,"coreshift_err":coreshift_err})
-
+                result=coreshift_fit(freqs,coreshifts,coreshift_err)
+                results.append(result)
         return results
 
     def fit_comp_spectrum(self,epochs="",add_data=False,plot_areas=False,plot_all_components=False,comps=False,
