@@ -1335,9 +1335,9 @@ class ImageCube(object):
         coreshift_err_to_fit = []
         for j in range(len(epochs)):
             for i in range(len(ids)):
-                freq_to_fit.concatenate(fits[i][j]["freqs"])
-                coreshift_to_fit.concatenate(fits[i][j]["coreshifts"])
-                coreshift_err_to_fit.concatenate(fits[i][j]["coreshift_err"])
+                freq_to_fit+=fits[i][j]["freqs"]
+                coreshift_to_fit+=concatenatefits[i][j]["coreshifts"]
+                coreshift_err_to_fit+=concatenatefits[i][j]["coreshift_err"]
                 ref_freq=fits[i][j]["ref_freq"]
 
                 if not combine_comp and not combine_epoch:
