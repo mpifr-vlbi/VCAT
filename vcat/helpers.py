@@ -292,7 +292,7 @@ def coreshift_fit(freqs,coreshifts,coreshift_err,ref_freq,k_r="",print=False):
 
         if k_r=="":
             params, covariance = curve_fit(lambda nu, k, r0: delta_r(nu,r0,k,ref_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
-            k_r_fitted, r0_fitted = params
+            r0_fitted, k_r_fitted = params
         else:
             params, covariance = curve_fit(lambda nu, r0: delta_r(nu,r0,k_r,ref_freq),freqs,coreshifts,p0=[1],sigma=coreshift_err)
             k_r_fitted=k_r
