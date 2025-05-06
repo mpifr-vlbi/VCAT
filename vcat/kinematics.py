@@ -35,6 +35,7 @@ class Component():
         self.delta_x_est = self.x #TODO check this!
         self.delta_y_est = self.y #TODO check this!
         self.distance_to_core = np.sqrt(self.delta_x_est ** 2 + self.delta_y_est ** 2)
+        self.distance_to_core_err = 0
         self.redshift = redshift
         self.freq=freq
         self.lin_pol=lin_pol
@@ -333,7 +334,7 @@ class ComponentCollection():
                         self.year[i,j]=comp.year
                         self.mjds[i,j]=comp.mjd
                         self.dist[i,j]=comp.distance_to_core * self.scale
-                        self.dist_err[i,j]=comp.distance_to_core_error
+                        self.dist_err[i,j]=comp.distance_to_core_err
                         self.xs[i,j]=comp.x
                         self.ys[i,j]=comp.y
                         self.fluxs[i,j]=comp.flux
