@@ -1338,10 +1338,11 @@ class ImageCube(object):
                 freq_to_fit.concatenate(fits[i][j]["freqs"])
                 coreshift_to_fit.concatenate(fits[i][j]["coreshifts"])
                 coreshift_err_to_fit.concatenate(fits[i][j]["coreshift_err"])
+                ref_freq=fits[i][j]["ref_freq"]
 
                 if not combine_comp and not combine_epoch:
                     #do the fit
-                    fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit)
+                    fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq)
 
                     if plot:
                         plot=KinematicPlot()
@@ -1354,8 +1355,7 @@ class ImageCube(object):
 
             if not combine_epoch and combine_comp:
                 # do the fit
-                fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit)
-
+                fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq)
                 if plot:
                     plot = KinematicPlot()
                     plot.plot_coreshift_fit(fit)
@@ -1367,7 +1367,7 @@ class ImageCube(object):
 
         if combine_epoch and combine_comp:
             # do the fit
-            fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit)
+            fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq)
 
             if plot:
                 plot = KinematicPlot()

@@ -470,7 +470,7 @@ class ComponentCollection():
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
 
-    def get_coreshift(self, epochs="",do_fit=False):
+    def get_coreshift(self, epochs=""):
 
         if epochs=="":
             epochs=self.epochs_distinct
@@ -507,8 +507,9 @@ class ComponentCollection():
                 coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
                 coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
 
-                result=coreshift_fit(freqs,coreshifts,coreshift_err)
+                result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq)
                 results.append(result)
+
         return results
 
     def fit_comp_spectrum(self,epochs="",add_data=False,plot_areas=False,plot_all_components=False,comps=False,
