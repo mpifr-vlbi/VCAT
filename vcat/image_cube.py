@@ -16,7 +16,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from vcat.image_data import ImageData
 from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
-                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit,fit_width)
+                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit,fit_width, coreshift_fit)
 from vcat.plots.evolution_plot import EvolutionPlot
 from vcat.plots.multi_fits_image import MultiFitsImage
 from vcat.plots.kinematic_plot import KinematicPlot
