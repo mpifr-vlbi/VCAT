@@ -231,6 +231,8 @@ class Component():
         self.delta_y_est = self.y - core_y
         self.distance_to_core, self.distance_to_core_err = calculate_dist_with_err(self.x,self.y,core_x,core_y,
                                                                                    self.x_err,self.y_err,core_x_err,core_y_err)
+        self.distance_to_core=self.distance_to_core*self.scale
+        self.distance_to_core_err=self.distance_to_core_err*self.scale
 
     def assign_component_number(self, number):
         self.component_number = number
