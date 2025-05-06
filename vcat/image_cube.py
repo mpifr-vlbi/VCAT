@@ -1327,7 +1327,7 @@ class ImageCube(object):
 
         for i in ids:
             cc=self.get_comp_collection(i)
-            fit=cc.get_coreshift(epochs=epochs)
+            fit=cc.get_coreshift(epochs=epochs,k_r=k_r)
             fits.append(fit)
 
         freq_to_fit = []

@@ -470,7 +470,7 @@ class ComponentCollection():
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
 
-    def get_coreshift(self, epochs=""):
+    def get_coreshift(self, epochs="",k_r=""):
 
         if epochs=="":
             epochs=self.epochs_distinct
@@ -507,7 +507,7 @@ class ComponentCollection():
                 coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
                 coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
 
-                result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq)
+                result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r)
                 results.append(result)
 
         return results
