@@ -284,18 +284,24 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=uvw, rms_b
     
     return S_p, rms
 
-def coreshift_fit(freqs,coreshifts,coreshift_err,ref_freq):
+def coreshift_fit(freqs,coreshifts,coreshift_err,ref_freq,k_r="",print=False):
 
         #define core shift function (Lobanov 1998)
         def delta_r(nu,k_r,r0,ref_freq):
             return r0*((nu/ref_freq)**(-1/k_r)-1)
 
-        params, covariance = curve_fit(lambda nu, k_r, r0: delta_r(nu,k_r,r0,ref_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
+        if k_r=="":
+            params, covariance = curve_fit(lambda nu, k, r0: delta_r(nu,k,r0,ref_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
+            k_r_fitted, r0_fitted = params
+        else:
+            params, covariance = curve_fit(lambda nu, r0: delta_r(nu,k_r,r0,ref_freq),freqs,coreshifts,p0=[1,1],sigma=coreshift_err)
+            k_r_fitted=k_r
+            r0_fitted = params
 
-        k_r_fitted, r0_fitted = params
+        if print:
+            logger.info(f"Fitted k_r: {k_r_fitted}")
+            logger.info(f"Fitted r0: {r0_fitted}")
 
-        logger.info(f"Fitted k_r: {k_r_fitted}")
-        logger.info(f"Fitted r0: {r0_fitted}")
         result={"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":ref_freq,"freqs":freqs,"coreshifts":coreshifts,
                 "coreshift_err":coreshift_err,"ref_freq":ref_freq}
 

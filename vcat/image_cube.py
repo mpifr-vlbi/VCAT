@@ -1309,7 +1309,7 @@ class ImageCube(object):
 
         return fit
 
-    def fit_coreshift(self,ids,epoch="",plot=False,combine_epoch=True,combine_comp=True):
+    def fit_coreshift(self,ids,epoch="",k_r="",plot=False,combine_epoch=True,combine_comp=True):
 
         if epoch=="":
             epochs=Time(self.dates).decimalyear
@@ -1342,7 +1342,7 @@ class ImageCube(object):
 
                 if not combine_comp and not combine_epoch:
                     #do the fit
-                    fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq)
+                    fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq,k_r=k_r,print=True)
 
                     if plot:
                         plot=KinematicPlot()
@@ -1355,7 +1355,7 @@ class ImageCube(object):
 
             if not combine_epoch and combine_comp:
                 # do the fit
-                fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq)
+                fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,print=True)
                 if plot:
                     plot = KinematicPlot()
                     plot.plot_coreshift_fit(fit)
@@ -1367,7 +1367,7 @@ class ImageCube(object):
 
         if combine_epoch and combine_comp:
             # do the fit
-            fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq)
+            fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,print=True)
 
             if plot:
                 plot = KinematicPlot()
