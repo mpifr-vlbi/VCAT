@@ -7,7 +7,7 @@ from sympy import Ellipse, Point, Line
 import vcat.fit_functions as ff
 import sys
 from scipy.optimize import curve_fit
-from vcat.helpers import closest_index, get_comp_peak_rms
+from vcat.helpers import closest_index, get_comp_peak_rms, calculate_dist_with_err
 from scipy.interpolate import interp1d
 
 #initialize logger
@@ -140,7 +140,7 @@ class Component():
             self.maj_err = 0.1 * self.maj
             self.min_err = 0.1 * self.min
             self.flux_err = 0.1 * self.flux
-            self.radius_err = 0.1 * self.maj
+            self.radius_err = 0.1 * self.maj * self.scale
             self.theta_err = 20
 
         elif method == 'Schinzel12':
@@ -174,7 +174,7 @@ class Component():
                 self.min_err = np.nan
             
             ### Calculate other errors ###
-            self.radius_err = np.sqrt(self.beam_maj*self.beam_min + size_maj**2)/SNR_p
+            self.radius_err = np.sqrt(self.beam_maj*self.beam_min + size_maj**2*self.scale**2)/SNR_p
             self.theta_err = np.arctan(self.radius_err/self.radius) * 180/np.pi
 
             # NOTE: this does not take into account the covariance of the radial coordinates!
@@ -222,13 +222,14 @@ class Component():
             self.min_err = 6.5*Tb_obs**(-0.25)/self.scale    # in deg
 
             self.radius_err = np.sqrt( (self.x_err*self.x/np.sqrt(self.x**2+self.y**2))**2
-                                      +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*scale    # in mas
+                                      +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*self.scale    # in mas
             self.theta_err = np.arctan(self.radius_err/self.radius)*180/np.pi    # in deg
 
-    def set_distance_to_core(self, core_x, core_y):
+    def set_distance_to_core(self, core_x, core_y,core_x_err=0,core_y_err=0):
         self.delta_x_est = self.x - core_x
         self.delta_y_est = self.y - core_y
-        self.distance_to_core = np.sqrt(self.delta_x_est ** 2 + self.delta_y_est ** 2)
+        self.distance_to_core, self.distance_to_core_err = calculate_dist_with_err(self.x,self.y,core_x,core_y,
+                                                                                   self.x_err,self.y_err,core_x_err,core_y_err)
 
     def assign_component_number(self, number):
         self.component_number = number
@@ -332,7 +333,7 @@ class ComponentCollection():
                         self.year[i,j]=comp.year
                         self.mjds[i,j]=comp.mjd
                         self.dist[i,j]=comp.distance_to_core * self.scale
-                        self.dist_err[i,j]=comp.maj*0.1 * self.scale #TODO fix this!
+                        self.dist_err[i,j]=comp.distance_to_core_error
                         self.xs[i,j]=comp.x
                         self.ys[i,j]=comp.y
                         self.fluxs[i,j]=comp.flux

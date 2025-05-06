@@ -542,9 +542,8 @@ class ImageData(object):
 
             #set distance to core for every component
             for i,comp in enumerate(self.components):
-                self.components[i].delta_x_est=comp.x-self.components[core_id].x
-                self.components[i].delta_y_est=comp.y-self.components[core_id].y
-                self.components[i].distance_to_core=np.sqrt(self.components[i].delta_x_est**2+self.components[i].delta_y_est**2)
+                core=self.components[core_id]
+                self.components[i].set_distance_to_core(core.x,core.y,core.x_err,core.y_err)
                 
                 if self.uvf_file!="" and fit_comp_polarization:
                     logger.debug("Retrieving polarization information for modelfit components.")
@@ -1955,10 +1954,8 @@ class ImageData(object):
         else:
             #recalculate core distances for every component
             for i, comp in enumerate(self.components):
-                self.components[i].delta_x_est = comp.x - self.components[core_ind].x
-                self.components[i].delta_y_est = comp.y - self.components[core_ind].y
-                self.components[i].distance_to_core = np.sqrt(
-                    self.components[i].delta_x_est ** 2 + self.components[i].delta_y_est ** 2)
+                core=self.components[core_ind]
+                self.components[i].set_distance_to_core(core.x, core.y,core.x_err,core.y_err)
 
     def get_component(self,id):
         """
@@ -2011,7 +2008,6 @@ class ImageData(object):
 
         image=im.imvec.reshape((im.ydim, im.xdim))
         image=Jy2JyPerBeam(image,self.beam_maj,self.beam_min,self.degpp*self.scale)
-
         image=np.flip(image,axis=0)
 
         #subtract core from stokes I image

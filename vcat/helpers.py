@@ -283,6 +283,21 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=uvw, rms_b
     
     return S_p, rms
 
+def calculate_dist_with_err(x1, y1, x2, y2, sigma_x1, sigma_y1, sigma_x2, sigma_y2):
+    dx = x2 - x1
+    dy = y2 - y1
+    d = np.sqrt(dx**2 + dy**2)
+
+    if d == 0:
+        return 0.0, 0.0  # or handle division-by-zero case as needed
+
+    sigma_d = (1 / d) * np.sqrt(
+        dx**2 * (sigma_x1**2 + sigma_x2**2) +
+        dy**2 * (sigma_y1**2 + sigma_y2**2)
+    )
+
+    return d, sigma_d
+
 def get_pixel_value(x, y, fits_file):
     
     ms_x, ps_x, ms_y, ps_y = get_ms_ps(fits_file)
