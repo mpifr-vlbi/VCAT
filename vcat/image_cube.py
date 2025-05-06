@@ -1318,9 +1318,9 @@ class ImageCube(object):
         elif not isinstance(epoch, list):
             raise Exception("Invalid input for 'epoch'.")
 
-        if isinstance(ids,int):
+        if isinstance(ids, int):
             ids=[ids]
-        elif not isinstance(id,list):
+        elif not isinstance(ids, list):
             raise Exception("Please provide valid id (int or list[int])")
 
         fits=[]
