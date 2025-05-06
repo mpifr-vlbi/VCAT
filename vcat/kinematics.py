@@ -490,7 +490,7 @@ class ComponentCollection():
             freqs=self.freqs[epoch_ind,:].flatten()
             components=self.components[epoch_ind,:].flatten()
             dist=self.dist[epoch_ind,:].flatten()
-            dist_err=self.dist[epoch_ind,:].flatten()
+            dist_err=self.dist_err[epoch_ind,:].flatten()
 
             max_i=0
             max_freq=0
