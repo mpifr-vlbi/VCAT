@@ -699,8 +699,9 @@ class ImageCube(object):
             images=im_cube.images.flatten()
 
             #remove components from image before aligning
-            for j in range(len(images)):
-                images[j]=images[j].remove_component(remove_components)
+            if len(remove_components)>0:
+                for j in range(len(images)):
+                    images[j]=images[j].remove_component(remove_components)
 
             #choose reference_image (this is pretty random)
             if ref_image=="":
