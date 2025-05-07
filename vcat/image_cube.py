@@ -654,7 +654,7 @@ class ImageCube(object):
                          new_import=False)
 
     def align(self,mode="all",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",
-              ref_freq="",ref_epoch="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001):
+              ref_freq="",ref_epoch="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001,remove_components=[]):
 
         # get beam(s)
         if beam_maj == -1 and beam_min == -1 and beam_posa == -1:
@@ -697,6 +697,11 @@ class ImageCube(object):
             im_cube=im_cube.restore(beams[0],beams[1],beams[2],mode=mode,useDIFMAP=useDIFMAP)
 
             images=im_cube.images.flatten()
+
+            #remove components from image before aligning
+            for j in range(len(images)):
+                images[j]=images[j].remove_component(remove_components)
+
             #choose reference_image (this is pretty random)
             if ref_image=="":
                 ref_image=images[0]

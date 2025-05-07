@@ -1987,21 +1987,28 @@ class ImageData(object):
     def remove_component(self,id):
         """
         Function to remove the core component from the Stokes I image
-
         """
 
-        core=self.get_component(id)
+        if isinstance(id,int):
+            id=[id]
+        elif not isinstance(id,list):
+            raise Exception("Please enter valid component id (int or list[int])!")
+
+        comps_to_remove=[]
+        for i in id:
+            comps_to_remove.append(self.get_component(i))
 
         #TODO rewrite to work without ehtim
         import ehtim as eh
         mod=eh.model.Model()
 
-        mod=mod.add_gauss(F0=core.flux,
-                          FWHM_maj=core.maj*core.scale*eh.RADPERUAS*1e3,
-                          FWHM_min=core.min*core.scale*eh.RADPERUAS*1e3,
-                          PA=core.pos/180*np.pi,
-                          x0=core.x/180*np.pi,
-                          y0=core.y/180*np.pi)
+        for comp in comps_to_remove:
+            mod=mod.add_gauss(F0=comp.flux,
+                              FWHM_maj=comp.maj*comp.scale*eh.RADPERUAS*1e3,
+                              FWHM_min=comp.min*comp.scale*eh.RADPERUAS*1e3,
+                              PA=comp.pos/180*np.pi,
+                              x0=comp.x/180*np.pi,
+                              y0=comp.y/180*np.pi)
 
         im=mod.make_image((np.max(self.X)-np.min(self.X))*1e3*eh.RADPERUAS, len(self.X))
         im=im.blur_gauss([self.beam_maj/self.scale/180*np.pi,self.beam_min/self.scale/180*np.pi,self.beam_pa/180*np.pi])
