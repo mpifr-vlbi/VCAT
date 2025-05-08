@@ -1451,7 +1451,7 @@ class ImageCube(object):
 
         return dists, values, value_errs
 
-    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False):
+    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False,plot=False):
 
         if id=="":
             #do it for all components
@@ -1486,7 +1486,7 @@ class ImageCube(object):
                 raise Exception("Invalid 'value' parameter (use 'maj', 'flux' or 'tb').")
             dists=np.concatenate((dists,info["dist"]))
 
-        if show:
+        if plot:
             plt.scatter(dists, values)
             plt.xlabel("Distance from Core [mas]")
             if value == "maj":
@@ -1495,6 +1495,7 @@ class ImageCube(object):
                 plt.ylabel("Flux Density [Jy]")
             else:
                 plt.ylabel("Brightness Temperature [K]")
+        if show:
             plt.show()
 
         #TODO also return error
