@@ -582,7 +582,7 @@ class ImageCube(object):
         # initialize empty array
         images = []
 
-        logger.info("Regridding Images")
+        logger.info("Regridding images")
 
         if mode=="all":
             for image in tqdm(self.images.flatten(),desc="Processing"):
@@ -654,7 +654,7 @@ class ImageCube(object):
                          new_import=False)
 
     def align(self,mode="all",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",
-              ref_freq="",ref_epoch="",beam_arg="common",method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001,remove_components=[]):
+              ref_freq="",ref_epoch="",beam_arg="common",masked_shift=True,method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001,remove_components=[]):
 
         # get beam(s)
         if beam_maj == -1 and beam_min == -1 and beam_posa == -1:
@@ -708,7 +708,7 @@ class ImageCube(object):
                 ref_image=images[0]
             # align images
             for image in images:
-                images_new.append(image.align(ref_image,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
+                images_new.append(image.align(ref_image,masked_shift=masked_shift,method=method,useDIFMAP=useDIFMAP))
 
         elif mode=="freq":
             for i in range(len(self.freqs)):

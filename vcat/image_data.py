@@ -1042,11 +1042,11 @@ class ImageData(object):
         if method=="cross_correlation" or method=="crosscorrelation":
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
 
-                shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
+                shift,error,diffphase = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp,self.unit))
                 #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
-                shift, _ = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
+                shift, _, _ = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
                 #print('register images new shift (y,x): {} px'.format(-shift))
 
