@@ -592,6 +592,7 @@ class ImageData(object):
             self.mask[np.isnan(self.Z)]=True
         else:
             if np.shape(mask) != np.shape(self.Z):
+                print(np.shape(mask),np.shape(self.Z))
                 logger.warning("Mask input format invalid, Mask reset to no mask.",UserWarning)
                 self.mask = np.zeros_like(self.Z, dtype=bool)
             else:
@@ -695,13 +696,14 @@ class ImageData(object):
         Returns:
             regridded ImageData object
         """
+        logger.debug("Regridding Image")
 
-        #check if image already has the correct size:
         if len(self.X)==npix and len(self.Y)==npix and pixel_size==self.degpp*self.scale:
             return self
 
         n2 = len(self.X)
         n1 = len(self.Y)
+
         # Original grid (centered)
         x_old = (np.arange(n2) - (n2 - 1) / 2) * self.degpp * self.scale
         y_old = (np.arange(n1) - (n1 - 1) / 2) * self.degpp * self.scale
@@ -732,7 +734,6 @@ class ImageData(object):
         new_mask[new_mask >= 0.5] = True
 
         if self.uvf_file=="" or useDIFMAP==False:
-
             # Interpolate values at new grid points
             new_image_i = interpolator(self.Z)(points).reshape(npix, npix)
 
@@ -741,7 +742,7 @@ class ImageData(object):
                 new_image_q = interpolator(self.stokes_q)(points).reshape(npix, npix)
                 new_image_u = interpolator(self.stokes_u)(points).reshape(npix, npix)
             except:
-                logger.warning("Unable to regrid polarization, probably no polarization loaded", UserWarning)
+                logger.warning("Unable to regrid polarization, probably no polarization loaded")
 
 
             # write outputs to the fits files
@@ -854,13 +855,70 @@ class ImageData(object):
                 else:
                     new_model_fits=new_stokes_i_fits
             except:
-                logger.warning("Model not regridded, probably no model loaded.",UserWarning)
+                logger.warning("Model not regridded, probably no model loaded.")
                 new_model_fits=""
 
-            if not self.model_inp:
-                new_model_fits=""
+        else:
+            npix=npix*2 #DIFMAP npix convention
+            #Using DIFMAP
+            # restore Stokes I
+            new_stokes_i_fits = self.stokes_i_mod_file.replace(".mod", "")
 
-            newImageData=ImageData(fits_file=new_stokes_i_fits,
+            fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
+                           bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
+                           channel="i", output_dir=self.model_save_dir + "mod_files_clean", outname=new_stokes_i_fits,
+                           n_pixel=npix, pixel_size=pixel_size,
+                           mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+
+            new_stokes_i_fits += ".fits"
+
+            # try to restore modelfit if it is there
+            try:
+                if not self.model_file_path == self.fits_file:
+                    new_model_fits = self.model_mod_file.replace(".mod", "")
+
+                    fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
+                                   bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
+                                   channel="i", output_dir=self.model_save_dir + "mod_files_model",
+                                   outname=new_model_fits,
+                                   n_pixel=npix, pixel_size=pixel_size,
+                                   mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+
+                    new_model_fits += ".fits"
+                else:
+                    new_model_fits = new_stokes_i_fits
+            except:
+                new_model_fits = ""
+
+            # try to restore polarization as well if it is there
+            try:
+                new_stokes_q_fits = self.stokes_q_mod_file.replace(".mod", "")
+                new_stokes_u_fits = self.stokes_u_mod_file.replace(".mod", "")
+
+                fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
+                               bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
+                               channel="q", output_dir=self.model_save_dir + "mod_files_q", outname=new_stokes_q_fits,
+                               n_pixel=npix, pixel_size=pixel_size,
+                               mod_files=[self.stokes_q_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+
+                new_stokes_q_fits += ".fits"
+
+                fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
+                               bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
+                               channel="u", output_dir=self.model_save_dir + "mod_files_u", outname=new_stokes_u_fits,
+                               n_pixel=npix, pixel_size=pixel_size,
+                               mod_files=[self.stokes_u_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+
+                new_stokes_u_fits += ".fits"
+
+            except:
+                new_stokes_q_fits = ""
+                new_stokes_u_fits = ""
+
+        if not self.model_inp:
+            new_model_fits = ""
+
+        return ImageData(fits_file=new_stokes_i_fits,
                          uvf_file=self.uvf_file,
                          stokes_q=new_stokes_q_fits,
                          stokes_u=new_stokes_u_fits,
@@ -874,12 +932,6 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
-        else:
-            #Using DIFMAP
-            self.mask=new_mask
-            newImageData=self.restore(-1,-1,-1,npix=npix*2,pixel_size=pixel_size,weighting=weighting,useDIFMAP=True)
-
-        return newImageData
 
     def plot(self,show=True,savefig="",**kwargs):
         defaults = {
@@ -980,7 +1032,7 @@ class ImageData(object):
 
             else:
                 if not (method=="modelcomp" or method=="model_comp" or method=="model"):
-                    logger.warning("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.", UserWarning)
+                    logger.warning("Images do not have the same npix and pixelsize, please regrid first or use auto_regrid=True.")
                     return self
                 else:
                     image_self=self.copy()
@@ -990,11 +1042,11 @@ class ImageData(object):
         if method=="cross_correlation" or method=="crosscorrelation":
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
 
-                shift,error,diffphase = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100)
+                shift,error,diffphase = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp,self.unit))
                 #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
-                shift, _ , _ = phase_cross_correlation((image_data2.Z),(image_self.Z),upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
+                shift, _, _ = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
                 #print('register images new shift (y,x): {} px'.format(-shift))
 
@@ -1056,7 +1108,7 @@ class ImageData(object):
                         x_shifts.append(x1-x_ref)
                         y_shifts.append(y_ref-y1)
                     else:
-                        logger.warning(f"Did no find component with id {comp_id} in both images, skipping it", UserWarning)
+                        logger.warning(f"Did no find component with id {comp_id} in both images, skipping it")
 
                 #take mean shift if multiple components were used
                 if len(y_shifts)==0:
@@ -1069,13 +1121,13 @@ class ImageData(object):
 
 
         else:
-            warning.warn("Please use valid align method ('cross_correlation','brightest').",UserWarning)
+            warning.warn("Please use valid align method ('cross_correlation','brightest').")
 
 
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
-    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=uvw,useDIFMAP=True):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=uvw,useDIFMAP=True,mask_outside=False):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
@@ -1097,6 +1149,7 @@ class ImageData(object):
             bmin=self.beam_min
         if posa==-1:
             posa=self.beam_pa
+
 
         #TODO basic sanity check if uvf file is present and if polarization is there
         if self.uvf_file=="" or useDIFMAP==False:
@@ -1290,10 +1343,6 @@ class ImageData(object):
             imgalign = np.fft.ifft2(offset_image)  # again before ifftn
             new_mask = np.real(imgalign) > 0.5
 
-            if npix=="":
-                npix=len(self.X)*2
-            if pixel_size=="":
-                pixel_size=self.degpp*self.scale
 
             #restore Stokes I
             new_stokes_i_fits=self.stokes_i_mod_file.replace(".mod","")
@@ -1301,7 +1350,7 @@ class ImageData(object):
             fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
-                    n_pixel=npix,pixel_size=pixel_size,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
 
             new_stokes_i_fits+=".fits"
@@ -1314,7 +1363,7 @@ class ImageData(object):
                     fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                         bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
-                        n_pixel=npix, pixel_size=pixel_size,
+                        n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                         mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
 
                     new_model_fits+=".fits"
@@ -1332,7 +1381,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
-                    n_pixel=npix,pixel_size=pixel_size,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
 
                 new_stokes_q_fits+=".fits"
@@ -1340,7 +1389,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
-                    n_pixel=npix,pixel_size=pixel_size,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_u_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
 
                 new_stokes_u_fits+=".fits"
@@ -1369,7 +1418,7 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path)
 
-    def shift(self,shift_x,shift_y,npix="",pixel_size="",weighting=uvw,useDIFMAP=True):
+    def shift(self,shift_x,shift_y,weighting=uvw,useDIFMAP=True):
         """
         Function to shift the image in RA and Dec.
 
@@ -1385,7 +1434,7 @@ class ImageData(object):
         """
         try:
             #We can just call the restore() function without doing the restore steps
-            return self.restore(-1,-1,-1,shift_x,shift_y,npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
+            return self.restore(-1,-1,-1,shift_x,shift_y,weighting=weighting,useDIFMAP=useDIFMAP)
         except:
             raise Exception("No shift possible, something went wrong!")
 
