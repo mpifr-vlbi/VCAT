@@ -26,6 +26,7 @@ from vcat.stacking_helpers import stack_fits, stack_pol_fits
 from tqdm import tqdm
 from vcat.config import uvw, plot_colors, plot_markers, plot_linestyles
 from vcat.plots.jet_profile_plot import JetProfilePlot
+from joblib import Parallel, delayed
 
 #initialize logger
 from vcat.config import logger
@@ -1197,10 +1198,11 @@ class ImageCube(object):
                          new_import=False)
 
     def center(self,mode="stokes_i",useDIFMAP=True):
-        images=[]
 
-        for image in self.images.flatten():
-            images.append(image.center(mode=mode,useDIFMAP=useDIFMAP))
+        images = Parallel(n_jobs=-1, backend="threading")(
+            delayed(image.center)(mode=mode, useDIFMAP=useDIFMAP)
+            for image in self.images.flatten()
+        )
 
         return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
                          new_import=False)
@@ -1487,7 +1489,7 @@ class ImageCube(object):
             dists=np.concatenate((dists,info["dist"]))
 
         if plot:
-            plt.scatter(dists, values)
+            plt.errorbar(dists, values,yerr=value_errs,fmt=".")
             plt.xlabel("Distance from Core [mas]")
             if value == "maj":
                 plt.ylabel("Component Size [mas]")
