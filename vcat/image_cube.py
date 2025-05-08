@@ -364,7 +364,7 @@ class ImageCube(object):
 
 
     def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True,
-                shift_x=0,shift_y=0,npix="",pixel_size="",weighting=uvw,ppe=100,tolerance=0.0001,plot_beams=False):
+                shift_x=0,shift_y=0,weighting=uvw,ppe=100,tolerance=0.0001,plot_beams=False):
         """
         This function allows to restore the ImageCube with a custom beam
 
@@ -378,8 +378,6 @@ class ImageCube(object):
             useDIFMAP: Choose whether to use DIFMAP for restoring
             shift_x: Shift in mas in x-direction (list or float)
             shift_y: Shift in mas in y-direction (list or float)
-            npix: Number of pixels in one image direction (list or float)
-            pixel_size: pixel size in mas (list or float)
             weighting: Choose weighting to use (for DIFMAP, e.g. [0,-1])
             ppe: Points per Ellipse for "common" algorithm
             tolerance: Tolerance parameter for "common" algorithm
@@ -403,10 +401,12 @@ class ImageCube(object):
 
         #initialize empty array
         images = []
-        logger.info("Modifying images")
+        logger.info("Restoring images")
 
         if mode=="all":
             for ind, image in enumerate(tqdm(self.images.flatten(),desc="Processing")):
+                npix=len(image.X)*2
+                pixel_size=image.degpp*image.scale
                 new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
                 images.append(new_image)
         elif mode=="freq":
@@ -414,25 +414,25 @@ class ImageCube(object):
                 #check if parameters were input per frequency or for all frequencies
                 shift_x_i = shift_x[i] if isinstance(shift_x,list) else shift_x
                 shift_y_i = shift_y[i] if isinstance(shift_y,list) else shift_y
-                npix_i = n_pix[i] if isinstance(npix, list) else npix
-                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select=self.images[:,i].flatten()
                 for ind2,image in enumerate(tqdm(image_select,desc="Processing")):
-                     images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
-                                        pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
+                    npix = len(image.X) * 2
+                    pixel_size = image.degpp * image.scale
+                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
+                                        pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP))
         elif mode=="epoch":
             for i in tqdm(range(len(self.dates)),desc="Processing"):
                 # check if parameters were input per frequency or for all frequencies
                 shift_x_i = shift_x[i] if isinstance(shift_x, list) else shift_x
                 shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
-                npix_i = n_pix[i] if isinstance(npix, list) else npix
-                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select=self.images[i,:].flatten()
                 for ind2, image in enumerate(image_select):
-                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix_i,
-                                        pixel_size=pixel_size_i,weighting=weighting,useDIFMAP=useDIFMAP))
+                    npix = len(image.X) * 2
+                    pixel_size = image.degpp * image.scale
+                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
+                                        pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP))
         else:
             raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
 
@@ -1641,7 +1641,7 @@ class ImageCube(object):
                     plot.plot_maj(cc, color=color,marker=marker)
                 elif value=="min":
                     plot.plot_min(cc, color=color,marker=marker)
-                elif value=="fracpol":
+                elif value=="fracpol" or value=="frac_pol":
                     plot.plot_fracpol(cc, color=color,marker=marker)
 
             #set plot lims for polar plot according to lowest and highest year
