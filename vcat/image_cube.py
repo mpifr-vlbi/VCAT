@@ -1198,11 +1198,10 @@ class ImageCube(object):
                          new_import=False)
 
     def center(self,mode="stokes_i",useDIFMAP=True):
+        images=[]
 
-        images = Parallel(n_jobs=-1, backend="threading")(
-            delayed(image.center)(mode=mode, useDIFMAP=useDIFMAP)
-            for image in self.images.flatten()
-        )
+        for image in self.images.flatten():
+            images.append(image.center(mode=mode,useDIFMAP=useDIFMAP)
 
         return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
                          new_import=False)
