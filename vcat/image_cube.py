@@ -1453,7 +1453,23 @@ class ImageCube(object):
 
         return dists, values, value_errs
 
-    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False,plot=False):
+    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False,plot=False,filter_unresolved=False):
+        """
+        Get information from the model components vs. distance from
+
+        Args:
+            value (str): Choose which parameter to retrieve ("flux","maj", "tb")
+            id (list[int]): Choose which components to use (default: all)
+            freq: Frequencies to use
+            epoch: Epochs to use
+            show (bool): Choose to display a plot
+            core_position: Provide reference core position (will be used to calculate distance for every component)
+            plot (bool): Choose whether to generate plot
+            filter_unresolved (bool): Choose whether to filter out unresolved components
+
+        Returns:
+            distance, values, value_err
+        """
 
         if id=="":
             #do it for all components
@@ -1479,7 +1495,7 @@ class ImageCube(object):
                 core_position=[0,0]
 
         for cc in ccs:
-            info=cc.get_model_profile(freq=freq,epochs=epoch,core_position=core_position)
+            info=cc.get_model_profile(freq=freq,epochs=epoch,core_position=core_position, filter_unresolved=filter_unresolved)
             try:
                 values+=info[value]
                 if value=="maj" or value=="flux":
@@ -1500,7 +1516,6 @@ class ImageCube(object):
         if show:
             plt.show()
 
-        #TODO also return error
         return dists, values, value_errs
 
     def fit_collimation_profile(self,freq="",epoch="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],

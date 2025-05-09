@@ -93,8 +93,10 @@ class Component():
                 maj_for_tb = np.max(np.array([self.res_lim_maj, self.maj]))
                 min_for_tb = np.max(np.array([self.res_lim_min, self.min]))
             self.tb_lower_limit=True
+            self.resolved=False
         else:
             self.tb_lower_limit=False
+            self.resolved=True
             maj_for_tb = self.maj
             min_for_tb = self.min
 
@@ -314,6 +316,7 @@ class ComponentCollection():
         self.fluxs_err = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.tbs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.tbs_lower_limit= np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.resolved = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.freqs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.ids = np.empty((self.n_epochs,self.n_freqs),dtype=int)
         self.majs =  np.empty((self.n_epochs,self.n_freqs),dtype=float)
@@ -340,6 +343,7 @@ class ComponentCollection():
                         self.fluxs_err[i,j]=comp.flux_err
                         self.tbs[i,j]=comp.tb
                         self.tbs_lower_limit[i,j]=comp.tb_lower_limit
+                        self.resolved[i,j]=comp.resolved
                         self.freqs[i,j]=comp.freq
                         self.ids[i,j]=comp.component_number
                         self.majs[i,j]=comp.maj
@@ -613,7 +617,7 @@ class ComponentCollection():
 
         return results
 
-    def get_model_profile(self,freq="",epochs="",core_position=[0,0]):
+    def get_model_profile(self,freq="",epochs="",core_position=[0,0],filter_unresolved=False):
 
         # read in settings
         if freq == "":
@@ -646,16 +650,17 @@ class ComponentCollection():
 
         for i, freq in enumerate(freq):
             for j, epoch in enumerate(epochs):
-                ind_f = closest_index(self.freqs_distinct, freq * 1e9)
-                ind_e = closest_index(self.epochs_distinct, epoch)
-                majs.append(self.majs[ind_e, ind_f]*self.scale)
-                majs_err.append(self.majs_err[ind_e,ind_f]*self.scale)
-                fluxs.append(self.fluxs[ind_e, ind_f])
-                fluxs_err.append(self.fluxs_err[ind_e,ind_f])
-                tbs.append(self.tbs[ind_e, ind_f])
-                tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
-                dist=np.sqrt((self.xs[ind_e,ind_f]*self.scale-core_position[0])**2+(self.ys[ind_e,ind_f]*self.scale-core_position[1])**2)
-                dists.append(dist)
+                if not filter_unresolved or (filter_unresolved and self.resolved[ind_e,ind_f]):
+                    ind_f = closest_index(self.freqs_distinct, freq * 1e9)
+                    ind_e = closest_index(self.epochs_distinct, epoch)
+                    majs.append(self.majs[ind_e, ind_f]*self.scale)
+                    majs_err.append(self.majs_err[ind_e,ind_f]*self.scale)
+                    fluxs.append(self.fluxs[ind_e, ind_f])
+                    fluxs_err.append(self.fluxs_err[ind_e,ind_f])
+                    tbs.append(self.tbs[ind_e, ind_f])
+                    tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
+                    dist=np.sqrt((self.xs[ind_e,ind_f]*self.scale-core_position[0])**2+(self.ys[ind_e,ind_f]*self.scale-core_position[1])**2)
+                    dists.append(dist)
 
         return {"maj": majs,"maj_err": majs_err, "flux": fluxs, "flux_err": fluxs_err,
                 "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists}

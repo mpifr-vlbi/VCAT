@@ -1,0 +1,31 @@
+! Started logfile: difmap.log on Thu May  8 18:14:19 2025
+! Starting new interactive shell. Use the EOF character to exit.
+! Obeying initialization file: 
+observe ../dataset_example/0506+056_kinematic/0506+056.u.2010_07_12.uvf
+! Reading UV FITS file: ../dataset_example/0506+056_kinematic/0506+056.u.2010_07_12.uvf
+! AN table 1: 219 integrations on 36 of 36 possible baselines.
+! Apparent sampling: 0.797818 visibilities/baseline/integration-bin.
+! Found source: 0506+056
+! 
+! There are 8 IFs, and a total of 8 channels:
+! 
+!  IF  Channel    Frequency  Freq offset  Number of   Overall IF
+!       origin    at origin  per channel   channels    bandwidth
+!  ------------------------------------------------------------- (Hz)
+!  01        1  1.53295e+10        8e+06          1        8e+06
+!  02        2  1.53375e+10        8e+06          1        8e+06
+!  03        3  1.53455e+10        8e+06          1        8e+06
+!  04        4  1.53535e+10        8e+06          1        8e+06
+!  05        5  1.53615e+10        8e+06          1        8e+06
+!  06        6  1.53695e+10        8e+06          1        8e+06
+!  07        7  1.53775e+10        8e+06          1        8e+06
+!  08        8  1.53855e+10        8e+06          1        8e+06
+! 
+! Polarization(s): RR LL RL LR
+! 
+! Read 1499 lines of history.
+! 
+! Reading 201280 visibilities.
+! 
+! Terminated interactive shell.
+! Log file difmap.log closed on Thu May  8 18:14:19 2025
