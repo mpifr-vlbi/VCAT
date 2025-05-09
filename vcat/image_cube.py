@@ -1518,7 +1518,7 @@ class ImageCube(object):
 
         return dists, values, value_errs
 
-    def fit_collimation_profile(self,freq="",epoch="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
+    def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
                                 plot_data=True,plot_fit=True,plot="",show=False,filter_unresolved=False,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
         """
         Function to fit a collimation profile to the jet/counterjet
@@ -1548,7 +1548,7 @@ class ImageCube(object):
 
         if method=="model":
             #jet info
-            dists, widths, width_errs = self.get_model_profile("maj",freq=freq,epoch=epoch,core_position=core_position, filter_unresolved=filter_unresolved)
+            dists, widths, width_errs = self.get_model_profile("maj",id=id,freq=freq,epoch=epoch,core_position=core_position, filter_unresolved=filter_unresolved)
 
             #TODO get counter jet info
             cdists = []
@@ -1614,7 +1614,8 @@ class ImageCube(object):
 
         return plot
 
-    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,evpa_pol_plot=True):
+    def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
+                                 evpa_pol_plot=True,plot_errors=True):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1644,11 +1645,11 @@ class ImageCube(object):
                 marker = markers[ind]
 
                 if value=="flux":
-                    plot.plot_fluxs(cc, color=color,marker=marker)
+                    plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors)
                 elif value=="tb":
                     plot.plot_tbs(cc, color=color,marker=marker)
                 elif value=="dist":
-                    plot.plot_kinematics(cc, color=color,marker=marker)
+                    plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors)
                 elif value=="pos" or value=="PA":
                     plot.plot_pas(cc, color=color,marker=marker)
                 elif value=="lin_pol" or value=="linpol":
@@ -1657,9 +1658,9 @@ class ImageCube(object):
                     plot.plot_evpa(cc, color=color,marker=marker)
                     years=np.concatenate((years,cc.year.flatten()))
                 elif value=="maj":
-                    plot.plot_maj(cc, color=color,marker=marker)
+                    plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors)
                 elif value=="min":
-                    plot.plot_min(cc, color=color,marker=marker)
+                    plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors)
                 elif value=="fracpol" or value=="frac_pol":
                     plot.plot_fracpol(cc, color=color,marker=marker)
 
@@ -1771,7 +1772,7 @@ class ImageCube(object):
 
         return fits
 
-    def get_speed2d(self,id="",order=1,freq="",show_plot=False,colors=plot_colors):
+    def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,colors=plot_colors):
 
         if freq == "":
             freq = self.freqs
@@ -1791,7 +1792,10 @@ class ImageCube(object):
         fits = []
         for fr in freq:
             # One plot per frequency with all components
-            plot = KinematicPlot()
+            if plot_trajectory:
+                plot = ModelImagePlot()
+            else:
+                plot = KinematicPlot()
             for ind, cc in enumerate(ccs):
 
                 fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order)
@@ -1802,10 +1806,15 @@ class ImageCube(object):
                 ind = ind % len(colors)
                 color = colors[ind]
 
-                plot.plot_kinematics(cc,color=color)
-                plot.plot_kinematic_2d_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
-                                         fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
-                                           color=color,label=cc.name,t_mid=fit_x[0]["t_mid"])
+                if plot_trajectory:
+                    plot.plot_kinematic_2d_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
+                                             fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
+                                               color=color,label=cc.name,t_mid=fit_x[0]["t_mid"])
+                else:
+                    plot.plot_kinematics(cc,color=color)
+                    plot.plot_kinematic_2d_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
+                                             fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
+                                               color=color,label=cc.name,t_mid=fit_x[0]["t_mid"])
 
                 fits.append([fit_x[0],fit_y[0]])
             if show_plot:

@@ -540,11 +540,9 @@ class ImageData(object):
                                     freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr,error_method=mfit_err_method,res_lim_method=res_lim_method)
                 self.components.append(component)
 
-            #set distance to core for every component
+            #set core
+            self.set_core_component(core_id)
             for i,comp in enumerate(self.components):
-                core=self.components[core_id]
-                self.components[i].set_distance_to_core(core.x,core.y,core.x_err,core.y_err)
-                
                 if self.uvf_file!="" and fit_comp_polarization:
                     logger.debug("Retrieving polarization information for modelfit components.")
                     self.fit_comp_polarization()
@@ -1745,24 +1743,27 @@ class ImageData(object):
             Shifted ImageData object
         """
 
-        if mode=="stokes_i":
-            ref_image=self.Z
-        elif mode=="lin_pol" or mode=="linpol":
-            ref_image=self.lin_pol
+        if mode=="stokes_i" or mode=="lin_pol" or mode=="linpol":
+            if mode=="stokes_i":
+                ref_image=self.Z
+            elif mode=="lin_pol" or mode=="linpol":
+                ref_image=self.lin_pol
+
+            # find brightest pixel of reference image and center of current image
+            x_ind, y_ind = int(len(self.X)/2),int(len(self.Y)/2)
+            x_, y_ = np.unravel_index(np.argmax(ref_image), ref_image.shape)
+
+            shift = [y_ind - y_, x_ind - x_]
+            logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1] * self.scale * self.degpp,
+                                                                 shift[0] * self.scale * self.degpp,self.unit))
+
+            return self.shift(-shift[1] * self.scale * self.degpp,
+                              shift[0] * self.scale * self.degpp, useDIFMAP=useDIFMAP)
+        elif mode == "core":
+            core = self.get_core_component()
+            return self.shift(-core.x*core.scale,-core.y*core.scale,useDIFMAP=useDIFMAP)
         else:
             raise Exception("Please pick valid 'mode' parameter ('stokes_i','lin_pol').")
-
-
-        # find brightest pixel of reference image and center of current image
-        x_ind, y_ind = int(len(self.X)/2),int(len(self.Y)/2)
-        x_, y_ = np.unravel_index(np.argmax(ref_image), ref_image.shape)
-
-        shift = [y_ind - y_, x_ind - x_]
-        logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1] * self.scale * self.degpp,
-                                                             shift[0] * self.scale * self.degpp,self.unit))
-
-        return self.shift(-shift[1] * self.scale * self.degpp,
-                          shift[0] * self.scale * self.degpp, useDIFMAP=useDIFMAP)
 
     def get_profile(self,point1,point2,show=True,image="stokes_i"):
         """

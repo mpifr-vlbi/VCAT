@@ -1,5 +1,5 @@
 from vcat import ImageData,ImageCube
-from vcat.plots.fits_image import KinematicPlot
+from vcat.plots.kinematic_plot import KinematicPlot
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -15,12 +15,18 @@ dataW=ImageData("../dataset_example/3C111_W_2014_05_08/3C111_W_2014_05_08.fits",
 dataX=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
         model="../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.mfit")
 
+dataU.set_core_component(10)
+dataU=dataU.center(mode="core")
+dataU.plot(plot_model=True,plot_comp_ids=True)
+
 
 data=[dataC,dataQ,dataU,dataW,dataX]
 
+
+
 im_cube=ImageCube(data)
 
-x,y=im_cube.get_model_profile("maj")
+x,y,yerr=im_cube.get_model_profile("maj")
 
 im_cube.plot(plot_model=True,plot_comp_ids=True)
 

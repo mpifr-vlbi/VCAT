@@ -66,16 +66,22 @@ class KinematicPlot(object):
 
         self.fig.subplots_adjust(left=0.13, top=0.96, right=0.93, bottom=0.2)
 
-    def plot_kinematics(self, component_collection, color, marker="."):
+    def plot_kinematics(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
-            self.ax.scatter(component_collection.year, component_collection.dist, c=color, marker=marker)
+            if plot_errors:
+                self.ax.errorbar(component_collection.year,component_collection.dist,yerr=component_collection.dist_err,c=color,fmt=marker)
+            else:
+                self.ax.scatter(component_collection.year, component_collection.dist, c=color, marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Distance from Core [mas]', fontsize=font_size_axis_title)
 
-    def plot_fluxs(self, component_collection, color, marker="."):
+    def plot_fluxs(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
-            self.ax.plot(component_collection.year, component_collection.fluxs, c=color,
-                         label=component_collection.name, marker=marker)
+            if plot_errors:
+                self.ax.errorbar(component_collection.year,component_collection.fluxs,yerr=component_collection.fluxs_err,c=color,fmt=marker)
+            else:
+                self.ax.plot(component_collection.year, component_collection.fluxs, c=color,
+                            label=component_collection.name, marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Flux Density [Jy]', fontsize=font_size_axis_title)
 
@@ -125,17 +131,23 @@ class KinematicPlot(object):
             self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
             self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_maj(self, component_collection, color, marker="."):
+    def plot_maj(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
-            self.ax.plot(component_collection.year, component_collection.majs, c=color, label=component_collection.name,
-                         marker=marker)
+            if plot_errors:
+                self.ax.errorbar(component_collection.year,component_collection.majs,yerr=component_collection.majs_err,c=color,fmt=marker)
+            else:
+                self.ax.plot(component_collection.year, component_collection.majs, c=color, label=component_collection.name,
+                            marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_min(self, component_collection, color, marker="."):
+    def plot_min(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
-            self.ax.plot(component_collection.year, component_collection.mins, c=color, label=component_collection.name,
-                         marker=marker)
+            if plot_errors:
+                self.ax.errorbar(component_collection.year,component_collection.mins,yerr=component_collection.mins_err,c=color,fmt=marker)
+            else:
+                self.ax.plot(component_collection.year, component_collection.mins, c=color, label=component_collection.name,
+                             marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
@@ -240,20 +252,6 @@ class KinematicPlot(object):
         fit_y = np.poly1d(fit_params_y)
         x_values = np.linspace(x_min, x_max, 1000)
         x_cor = x_values - t_mid
-        """
-        #calculate derivative to get speed > alternative version to calculate distance to core from 2d fit
-        derivative_params_x=[]
-        derivative_params_y=[]
-        for ind in range(1,len(fit_params_x)-1):
-            derivative_params_x.append((ind+1)*fit_params_x[ind])
-            derivative_params_y.append((ind+1)*fit_params_y[ind])
-        derivative_params_x.append(fit_params_x[0])
-        derivative_params_y.append(fit_params_y[0])
-        fit_x_speed=np.poly1d(derivative_params_x)
-        fit_y_speed=np.poly1d(derivative_params_y)
-        #calculate distance to core (projected on current velocity vector)
-        distance=(fit_x(x_cor)*fit_x_speed(x_cor)+fit_y(x_cor)*fit_y_speed(x_cor))/np.sqrt(fit_x_speed(x_cor)**2+fit_y_speed(x_cor)**2)
-        """
         distance = np.sqrt(fit_x(x_cor) ** 2 + fit_y(x_cor) ** 2)
         self.ax.plot(x_values, distance, color=color, label=label)
 

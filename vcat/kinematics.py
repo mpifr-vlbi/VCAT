@@ -148,7 +148,7 @@ class Component():
         elif method == 'Schinzel12':
 
             if self.snr < 0:
-                logger.debug('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(self.name))
+                logger.debug('! Component {0} peak flux density is negative; something must have gone wrong. Set to rms level'.format(self.component_number))
                 self.snr=1
 
             ### Calculate errors ###
@@ -191,7 +191,7 @@ class Component():
             S_p = self.snr * self.noise
 
             if S_p < 0:
-                logger.debug('! Component {0:s} peak flux density is negative; something must have gone wrong. Set to rms level'.format(name))
+                logger.debug('! Component {0} peak flux density is negative; something must have gone wrong. Set to rms level'.format(self.component_number))
                 S_p = rms
 
             ### Calculate errors ###
@@ -324,6 +324,7 @@ class ComponentCollection():
         self.majs =  np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.majs_err =  np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.mins = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.mins_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.posas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.delta_x_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.delta_y_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
@@ -353,6 +354,7 @@ class ComponentCollection():
                         self.majs[i,j]=comp.maj
                         self.majs_err[i,j]=comp.maj_err
                         self.mins[i,j]=comp.min
+                        self.mins_err[i,j]=comp.min_err
                         self.posas[i,j]=comp.pos
                         self.delta_x_ests[i,j]=comp.delta_x_est
                         self.delta_y_ests[i,j]=comp.delta_y_est

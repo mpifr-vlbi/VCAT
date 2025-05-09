@@ -60,6 +60,15 @@ class ModelImagePlot(object):
 
         self.ax.plot(ridgeline.X_ridg,ridgeline.Y_ridg,color=color,lw=linewidth,label=label)
 
+    def plot_kinematic_2d_fit(self, x_min, x_max, fit_params_x, fit_params_y, color, t_mid=0, label=""):
+
+        fit_x = np.poly1d(fit_params_x)
+        fit_y = np.poly1d(fit_params_y)
+        x_values = np.linspace(x_min, x_max, 1000)
+        x_cor = x_values - t_mid
+
+        self.ax.plot(fit_x(x_cor), fit_y(x_cor), color=color, label=label)
+
     def show(self):
         plt.legend()
         plt.tight_layout()
