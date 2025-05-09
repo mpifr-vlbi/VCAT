@@ -983,7 +983,8 @@ class ImageData(object):
 
         return plot
 
-    def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,useDIFMAP=True,comp_ids=""):
+    def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,
+              useDIFMAP=True,comp_ids="",weight_by_comp_err=True):
         """
         This function aligns the image to a reference image (image_data2).
 
@@ -1078,6 +1079,8 @@ class ImageData(object):
                 comp_ids = [comp_ids] if isinstance(comp_ids,int) else comp_ids
                 x_shifts=[]
                 y_shifts=[]
+                x_shift_err=[]
+                y_shift_err=[]
                 for comp_id in comp_ids:
                     #get component from comps1:
                     found=False
@@ -1105,6 +1108,8 @@ class ImageData(object):
 
                         x_shifts.append(x1-x_ref)
                         y_shifts.append(y_ref-y1)
+                        x_shift_err.append(np.sqrt((align_comp.x_err*image_self.scale)**2+(align_comp_ref.x_err*image_data2.scale)**2))
+                        y_shift_err.append(np.sqrt((align_comp.y_err*image_self.scale)**2+(align_comp_ref.y_err*image_data2.scale)**2))
                     else:
                         logger.warning(f"Did no find component with id {comp_id} in both images, skipping it")
 
@@ -1113,7 +1118,19 @@ class ImageData(object):
                     logger.warning("No matching components found, will not apply a shift.")
                     return self
                 else:
-                    shift=[np.mean(y_shifts)/image_self.scale/image_self.degpp,np.mean(x_shifts)/image_self.scale/image_self.degpp]
+                    if weight_by_comp_err:
+                        # Compute weights as inverse variance
+                        weights_x = 1 / np.array(x_shift_err)**2
+                        weights_y = 1/ np.array(y_shift_err)**2
+
+                        # Weighted mean
+                        x_shift_final = np.sum(weights_x * np.array(x_shifts)) / np.sum(weights_x)
+                        y_shift_final = np.sum(weights_y * np.array(y_shifts)) / np.sum(weights_y)
+                    else:
+                        x_shift_final=np.mean(x_shifts)
+                        y_shift_final=np.mean(y_shifts)
+
+                    shift=[y_shift_final/image_self.scale/image_self.degpp,x_shift_final/image_self.scale/image_self.degpp]
                     logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1] * image_self.scale * image_self.degpp,
                                                                        shift[0] * image_self.scale * image_self.degpp,self.unit))
 
