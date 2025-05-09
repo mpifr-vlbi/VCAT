@@ -182,9 +182,9 @@ class Component():
             # NOTE: this does not take into account the covariance of the radial coordinates!
             # TODO: implement that
             self.x_err = np.sqrt(  (self.radius_err/self.scale*np.sin(self.theta/180*np.pi))**2
-                                 + (self.radius*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
+                                 + (self.radius/self.scale*self.theta_err/180*np.pi*np.cos(self.theta/180*np.pi))**2)
             self.y_err = np.sqrt(  (self.radius_err/self.scale*np.cos(self.theta/180*np.pi))**2
-                                 + (self.radius*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
+                                 + (self.radius/self.scale*self.theta_err/180*np.pi*np.sin(self.theta/180*np.pi))**2)
         elif method == 'Weaver22':
 
             ### Get peak flux density and rms around component position ###
@@ -311,7 +311,9 @@ class ComponentCollection():
         self.dist = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.dist_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.xs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.x_errs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.ys = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.y_errs = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.fluxs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.fluxs_err = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.tbs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
@@ -338,7 +340,9 @@ class ComponentCollection():
                         self.dist[i,j]=comp.distance_to_core * self.scale
                         self.dist_err[i,j]=comp.distance_to_core_err * self.scale
                         self.xs[i,j]=comp.x
+                        self.x_errs[i,j]=comp.x_err
                         self.ys[i,j]=comp.y
+                        self.y_errs[i,j]=comp.y_err
                         self.fluxs[i,j]=comp.flux
                         self.fluxs_err[i,j]=comp.flux_err
                         self.tbs[i,j]=comp.tb
@@ -645,8 +649,16 @@ class ComponentCollection():
         tbs = []
         tbs_lower_limit = []
         dists = []
+        dist_errs = []
         majs_err = []
         fluxs_err = []
+        xs = []
+        x_errs = []
+        ys = []
+        y_errs = []
+        pas = []
+        lin_pols = []
+        evpas = []
 
         for i, freq in enumerate(freq):
             for j, epoch in enumerate(epochs):
@@ -659,11 +671,22 @@ class ComponentCollection():
                     fluxs_err.append(self.fluxs_err[ind_e,ind_f])
                     tbs.append(self.tbs[ind_e, ind_f])
                     tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
-                    dist=np.sqrt((self.xs[ind_e,ind_f]*self.scale-core_position[0])**2+(self.ys[ind_e,ind_f]*self.scale-core_position[1])**2)
+                    xs.append(self.xs[ind_e,ind_f]*self.scale)
+                    x_errs.append(self.x_errs[ind_e,ind_f]*self.scale)
+                    ys.append(self.ys[ind_e,ind_f]*self.scale)
+                    y_errs.append(self.y_errs[ind_e,ind_f]*self.scale)
+                    pas.append(self.posas[ind_e,ind_f])
+                    lin_pols.append(self.lin_pols[ind_e,ind_f])
+                    evpas.append(self.evpas[ind_e,ind_f])
+                    dist,dist_err=calculate_dist_with_err(self.xs[ind_e,ind_f]*self.scale,self.ys[ind_e,ind_f]*self.scale,
+                                                          core_position[0],core_position[1],self.x_errs[ind_e,ind_f]*self.scale,
+                                                          self.y_errs[ind_e,ind_f]*self.scale,0,0)
                     dists.append(dist)
+                    dist_errs.append(dist_err)
 
         return {"maj": majs,"maj_err": majs_err, "flux": fluxs, "flux_err": fluxs_err,
-                "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists}
+                "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists,"dist_err":dist_errs,
+                "x": xs, "x_err":x_errs,"y":ys,"y_err":y_errs,"PA": pas,"lin_pol": lin_pols,"evpa": evpas}
 
     def interpolate(self, mjd, freq):
         freq_ind=closest_index(self.freqs_distinct,freq*1e9)

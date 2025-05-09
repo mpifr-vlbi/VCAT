@@ -593,7 +593,7 @@ class ImageData(object):
         else:
             if np.shape(mask) != np.shape(self.Z):
                 print(np.shape(mask),np.shape(self.Z))
-                logger.warning("Mask input format invalid, Mask reset to no mask.",UserWarning)
+                logger.warning("Mask input format invalid, Mask reset to no mask.")
                 self.mask = np.zeros_like(self.Z, dtype=bool)
             else:
                 self.mask=mask
@@ -1562,7 +1562,7 @@ class ImageData(object):
                 new_image_q = scipy.ndimage.rotate(self.stokes_q,-angle,reshape=reshape,order=order)
                 new_image_u = scipy.ndimage.rotate(self.stokes_u,-angle,reshape=reshape,order=order)
             except:
-                logger.warning("Unable to rotate polarization, probably no polarization loaded", UserWarning)
+                logger.warning("Unable to rotate polarization, probably no polarization loaded")
 
             # write outputs to the fits files
             if self.only_stokes_i:
@@ -1657,7 +1657,7 @@ class ImageData(object):
                 else:
                     new_model_fits = new_stokes_i_fits
             except:
-                logger.warning("Model not regridded, probably no model loaded.", UserWarning)
+                logger.warning("Model not regridded, probably no model loaded.")
                 new_model_fits = ""
 
             if not self.model_inp:
@@ -1913,7 +1913,7 @@ class ImageData(object):
         """
 
         if self.uvf_file == "":
-            logger.warning("Shift not possible, no .uvf file attached to ImageData!", UserWarning)
+            logger.warning("Shift not possible, no .uvf file attached to ImageData!")
             return self.noise
 
         size_x=len(self.X)*self.degpp*self.scale
@@ -1999,7 +1999,7 @@ class ImageData(object):
                 self.components[ind].is_core=False
 
         if core_ind=="":
-            logger.warning(f"No component with ID {id} found, no core currently set!",UserWarning)
+            logger.warning(f"No component with ID {id} found, no core currently set!")
         else:
             #recalculate core distances for every component
             for i, comp in enumerate(self.components):

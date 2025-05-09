@@ -20,6 +20,7 @@ from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
 from vcat.plots.evolution_plot import EvolutionPlot
 from vcat.plots.multi_fits_image import MultiFitsImage
 from vcat.plots.kinematic_plot import KinematicPlot
+from vcat.plots.model_image_plot import ModelImagePlot
 from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
@@ -1518,7 +1519,7 @@ class ImageCube(object):
         return dists, values, value_errs
 
     def fit_collimation_profile(self,freq="",epoch="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
-                                plot_data=True,plot_fit=True,plot="",show=False,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
+                                plot_data=True,plot_fit=True,plot="",show=False,filter_unresolved=False,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
         """
         Function to fit a collimation profile to the jet/counterjet
 
@@ -1532,6 +1533,7 @@ class ImageCube(object):
             plot_fit (bool): Choose whether to plot the fit
             plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
             show (bool): Choose whether to show the plot
+            filter_unresolved (bool): Choose whether to filter out unresolved components
             label (str): Label for the fitted data/fit
             color (str): Plot color
             marker (str): Plot marker
@@ -1546,7 +1548,7 @@ class ImageCube(object):
 
         if method=="model":
             #jet info
-            dists, widths, width_errs = self.get_model_profile("maj",freq=freq,epoch=epoch,core_position=core_position)
+            dists, widths, width_errs = self.get_model_profile("maj",freq=freq,epoch=epoch,core_position=core_position, filter_unresolved=filter_unresolved)
 
             #TODO get counter jet info
             cdists = []
@@ -1671,6 +1673,58 @@ class ImageCube(object):
             plt.legend()
             if show:
                 plt.show()
+
+    def plot_components(self,id="",freq="",epoch="",show=False,xlim=[10,-10],ylim=[-10,10],colors="",fmts=[""],markersize=4,labels=[""],
+                        filter_unresolved=False,capsize=None,plot_errorbar=True):
+        if id=="":
+            #do it for all components
+            ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
+        elif isinstance(id, list):
+            ccs=[]
+            for i in id:
+                ccs.append(self.get_comp_collection(i))
+        else:
+            raise Exception("Invalid input for 'id'.")
+
+        if colors=="":
+            colors=plot_colors
+
+        plot=ModelImagePlot(xlim=xlim,ylim=ylim)
+
+        for i,cc in enumerate(ccs):
+            color=colors[i % len(colors)]
+            fmt=fmts[i % len(fmts)]
+            label=labels[i%len(labels)]
+            if label=="":
+                label=cc.name
+            plot.plotCompCollection(cc,freq=freq,epoch=epoch,color=color,fmt=fmt,markersize=markersize,capsize=capsize,
+                                    filter_unresolved=filter_unresolved,label=label,plot_errorbar=plot_errorbar)
+
+        if show:
+            plot.show()
+
+    def plot_ridgelines(self,show=False,xlim=[10,-10],ylim=[-10,10],colormap="viridis",vmin="",vmax="",linewidths=[2],labels=[""]):
+
+        plot = ModelImagePlot(xlim=xlim, ylim=ylim)
+
+        if vmin=="":
+            vmin=np.min(self.mjds)
+        if vmax=="":
+            vmax=np.max(self.mjds)
+
+        norm = colors.Normalize(vmin=vmin, vmax=vmax)
+        cmap = plt.get_cmap(colormap)
+
+        for ind,image in self.images.flatten():
+            ridgeline=image.ridgeline
+            linewidth=linewidths[i%len(linewidths)]
+            label=labels[i%len(linewidths)]
+            if label=="":
+                label=image.epoch
+            plot.plotRidgeline(ridgeline,color=cmap(norm(image.mjd)),label=label,linewidth=linewidth)
+
+        if show:
+            plot.show()
 
     def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors):
 

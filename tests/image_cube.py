@@ -20,6 +20,8 @@ im_cube.plot()
 
 im_cube.get_ridgeline()
 
+im_cube.plot_ridgelines(show=True)
+
 im_cube.plot(plot_ridgeline=True)
 
 im_cube.plot_evolution()
