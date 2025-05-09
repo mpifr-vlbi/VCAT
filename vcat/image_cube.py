@@ -1715,12 +1715,12 @@ class ImageCube(object):
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = plt.get_cmap(colormap)
 
-        for ind,image in self.images.flatten():
+        for ind,image in enumerate(self.images.flatten()):
             ridgeline=image.ridgeline
-            linewidth=linewidths[i%len(linewidths)]
-            label=labels[i%len(linewidths)]
+            linewidth=linewidths[ind%len(linewidths)]
+            label=labels[ind%len(linewidths)]
             if label=="":
-                label=image.epoch
+                label=image.date
             plot.plotRidgeline(ridgeline,color=cmap(norm(image.mjd)),label=label,linewidth=linewidth)
 
         if show:
