@@ -326,6 +326,8 @@ class ComponentCollection():
         self.mins = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.mins_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.posas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.thetas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.thetas_err = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.delta_x_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.delta_y_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.lin_pols = np.empty((self.n_epochs,self.n_freqs),dtype=float)
@@ -356,6 +358,8 @@ class ComponentCollection():
                         self.mins[i,j]=comp.min
                         self.mins_err[i,j]=comp.min_err
                         self.posas[i,j]=comp.pos
+                        self.thetas[i,j]=comp.theta
+                        self.thetas_err[i,j]=comp.theta_err
                         self.delta_x_ests[i,j]=comp.delta_x_est
                         self.delta_y_ests[i,j]=comp.delta_y_est
                         self.lin_pols[i,j]=comp.lin_pol
@@ -396,7 +400,7 @@ class ComponentCollection():
 
         return x_fits, y_fits
 
-    def get_speed(self,freqs="",order=1,weighted_fit=False, cosmo=FlatLambdaCDM(H0=70, Om0=0.3)):
+    def get_speed(self,freqs="",order=1,weighted_fit=False, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0)):
 
 
         if freqs=="":

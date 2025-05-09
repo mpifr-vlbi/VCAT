@@ -69,7 +69,8 @@ class KinematicPlot(object):
     def plot_kinematics(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
             if plot_errors:
-                self.ax.errorbar(component_collection.year,component_collection.dist,yerr=component_collection.dist_err,c=color,fmt=marker)
+                self.ax.errorbar(component_collection.year.flatten(),component_collection.dist.flatten(),
+                                 yerr=component_collection.dist_err.flatten(),c=color,fmt=marker)
             else:
                 self.ax.scatter(component_collection.year, component_collection.dist, c=color, marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
@@ -78,7 +79,8 @@ class KinematicPlot(object):
     def plot_fluxs(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
             if plot_errors:
-                self.ax.errorbar(component_collection.year,component_collection.fluxs,yerr=component_collection.fluxs_err,c=color,fmt=marker)
+                self.ax.errorbar(component_collection.year.flatten(),component_collection.fluxs.flatten(),
+                                 yerr=component_collection.fluxs_err.flatten(),c=color,fmt=marker)
             else:
                 self.ax.plot(component_collection.year, component_collection.fluxs, c=color,
                             label=component_collection.name, marker=marker)
@@ -91,6 +93,18 @@ class KinematicPlot(object):
                          label=component_collection.name, marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle [deg]', fontsize=font_size_axis_title)
+
+    def plot_theta(self, component_collection, color, marker=".",plot_errors=True):
+        if component_collection.length() > 0:
+            if plot_errors:
+                self.ax.errorbar(component_collection.year.flatten(),component_collection.thetas.flatten(),
+                                 yerr=component_collection.thetas_err.flatten(),c=color,fmt=marker)
+            else:
+                self.ax.plot(component_collection.year, component_collection.thetas, c=color,
+                             label=component_collection.name,
+                             marker=marker)
+        self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
+        self.ax.set_ylabel('Position Angle of the Component Position [°]', fontsize=font_size_axis_title)
 
     def plot_linpol(self, component_collection, color, marker="."):
         if component_collection.length() > 0:
@@ -134,7 +148,8 @@ class KinematicPlot(object):
     def plot_maj(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
             if plot_errors:
-                self.ax.errorbar(component_collection.year,component_collection.majs,yerr=component_collection.majs_err,c=color,fmt=marker)
+                self.ax.errorbar(component_collection.year.flatten(),component_collection.majs.flatten(),
+                                 yerr=component_collection.majs_err.flatten(),c=color,fmt=marker)
             else:
                 self.ax.plot(component_collection.year, component_collection.majs, c=color, label=component_collection.name,
                             marker=marker)
@@ -144,7 +159,8 @@ class KinematicPlot(object):
     def plot_min(self, component_collection, color, marker=".",plot_errors=True):
         if component_collection.length() > 0:
             if plot_errors:
-                self.ax.errorbar(component_collection.year,component_collection.mins,yerr=component_collection.mins_err,c=color,fmt=marker)
+                self.ax.errorbar(component_collection.year.flatten(),component_collection.mins.flatten(),
+                                 yerr=component_collection.mins_err.flatten(),c=color,fmt=marker)
             else:
                 self.ax.plot(component_collection.year, component_collection.mins, c=color, label=component_collection.name,
                              marker=marker)

@@ -1640,9 +1640,9 @@ class ImageCube(object):
             years = []
             for ind, cc in enumerate(ccs):
                 color_ind = ind % len(colors)
-                color = colors[ind]
+                color = colors[color_ind]
                 marker_ind = ind % len(markers)
-                marker = markers[ind]
+                marker = markers[marker_ind]
 
                 if value=="flux":
                     plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors)
@@ -1661,6 +1661,8 @@ class ImageCube(object):
                     plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors)
                 elif value=="min":
                     plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors)
+                elif value=="theta":
+                    plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors)
                 elif value=="fracpol" or value=="frac_pol":
                     plot.plot_fracpol(cc, color=color,marker=marker)
 

@@ -1780,7 +1780,7 @@ class ImageData(object):
             core = self.get_core_component()
             return self.shift(-core.x*core.scale,-core.y*core.scale,useDIFMAP=useDIFMAP)
         else:
-            raise Exception("Please pick valid 'mode' parameter ('stokes_i','lin_pol').")
+            raise Exception("Please pick valid 'mode' parameter ('stokes_i','lin_pol','core').")
 
     def get_profile(self,point1,point2,show=True,image="stokes_i"):
         """
