@@ -650,9 +650,9 @@ class ComponentCollection():
 
         for i, freq in enumerate(freq):
             for j, epoch in enumerate(epochs):
-                if not filter_unresolved or (filter_unresolved and self.resolved[ind_e,ind_f]):
-                    ind_f = closest_index(self.freqs_distinct, freq * 1e9)
-                    ind_e = closest_index(self.epochs_distinct, epoch)
+                ind_f = closest_index(self.freqs_distinct, freq * 1e9)
+                ind_e = closest_index(self.epochs_distinct, epoch)
+                if not filter_unresolved or (filter_unresolved and self.resolved[ind_e, ind_f]):
                     majs.append(self.majs[ind_e, ind_f]*self.scale)
                     majs_err.append(self.majs_err[ind_e,ind_f]*self.scale)
                     fluxs.append(self.fluxs[ind_e, ind_f])

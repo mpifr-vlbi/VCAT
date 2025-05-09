@@ -1201,7 +1201,7 @@ class ImageCube(object):
         images=[]
 
         for image in self.images.flatten():
-            images.append(image.center(mode=mode,useDIFMAP=useDIFMAP)
+            images.append(image.center(mode=mode,useDIFMAP=useDIFMAP))
 
         return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
                          new_import=False)
