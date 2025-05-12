@@ -542,15 +542,15 @@ class ImageData(object):
 
             #set core
             self.set_core_component(core_id)
-            for i,comp in enumerate(self.components):
-                if self.uvf_file!="" and fit_comp_polarization:
-                    logger.debug("Retrieving polarization information for modelfit components.")
-                    self.fit_comp_polarization()
+            self.fit_comp_pol=fit_comp_polarization
+            if self.uvf_file!="" and fit_comp_polarization:
+                logger.debug("Retrieving polarization information for modelfit components.")
+                self.fit_comp_polarization()
+            else:
+                if fit_comp_polarization:
+                    logger.warning("Trying to fit component polarization, but no uvf file loaded!")
                 else:
-                    if fit_comp_polarization:
-                        logger.warning("Trying to fit component polarization, but no uvf file loaded!")
-                    else:
-                        logger.debug("Not fitting component polarization")
+                    logger.debug("Not fitting component polarization")
         
         hdu_list.close()
 
@@ -929,7 +929,8 @@ class ImageData(object):
                          correct_rician_bias=self.correct_rician_bias,
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
-                         difmap_path=self.difmap_path)
+                         difmap_path=self.difmap_path,
+                         fit_comp_polarization=self.fit_comp_pol)
 
     def plot(self,show=True,savefig="",**kwargs):
         defaults = {
@@ -1431,7 +1432,8 @@ class ImageData(object):
                          correct_rician_bias=self.correct_rician_bias,
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
-                         difmap_path=self.difmap_path)
+                         difmap_path=self.difmap_path,
+                         fit_comp_polarization=self.fit_comp_pol)
 
     def shift(self,shift_x,shift_y,weighting=uvw,useDIFMAP=True):
         """
@@ -1691,7 +1693,8 @@ class ImageData(object):
                          correct_rician_bias=self.correct_rician_bias,
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
-                         difmap_path=self.difmap_path)
+                         difmap_path=self.difmap_path,
+                         fit_comp_polarization=self.fit_comp_pol)
 
         else:
 
@@ -1711,7 +1714,8 @@ class ImageData(object):
                          correct_rician_bias=self.correct_rician_bias,
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
-                         difmap_path=self.difmap_path)
+                         difmap_path=self.difmap_path,
+                         fit_comp_polarization=self.fit_comp_pol)
 
             rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
             try:
