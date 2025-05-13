@@ -1526,9 +1526,9 @@ class ImageCube(object):
         elif isinstance(id, list):
             ccs=[]
             for i in id:
-                ccs.append(self.get_comp_collection(i))
+                ccs.append(self.get_comp_codllection(i))
         elif isinstance(id, int):
-            ccs=[self.get_comp_collection(i)]
+            ccs=[self.get_comp_collection(id)]
         else:
             raise Exception("Invalid input for 'id'.")
 
