@@ -17,6 +17,8 @@ im_cube=ImageCube().import_files(uvf_files=uvf_files,model_fits_files=model_file
 #Import associations from GUI file
 im_cube.import_component_association("../dataset_example/0506+056_kinematic/component_info.csv")
 
+print(im_cube.get_average_component())
+
 im_cube.plot_components(show=True)
 
 #make a plot of the component evolution

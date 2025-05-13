@@ -236,7 +236,7 @@ class ImageCube(object):
         Args:
             mode: Select mode ("all" -> stack all images, "freq" -> stack all images from the same frequency across epochs,
             "epoch" -> stack all images from the same epoch across all frequencies)
-            stack_linpol: If true, polarization will be stacked in lin_pol and EVPA instead of Q and U
+            stack_linpol: If true, polarization will be stacked in lin_pol and EVPA instead of Q and U (not implemented yet!)
         Returns:
             new ImageCube with reduced dimension according to mode selection with stacked images
         """
@@ -1517,6 +1517,24 @@ class ImageCube(object):
             plt.show()
 
         return dists, values, value_errs
+
+    def get_average_component(self,id="",freq="",epoch="",weighted=True):
+
+        if id=="":
+            #do it for all components
+            ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
+        elif isinstance(id, list):
+            ccs=[]
+            for i in id:
+                ccs.append(self.get_comp_collection(i))
+        else:
+            raise Exception("Invalid input for 'id'.")
+
+        average_comps=[]
+        for cc in ccs:
+            average_comps.append(cc.get_average_component(freq=freq,epochs=epoch,weighted=weighted))
+
+        return average_comps
 
     def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
                                 plot_data=True,plot_fit=True,plot="",show=False,filter_unresolved=False,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):

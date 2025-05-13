@@ -484,6 +484,51 @@ class ComponentCollection():
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
 
+    def get_average_component(self,freq="",epochs="",weighted=True):
+
+        data=self.get_model_profile(freq=freq,epochs=epochs)
+
+        if weighted:
+            new_x = np.average(data["x"],weights=1/np.array(data["x_err"])**2)
+            new_x_err = np.sqrt(1 / np.sum(1/np.array(data["x_err"])**2))
+            new_y = np.average(data["y"],weights=1/np.array(data["y_err"])**2)
+            new_y_err = np.sqrt(1 / np.sum(1 / np.array(data["y_err"]) ** 2))
+            new_maj = np.average(data["maj"],weights=1/np.array(data["maj_err"])**2)
+            new_maj_err = np.sqrt(1 / np.sum(1 / np.array(data["maj_err"]) ** 2))
+            new_min = np.average(data["min"], weights=1 / np.array(data["min_err"]) ** 2)
+            new_min_err = np.sqrt(1 / np.sum(1 / np.array(data["min_err"]) ** 2))
+            new_flux = np.average(data["flux"],weights=1/ np.array(data["flux_err"]) ** 2)
+            new_flux_err = np.sqrt(1 / np.sum(1 / np.array(data["flux_err"]) ** 2))
+        else:
+            new_x = np.average(data["x"])
+            new_x_err = np.std(data["x"])
+            new_y = np.average(data["y"])
+            new_y_err = np.std(data["y"])
+            new_maj = np.average(data["maj"])
+            new_maj_err = np.std(data["maj"])
+            new_min = np.average(data["min"])
+            new_min_err = np.std(data["min"])
+            new_flux = np.average(data["flux"])
+            new_flux_err = np.std(data["flux"])
+
+        new_lin_pol = np.average(data["lin_pol"])
+        new_evpa = np.average(data["evpa"])
+        new_pa =  np.average(data["PA"])
+        new_mjd = 60000
+        new_year = 2020
+        new_date = "1900-01-01"
+
+        newComp=Component(new_x/self.scale,new_y/self.scale,new_maj/self.scale,new_min/self.scale,new_pa,flux=new_flux,
+                          date=new_date,mjd=new_mjd,year=new_year,lin_pol=new_lin_pol,evpa=new_evpa,scale=self.scale)
+
+        newComp.x_err=new_x_err/self.scale
+        newComp.y_err=new_y_err/self.scale
+        newComp.maj_err=new_maj_err/self.scale
+        newComp.min_err=new_min_err/self.scale
+        newComp.flux_err=new_flux_err
+
+        return newComp
+
     def get_coreshift(self, epochs="",k_r=""):
 
         if epochs=="":
@@ -651,12 +696,14 @@ class ComponentCollection():
 
         # export comp info
         majs = []
+        majs_err = []
+        mins = []
+        mins_err = []
         fluxs = []
         tbs = []
         tbs_lower_limit = []
         dists = []
         dist_errs = []
-        majs_err = []
         fluxs_err = []
         xs = []
         x_errs = []
@@ -673,6 +720,8 @@ class ComponentCollection():
                 if not filter_unresolved or (filter_unresolved and self.resolved[ind_e, ind_f]):
                     majs.append(self.majs[ind_e, ind_f]*self.scale)
                     majs_err.append(self.majs_err[ind_e,ind_f]*self.scale)
+                    mins.append(self.majs[ind_e, ind_f]*self.scale)
+                    mins_err.append(self.mins_err[ind_e,ind_f]*self.scale)
                     fluxs.append(self.fluxs[ind_e, ind_f])
                     fluxs_err.append(self.fluxs_err[ind_e,ind_f])
                     tbs.append(self.tbs[ind_e, ind_f])
@@ -690,7 +739,7 @@ class ComponentCollection():
                     dists.append(dist)
                     dist_errs.append(dist_err)
 
-        return {"maj": majs,"maj_err": majs_err, "flux": fluxs, "flux_err": fluxs_err,
+        return {"maj": majs,"maj_err": majs_err, "min": mins, "min_err": mins_err, "flux": fluxs, "flux_err": fluxs_err,
                 "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists,"dist_err":dist_errs,
                 "x": xs, "x_err":x_errs,"y":ys,"y_err":y_errs,"PA": pas,"lin_pol": lin_pols,"evpa": evpas}
 
