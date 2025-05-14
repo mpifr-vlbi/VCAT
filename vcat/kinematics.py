@@ -368,12 +368,9 @@ class ComponentCollection():
                         self.lin_pols[i,j]=comp.lin_pol
                         self.evpas[i,j]=comp.evpa
 
-        if len(np.unique(self.ids.flatten()))>1:
-            numbers=np.unique(self.ids.flatten())
-            raise Exception(f"Used components with different ID numbers ({numbers}) as component collection!")
-        elif len(np.unique(self.ids.flatten()))==1:
+        try:
             self.id=np.unique(self.ids.flatten())[0]
-        else:
+        except:
             self.id=-1
 
 
