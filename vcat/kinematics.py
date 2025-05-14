@@ -773,7 +773,7 @@ def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method=res_lim_
     if method == 'Kovalev05':
         #here we need to check if the component is resolved or not!
         if snr!=1:
-            factor=np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
+            factor = np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/abs(snr-1))) #following Kovalev et al. 2005
         else:
             factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))
 
