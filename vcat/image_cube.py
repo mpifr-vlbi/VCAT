@@ -1291,8 +1291,14 @@ class ImageCube(object):
                     closest_row = df_filtered.loc[df_filtered['distance'].idxmin()]
 
                     # Assign new component number and is_core with type casting
-                    self.images[i, j].components[k].is_core = bool(closest_row["is_core"])
-                    self.images[i, j].components[k].component_number = int(closest_row["component_number"])
+                    old_comp_id=self.images[i,j].components[k].component_number
+                    new_comp_id=int(closest_row["component_number"])
+
+                    self.images[i,j].change_component_ids([old_comp_id],[new_comp_id])
+
+                    if bool(closest_row["is_core"]):
+                        self.images[i,j].set_core_component(new_comp_id)
+
 
         self.update_comp_collections()
 
