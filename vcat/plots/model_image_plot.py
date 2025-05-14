@@ -54,7 +54,7 @@ class ModelImagePlot(object):
             self.ax.errorbar(data["x"],data["y"],yerr=data["y_err"],xerr=data["x_err"],fmt=fmt,markersize=markersize,
                              capsize=capsize,color=color,label=label)
         else:
-            self.ax.scatter(data["x"],data["y"],marker=fmt,color=color,markersize=markersize,label=label)
+            self.ax.scatter(data["x"],data["y"],marker=fmt,color=color,s=markersize,label=label)
 
     def plotRidgeline(self,ridgeline,color="black",label="",linewidth=2):
 
