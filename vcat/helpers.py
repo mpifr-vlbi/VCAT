@@ -969,7 +969,7 @@ def get_frequency(filepath):
         return float(hdu_list[0].header["CRVAL3"])
 
 def sort_fits_by_date_and_frequency(fits_files):
-    if fits_files!="":
+    if not isinstance(fits_files,str) or fits_files!="":
         fits_files = np.array(fits_files)
 
         if len(fits_files) > 0:
@@ -996,7 +996,7 @@ def get_uvf_frequency(filepath):
         raise ValueError(f"Frequency keyword not found in {filepath}")
 
 def sort_uvf_by_date_and_frequency(uvf_files):
-    if uvf_files!="":
+    if not isinstance(uvf_files,str) or uvf_files!="":
         uvf_files = np.array(uvf_files)
 
         if len(uvf_files) > 0:
