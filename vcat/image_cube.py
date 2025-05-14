@@ -1278,7 +1278,7 @@ class ImageCube(object):
 
                     #first filter the df for the specific date and frequency
                     df_filtered=df[abs(df["mjd"]-mjd)<3]
-                    df_filtered=df_filtered[abs(df_filtered["freq"]-freq)<1e-9]
+                    df_filtered=df_filtered[abs(df_filtered["freq"]-freq)<1e9]
 
                     # Find the closest component in the dataframe
                     df_filtered['distance'] = np.sqrt(
