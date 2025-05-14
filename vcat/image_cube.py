@@ -1253,9 +1253,12 @@ class ImageCube(object):
         for id in comp_ids:
             comps=[]
             for image in self.images.flatten():
-                for comp in image.components:
-                    if comp.component_number==id and comp.component_number!=-1:
-                        comps.append(comp)
+                try:
+                    for comp in image.components:
+                        if comp.component_number==id and comp.component_number!=-1:
+                            comps.append(comp)
+                except:
+                    logger.debug("Skipping image since it is empty.")
 
             if id!=-1:
                 component_collections.append(ComponentCollection(components=comps,name="Component "+str(id),date_tolerance=date_tolerance,freq_tolerance=freq_tolerance))

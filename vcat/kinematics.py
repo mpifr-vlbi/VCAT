@@ -177,7 +177,10 @@ class Component():
             
             ### Calculate other errors ###
             self.radius_err = np.sqrt(self.beam_maj*self.beam_min + size_maj**2*self.scale**2)/SNR_p
-            self.theta_err = np.arctan(self.radius_err/self.radius) * 180/np.pi
+            if self.radius==0:
+                self.theta_err=180
+            else:
+                self.theta_err = np.arctan(self.radius_err/self.radius) * 180/np.pi
 
             # NOTE: this does not take into account the covariance of the radial coordinates!
             # TODO: implement that
@@ -772,10 +775,11 @@ class ComponentCollection():
 def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method=res_lim_method,weighting=uvw):
     if method == 'Kovalev05':
         #here we need to check if the component is resolved or not!
-        if snr!=1:
-            factor = np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/abs(snr-1))) #following Kovalev et al. 2005
+        if snr>1:
+            factor = np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
         else:
-            factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(snr+1) / (abs(snr))))
+            factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(2) / (abs(1))))
+
 
         #rotate the beam to the x-axis
         new_pos=beam_pos-comp_pos
