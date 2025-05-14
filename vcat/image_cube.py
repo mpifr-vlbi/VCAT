@@ -1276,14 +1276,16 @@ class ImageCube(object):
                     mjd = comp.mjd
                     freq = comp.freq
 
+                    #first filter the df for the specific date and frequency
+                    df_filtered=df[abs(df["mjd"]-mjd)<3]
+                    df_filtered=df_filtered[abs(df_filtered["freq"]-freq)<1e-9]
+
                     # Find the closest component in the dataframe
-                    df['distance'] = np.sqrt(
-                        (df['x'] - x) ** 2 +
-                        (df['y'] - y) ** 2 +
-                        (df['freq'] - freq) **2 +
-                        (df['mjd'] - mjd) ** 2
+                    df_filtered['distance'] = np.sqrt(
+                        (df_filtered['x'] - x) ** 2 +
+                        (df_filtered['y'] - y) ** 2 +
                     )
-                    closest_row = df.loc[df['distance'].idxmin()]
+                    closest_row = df_filtered.loc[df_filtered['distance'].idxmin()]
 
                     # Assign new component number and is_core with type casting
                     self.images[i, j].components[k].is_core = bool(closest_row["is_core"])
