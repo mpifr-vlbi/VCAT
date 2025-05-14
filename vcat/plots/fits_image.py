@@ -790,6 +790,26 @@ class FitsImage(object):
         evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width,zorder=5)
         self.ax.add_collection(evpa_lines)
 
+    def plotCompCollection(self,cc,freq="",epoch="",color="black",fmt="o",markersize=4,capsize=None,filter_unresolved=False,label="",
+                           plot_errorbar=True):
+
+        data=cc.get_model_profile(freq=freq,epochs=epoch,filter_unresolved=filter_unresolved)
+
+        if plot_errorbar:
+            self.ax.errorbar(data["x"],data["y"],yerr=data["y_err"],xerr=data["x_err"],fmt=fmt,markersize=markersize,
+                             capsize=capsize,color=color,label=label)
+        else:
+            self.ax.scatter(data["x"],data["y"],marker=fmt,color=color,markersize=markersize,label=label)
+
+    def plot_kinematic_2d_fit(self, x_min, x_max, fit_params_x, fit_params_y, color, t_mid=0, label=""):
+
+        fit_x = np.poly1d(fit_params_x)
+        fit_y = np.poly1d(fit_params_y)
+        x_values = np.linspace(x_min, x_max, 1000)
+        x_cor = x_values - t_mid
+
+        self.ax.plot(fit_x(x_cor), fit_y(x_cor), color=color, label=label)
+
     def export(self,name):
         #check if name is a directory, if so create generic filename in pdf and png format
         if os.path.isdir(name):

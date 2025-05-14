@@ -6,13 +6,18 @@ im=ImageData(uvf_file="../dataset_example/0215_pol/Ku/0215+015.uvf")
 im.plot()
 
 data=ImageData("../dataset_example/0215_pol/Ku/0215+015.icn.fits",
-        model="../dataset_example/0215_pol/Ku/0215+015.icn.fits",
         stokes_q="../dataset_example/0215_pol/Ku/0215+015.qcn.fits",
         stokes_u="../dataset_example/0215_pol/Ku/0215+015.ucn.fits",   
         uvf_file="../dataset_example/0215_pol/Ku/0215+015.uvf",
         difmap_path="/usr/local/difmap/uvf_difmap_2.5g/")
 
 data.plot(plot_mode="lin_pol",plot_model=True,plot_mask=True,plot_polar=False)
+
+data=data.shift(5,5)
+data.plot()
+
+data=data.shift(-5,-5)
+data.plot()
 
 #Test regridding w/o difmap
 print(data.integrated_flux_image)

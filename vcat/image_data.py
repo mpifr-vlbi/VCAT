@@ -176,6 +176,7 @@ class ImageData(object):
         self.is_casa_model=is_casa_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
+        self.fit_comp_pol = fit_comp_polarization
         self.error=error
         if ridgeline=="":
             self.ridgeline=Ridgeline()
@@ -542,7 +543,6 @@ class ImageData(object):
 
             #set core
             self.set_core_component(core_id)
-            self.fit_comp_pol=fit_comp_polarization
             if self.uvf_file!="" and fit_comp_polarization:
                 logger.debug("Retrieving polarization information for modelfit components.")
                 self.fit_comp_polarization()
