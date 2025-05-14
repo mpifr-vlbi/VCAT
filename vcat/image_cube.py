@@ -202,8 +202,9 @@ class ImageCube(object):
 
         if mode == "all":
             for image in self.images.flatten():
-                image.masking(mask_type=mask_type,args=args)
-                images.append(image)
+                if isinstance(image, ImageData):
+                    image.masking(mask_type=mask_type,args=args)
+                    images.append(image)
         elif mode == "freq":
             for i in range(len(self.freqs)):
                 # check if parameters were input per frequency or for all frequencies
@@ -212,8 +213,9 @@ class ImageCube(object):
 
                 image_select = self.images[:, i]
                 for image in image_select:
-                    image.masking(mask_type=mask_type_i, args=args_i)
-                    images.append(image)
+                    if isinstance(image, ImageData):
+                        image.masking(mask_type=mask_type_i, args=args_i)
+                        images.append(image)
         elif mode == "epoch":
             for i in range(len(self.dates)):
                 # check if parameters were input per epoch or for all epochs
@@ -222,8 +224,9 @@ class ImageCube(object):
 
                 image_select = self.images[i, :]
                 for image in image_select:
-                    image.masking(mask_type=mask_type_i,args=args_i)
-                    images.append(image)
+                    if isinstance(image, ImageData):
+                        image.masking(mask_type=mask_type_i,args=args_i)
+                        images.append(image)
         else:
             raise Exception("Please specify valid masking mode ('all', 'epoch', 'freq')!")
 
@@ -407,10 +410,11 @@ class ImageCube(object):
 
         if mode=="all":
             for ind, image in enumerate(tqdm(self.images.flatten(),desc="Processing")):
-                npix=len(image.X)*2
-                pixel_size=image.degpp*image.scale
-                new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
-                images.append(new_image)
+                if isinstance(image, ImageData):
+                    npix=len(image.X)*2
+                    pixel_size=image.degpp*image.scale
+                    new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP)
+                    images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
                 #check if parameters were input per frequency or for all frequencies
@@ -419,10 +423,11 @@ class ImageCube(object):
 
                 image_select=self.images[:,i].flatten()
                 for ind2,image in enumerate(tqdm(image_select,desc="Processing")):
-                    npix = len(image.X) * 2
-                    pixel_size = image.degpp * image.scale
-                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
-                                        pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP))
+                    if isinstance(image, ImageData):
+                        npix = len(image.X) * 2
+                        pixel_size = image.degpp * image.scale
+                        images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
+                                            pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP))
         elif mode=="epoch":
             for i in tqdm(range(len(self.dates)),desc="Processing"):
                 # check if parameters were input per frequency or for all frequencies
@@ -431,10 +436,11 @@ class ImageCube(object):
 
                 image_select=self.images[i,:].flatten()
                 for ind2, image in enumerate(image_select):
-                    npix = len(image.X) * 2
-                    pixel_size = image.degpp * image.scale
-                    images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
-                                        pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP))
+                    if isinstance(image, ImageData):
+                        npix = len(image.X) * 2
+                        pixel_size = image.degpp * image.scale
+                        images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
+                                            pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP))
         else:
             raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
 
@@ -588,8 +594,9 @@ class ImageCube(object):
 
         if mode=="all":
             for image in tqdm(self.images.flatten(),desc="Processing"):
-                new_image=image.regrid(npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
-                images.append(new_image)
+                if isinstance(image, ImageData):
+                    new_image=image.regrid(npix=npix,pixel_size=pixel_size,weighting=weighting,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
+                    images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
                 # check if parameters were input per frequency or for all frequencies
@@ -598,7 +605,8 @@ class ImageCube(object):
 
                 image_select = self.images[:, i]
                 for image in tqdm(image_select,desc="Processing"):
-                    images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, weighting=weighting, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
+                    if isinstance(image, ImageData):
+                        images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, weighting=weighting, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
         elif mode=="epoch":
             for i in tqdm(range(len(self.dates)),desc="Processing"):
                 # check if parameters were input per frequency or for all frequencies
@@ -607,7 +615,8 @@ class ImageCube(object):
 
                 image_select = self.images[i, :]
                 for image in image_select:
-                    images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, weighting=weighting, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
+                    if isinstance(image, ImageData):
+                        images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, weighting=weighting, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
         else:
             raise Exception("Please specify valid regrid mode ('all', 'epoch', 'freq')!")
 
@@ -620,9 +629,10 @@ class ImageCube(object):
 
         if mode == "all":
             for image in self.images.flatten():
-                new_image = image.shift(shift_x=shift_x,shift_y=shift_y,npix=npix, pixel_size=pixel_size,
-                                        weighting=weighting, useDIFMAP=useDIFMAP)
-                images.append(new_image)
+                if isinstance(image, ImageData):
+                    new_image = image.shift(shift_x=shift_x,shift_y=shift_y,npix=npix, pixel_size=pixel_size,
+                                            weighting=weighting, useDIFMAP=useDIFMAP)
+                    images.append(new_image)
         elif mode == "freq":
             for i in range(len(self.freqs)):
                 # check if parameters were input per frequency or for all frequencies
@@ -633,9 +643,10 @@ class ImageCube(object):
 
                 image_select = self.images[:, i]
                 for image in image_select:
-                    images.append(
-                        image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
-                                    weighting=weighting, useDIFMAP=useDIFMAP))
+                    if isinstance(image, ImageData):
+                        images.append(
+                            image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
+                                        weighting=weighting, useDIFMAP=useDIFMAP))
         elif mode == "epoch":
             for i in range(len(self.dates)):
                 # check if parameters were input per frequency or for all frequencies
@@ -646,9 +657,10 @@ class ImageCube(object):
 
                 image_select = self.images[i, :]
                 for image in image_select:
-                    images.append(
-                        image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
-                                    weighting=weighting, useDIFMAP=useDIFMAP))
+                    if isinstance(image, ImageData):
+                        images.append(
+                            image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
+                                        weighting=weighting, useDIFMAP=useDIFMAP))
         else:
             raise Exception("Please specify valid shift mode ('all', 'epoch', 'freq')!")
 
@@ -1173,16 +1185,18 @@ class ImageCube(object):
 
         if mode == "all":
             for image in self.images.flatten():
-                new_image = image.rotate(angle,useDIFMAP=useDIFMAP)
-                images.append(new_image)
+                if isinstance(image, ImageData):
+                    new_image = image.rotate(angle,useDIFMAP=useDIFMAP)
+                    images.append(new_image)
         elif mode == "freq":
             for i in range(len(self.freqs)):
                 # check if parameters were input per frequency or for all frequencies
                 angle_i = angle[i] if isinstance(angle, list) else angle
                 image_select = self.images[:, i]
                 for image in image_select:
-                    new_image=image.rotate(angle_i,useDIFMAP=useDIFMAP)
-                    images.append(new_image)
+                    if isinstance(image, ImageData):
+                        new_image=image.rotate(angle_i,useDIFMAP=useDIFMAP)
+                        images.append(new_image)
         elif mode == "epoch":
             for i in range(len(self.dates)):
                 # check if parameters were input per frequency or for all frequencies
@@ -1190,8 +1204,9 @@ class ImageCube(object):
 
                 image_select = self.images[i, :]
                 for image in image_select:
-                    new_image = image.rotate(angle_i, useDIFMAP=useDIFMAP)
-                    images.append(new_image)
+                    if isinstance(image, ImageData):
+                        new_image = image.rotate(angle_i, useDIFMAP=useDIFMAP)
+                        images.append(new_image)
         else:
             raise Exception("Please specify valid rotate mode ('all', 'epoch', 'freq')!")
 
@@ -1202,7 +1217,8 @@ class ImageCube(object):
         images=[]
 
         for image in self.images.flatten():
-            images.append(image.center(mode=mode,useDIFMAP=useDIFMAP))
+            if isinstance(image, ImageData):
+                images.append(image.center(mode=mode,useDIFMAP=useDIFMAP))
 
         return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
                          new_import=False)
@@ -1266,6 +1282,8 @@ class ImageCube(object):
         return component_collections
 
     def import_component_association(self,file):
+
+        logger.info(f"Importing component associations from {file}.")
 
         df=pd.read_csv(file)
 
@@ -1920,10 +1938,11 @@ class ImageCube(object):
             times=[]
             #Generate interpolator function
             for image in image_datas:
-                images.append(image.Z)
-                lin_pols.append(image.lin_pol)
-                evpas.append(image.evpa)
-                times.append(image.mjd)
+                if isinstance(image, ImageData):
+                    images.append(image.Z)
+                    lin_pols.append(image.lin_pol)
+                    evpas.append(image.evpa)
+                    times.append(image.mjd)
 
             grid=(times,np.arange(len(images[0])),np.arange(len(images[0][0])))
 
