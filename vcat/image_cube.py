@@ -1283,7 +1283,7 @@ class ImageCube(object):
                     # Find the closest component in the dataframe
                     df_filtered['distance'] = np.sqrt(
                         (df_filtered['x'] - x) ** 2 +
-                        (df_filtered['y'] - y) ** 2 +
+                        (df_filtered['y'] - y) ** 2
                     )
                     closest_row = df_filtered.loc[df_filtered['distance'].idxmin()]
 
