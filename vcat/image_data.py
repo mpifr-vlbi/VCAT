@@ -2095,8 +2095,8 @@ class ImageData(object):
         os.system("cp tmp/model_q.mod tmp/model_u.mod")
         comps_q=copy.deepcopy(self.components)
         comps_u=copy.deepcopy(self.components)
-        comps_q=modelfit_difmap(self.uvf_file,"tmp/model_q.mod",50,difmap_path,components=comps_q,weighting=uvw,channel="q")
-        comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,weighting=uvw,channel="u")
+        comps_q=modelfit_difmap(self.uvf_file,"tmp/model_q.mod",50,difmap_path,components=comps_q,weighting=uvw,channel="q",do_selfcal=True)
+        comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,weighting=uvw,channel="u",do_selfcal=True)
 
         for i, comp in enumerate(self.components):
             #calculate lin_pol and EVPA from Q and U flux

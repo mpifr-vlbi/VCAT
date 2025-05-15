@@ -323,7 +323,7 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
 
         os.system("rm -rf difmap.log*")
 
-def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=[0,-1],channel="i"):
+def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=[0,-1],channel="i",do_selfcal=False):
 
     env = os.environ.copy()
 
@@ -348,6 +348,10 @@ def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=
     send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  # use custom weighting
     send_difmap_command("select "+channel)
     send_difmap_command("rmod " + mod_file)
+    if do_selfcal:
+        send_difmap_command("select i")
+        send_difmap_command("selfcal")
+        send_difmap_command("select " +channel)
     send_difmap_command("modelfit  "+str(niter))
     send_difmap_command("wmod " + mod_file)
 
