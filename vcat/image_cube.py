@@ -1778,7 +1778,7 @@ class ImageCube(object):
         if show:
             plot.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors,snr_cut=snr_cut):
 
         if freq=="":
             freq=self.freqs
@@ -1801,7 +1801,7 @@ class ImageCube(object):
             plot = KinematicPlot()
             for ind,cc in enumerate(ccs):
 
-                fit=cc.get_speed(freqs=fr,order=order)
+                fit=cc.get_speed(freqs=fr,order=order,snr_cut=snr_cut)
 
                 for f in fit:
                     tmin=np.min(cc.year.flatten())
@@ -1823,7 +1823,7 @@ class ImageCube(object):
 
         return fits
 
-    def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,colors=plot_colors):
+    def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,colors=plot_colors,snr_cut=1):
 
         if freq == "":
             freq = self.freqs
@@ -1849,7 +1849,7 @@ class ImageCube(object):
                 plot = KinematicPlot()
             for ind, cc in enumerate(ccs):
 
-                fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order)
+                fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order,snr_cut=snr_cut)
 
                 tmin = np.min(cc.year.flatten())
                 tmax = np.max(cc.year.flatten())

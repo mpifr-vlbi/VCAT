@@ -384,25 +384,25 @@ class ComponentCollection():
     def length(self):
         return len(self.components)
 
-    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=H0, Om0=Om0)):
+    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
 
         #we use the one dimensional function for x and y separately
         dist=self.dist
 
         #do x_fit
         self.dist=self.delta_x_ests*self.scale
-        x_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo)
+        x_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut)
 
         #do y_fit
         self.dist=self.delta_y_ests*self.scale
-        y_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo)
+        y_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut)
 
         #reset dist
         self.dist=dist
 
         return x_fits, y_fits
 
-    def get_speed(self,freqs="",order=1,weighted_fit=False, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0)):
+    def get_speed(self,freqs="",order=1,weighted_fit=False, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
 
 
         if freqs=="":
@@ -418,13 +418,17 @@ class ComponentCollection():
         results=[]
         for freq in freqs:
             freq_ind=closest_index(self.freqs_distinct,freq*1e9)
+            year = self.year[:, freq_ind].flatten()
+            dist = self.dist[:, freq_ind].flatten()
+            dist_err = self.dist_err[:, freq_ind].flatten()
+            snrs = self.snrs[:, freq_ind].flatten()
+
+            year = year[snrs >= snr_cut]
+            dist = dist[snrs >= snr_cut]
+            dist_err = dist_err[snrs > snr_cut]
 
             #check if there is enough data to perform a fit
-            if len(self.year[:,freq_ind].flatten()) > 2:
-
-                year=self.year[:,freq_ind].flatten()
-                dist=self.dist[:,freq_ind].flatten()
-                dist_err=self.dist_err[:,freq_ind].flatten()
+            if len(year) > 2:
 
                 def reduced_chi2(fit, x, y, yerr, N, n):
                     return 1. / (N - n) * np.sum(((y - fit) / yerr) ** 2.)
