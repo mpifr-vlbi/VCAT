@@ -501,7 +501,6 @@ class ImageData(object):
 
         if self.model_inp:
             #only do this if a model was specified explicitely
-            core_id=0
             for ind,comp in self.model.reset_index().iterrows():
                 #use provided comp_id
                 try:
@@ -516,7 +515,6 @@ class ImageData(object):
                 #check if component is the core component
                 if comp_id==core_comp_id:
                     is_core=True
-                    core_id=ind
                 else:
                     is_core=False
 
@@ -542,7 +540,7 @@ class ImageData(object):
                 self.components.append(component)
 
             #set core
-            self.set_core_component(core_id)
+            self.set_core_component(core_comp_id)
             if self.uvf_file!="" and fit_comp_polarization:
                 logger.debug("Retrieving polarization information for modelfit components.")
                 self.fit_comp_polarization()
