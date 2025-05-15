@@ -628,7 +628,8 @@ class ImageCube(object):
         images = []
 
         if mode == "all":
-            for image in self.images.flatten():
+            logger.info("Shifting images:")
+            for image in tqdm(self.images.flatten(), desc="Processing"):
                 if isinstance(image, ImageData):
                     new_image = image.shift(shift_x=shift_x,shift_y=shift_y,
                                             weighting=weighting, useDIFMAP=useDIFMAP)

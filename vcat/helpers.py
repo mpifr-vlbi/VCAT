@@ -251,6 +251,7 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, weighting=uvw, rms_b
     send_difmap_command('select I')
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))    # use natural weighting as default
     send_difmap_command('rmod ' + mfit_file)
+    send_difmap_command("selfcal") #this is required in case the map is shifted (difmap does not store phase shifts!)
     send_difmap_command('mapsize '+str(2*ms_x)+','+str(ps_x)+','+ str(2*ms_y)+','+str(ps_y))
     send_difmap_command(f'wdmap tmp/resmap_model.fits')
     ra = x

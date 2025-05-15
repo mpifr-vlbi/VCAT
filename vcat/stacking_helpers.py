@@ -310,11 +310,10 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
             send_difmap_command("obs " + uvf_files[ind])
 
             send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  #use custom weighting
-            if abs(shift_x)>0 or abs(shift_y)>9:
+            if abs(shift_x)>0 or abs(shift_y)>0:
                 send_difmap_command(f"shift {shift_x},{shift_y}")
             send_difmap_command("select " + channel)
             send_difmap_command("rmod " + mod_files[ind])
-
             if do_selfcal:
                 send_difmap_command("selfcal")
             send_difmap_command("maps " + str(n_pixel) + "," + str(pixel_size))

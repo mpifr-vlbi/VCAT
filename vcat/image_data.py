@@ -1357,7 +1357,6 @@ class ImageData(object):
             imgalign = np.fft.ifft2(offset_image)  # again before ifftn
             new_mask = np.real(imgalign) > 0.5
 
-
             #restore Stokes I
             new_stokes_i_fits=self.stokes_i_mod_file.replace(".mod","")
 
