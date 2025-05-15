@@ -1811,7 +1811,7 @@ class ImageCube(object):
                     ind = ind % len(colors)
                     color=colors[ind]
 
-                    plot.plot_kinematics(cc,color=color)
+                    plot.plot_kinematics(cc,color=color,snr_cut=snr_cut)
                     plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
                                          f["linear_fit"],color=color,label=cc.name,t_mid=f["t_mid"])
 
