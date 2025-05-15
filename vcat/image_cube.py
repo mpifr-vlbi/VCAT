@@ -1479,7 +1479,7 @@ class ImageCube(object):
 
         return dists, values, value_errs
 
-    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False,plot=False,filter_unresolved=False):
+    def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False,plot=False,filter_unresolved=False,snr_cut=1):
         """
         Get information from the model components vs. distance from
 
@@ -1492,6 +1492,7 @@ class ImageCube(object):
             core_position: Provide reference core position (will be used to calculate distance for every component)
             plot (bool): Choose whether to generate plot
             filter_unresolved (bool): Choose whether to filter out unresolved components
+            snr_cut (float): Mask components with signal-to-noise ratio less than this value
 
         Returns:
             distance, values, value_err
@@ -1521,7 +1522,7 @@ class ImageCube(object):
                 core_position=[0,0]
 
         for cc in ccs:
-            info=cc.get_model_profile(freq=freq,epochs=epoch,core_position=core_position, filter_unresolved=filter_unresolved)
+            info=cc.get_model_profile(freq=freq,epochs=epoch,core_position=core_position, filter_unresolved=filter_unresolved,snr_cut=snr_cut)
             try:
                 values+=info[value]
                 if value=="maj" or value=="flux":
@@ -1565,7 +1566,7 @@ class ImageCube(object):
         return average_comps
 
     def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
-                                plot_data=True,plot_fit=True,plot="",show=False,filter_unresolved=False,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
+                                plot_data=True,plot_fit=True,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
         """
         Function to fit a collimation profile to the jet/counterjet
 
@@ -1580,6 +1581,7 @@ class ImageCube(object):
             plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
             show (bool): Choose whether to show the plot
             filter_unresolved (bool): Choose whether to filter out unresolved components
+            snr_cut (float): Filter out components with signal-to-noise ratio less than given number
             label (str): Label for the fitted data/fit
             color (str): Plot color
             marker (str): Plot marker
@@ -1594,7 +1596,8 @@ class ImageCube(object):
 
         if method=="model":
             #jet info
-            dists, widths, width_errs = self.get_model_profile("maj",id=id,freq=freq,epoch=epoch,core_position=core_position, filter_unresolved=filter_unresolved)
+            dists, widths, width_errs = self.get_model_profile("maj",id=id,freq=freq,epoch=epoch,core_position=core_position,
+                                                               filter_unresolved=filter_unresolved,snr_cut=snr_cut)
 
             #TODO get counter jet info
             cdists = []
@@ -1724,7 +1727,7 @@ class ImageCube(object):
                 plt.show()
 
     def plot_components(self,id="",freq="",epoch="",show=False,xlim=[10,-10],ylim=[-10,10],colors="",fmts=[""],markersize=4,labels=[""],
-                        filter_unresolved=False,capsize=None,plot_errorbar=True):
+                        filter_unresolved=False,snr_cut=1,capsize=None,plot_errorbar=True):
         if id=="":
             #do it for all components
             ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
@@ -1747,7 +1750,7 @@ class ImageCube(object):
             if label=="":
                 label=cc.name
             plot.plotCompCollection(cc,freq=freq,epoch=epoch,color=color,fmt=fmt,markersize=markersize,capsize=capsize,
-                                    filter_unresolved=filter_unresolved,label=label,plot_errorbar=plot_errorbar)
+                                    filter_unresolved=filter_unresolved,snr_cut=snr_cut,label=label,plot_errorbar=plot_errorbar)
 
         if show:
             plot.show()

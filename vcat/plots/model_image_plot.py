@@ -45,10 +45,10 @@ class ModelImagePlot(object):
         self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
         self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
 
-    def plotCompCollection(self,cc,freq="",epoch="",color="black",fmt="o",markersize=4,capsize=None,filter_unresolved=False,label="",
-                           plot_errorbar=True):
+    def plotCompCollection(self,cc,freq="",epoch="",color="black",fmt="o",markersize=4,capsize=None,filter_unresolved=False,
+                           snr_cut=1,label="",plot_errorbar=True):
 
-        data=cc.get_model_profile(freq=freq,epochs=epoch,filter_unresolved=filter_unresolved)
+        data=cc.get_model_profile(freq=freq,epochs=epoch,filter_unresolved=filter_unresolved,snr_cut=snr_cut)
 
         if plot_errorbar:
             self.ax.errorbar(data["x"],data["y"],yerr=data["y_err"],xerr=data["x_err"],fmt=fmt,markersize=markersize,

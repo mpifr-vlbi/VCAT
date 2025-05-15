@@ -335,6 +335,7 @@ class ComponentCollection():
         self.delta_y_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.lin_pols = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.evpas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.snrs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
 
         for i, year in enumerate(epochs):
             for j, freq in enumerate(freqs):
@@ -367,6 +368,7 @@ class ComponentCollection():
                         self.delta_y_ests[i,j]=comp.delta_y_est
                         self.lin_pols[i,j]=comp.lin_pol
                         self.evpas[i,j]=comp.evpa
+                        self.snrs[i,j]=comp.snr
 
         try:
             self.id=np.unique(self.ids.flatten())[0]
@@ -672,7 +674,7 @@ class ComponentCollection():
 
         return results
 
-    def get_model_profile(self,freq="",epochs="",core_position=[0,0],filter_unresolved=False):
+    def get_model_profile(self,freq="",epochs="",core_position=[0,0],filter_unresolved=False,snr_cut=1):
 
         # read in settings
         if freq == "":
@@ -718,26 +720,27 @@ class ComponentCollection():
                 ind_f = closest_index(self.freqs_distinct, freq * 1e9)
                 ind_e = closest_index(self.epochs_distinct, epoch)
                 if not filter_unresolved or (filter_unresolved and self.resolved[ind_e, ind_f]):
-                    majs.append(self.majs[ind_e, ind_f]*self.scale)
-                    majs_err.append(self.majs_err[ind_e,ind_f]*self.scale)
-                    mins.append(self.majs[ind_e, ind_f]*self.scale)
-                    mins_err.append(self.mins_err[ind_e,ind_f]*self.scale)
-                    fluxs.append(self.fluxs[ind_e, ind_f])
-                    fluxs_err.append(self.fluxs_err[ind_e,ind_f])
-                    tbs.append(self.tbs[ind_e, ind_f])
-                    tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
-                    xs.append(self.xs[ind_e,ind_f]*self.scale)
-                    x_errs.append(self.x_errs[ind_e,ind_f]*self.scale)
-                    ys.append(self.ys[ind_e,ind_f]*self.scale)
-                    y_errs.append(self.y_errs[ind_e,ind_f]*self.scale)
-                    pas.append(self.posas[ind_e,ind_f])
-                    lin_pols.append(self.lin_pols[ind_e,ind_f])
-                    evpas.append(self.evpas[ind_e,ind_f])
-                    dist,dist_err=calculate_dist_with_err(self.xs[ind_e,ind_f]*self.scale,self.ys[ind_e,ind_f]*self.scale,
-                                                          core_position[0],core_position[1],self.x_errs[ind_e,ind_f]*self.scale,
-                                                          self.y_errs[ind_e,ind_f]*self.scale,0,0)
-                    dists.append(dist)
-                    dist_errs.append(dist_err)
+                    if self.snrs[ind_e,ind_f] >= snr_cut:
+                        majs.append(self.majs[ind_e, ind_f]*self.scale)
+                        majs_err.append(self.majs_err[ind_e,ind_f]*self.scale)
+                        mins.append(self.majs[ind_e, ind_f]*self.scale)
+                        mins_err.append(self.mins_err[ind_e,ind_f]*self.scale)
+                        fluxs.append(self.fluxs[ind_e, ind_f])
+                        fluxs_err.append(self.fluxs_err[ind_e,ind_f])
+                        tbs.append(self.tbs[ind_e, ind_f])
+                        tbs_lower_limit.append(self.tbs_lower_limit[ind_e, ind_f])
+                        xs.append(self.xs[ind_e,ind_f]*self.scale)
+                        x_errs.append(self.x_errs[ind_e,ind_f]*self.scale)
+                        ys.append(self.ys[ind_e,ind_f]*self.scale)
+                        y_errs.append(self.y_errs[ind_e,ind_f]*self.scale)
+                        pas.append(self.posas[ind_e,ind_f])
+                        lin_pols.append(self.lin_pols[ind_e,ind_f])
+                        evpas.append(self.evpas[ind_e,ind_f])
+                        dist,dist_err=calculate_dist_with_err(self.xs[ind_e,ind_f]*self.scale,self.ys[ind_e,ind_f]*self.scale,
+                                                              core_position[0],core_position[1],self.x_errs[ind_e,ind_f]*self.scale,
+                                                              self.y_errs[ind_e,ind_f]*self.scale,0,0)
+                        dists.append(dist)
+                        dist_errs.append(dist_err)
 
         return {"maj": majs,"maj_err": majs_err, "min": mins, "min_err": mins_err, "flux": fluxs, "flux_err": fluxs_err,
                 "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists,"dist_err":dist_errs,
