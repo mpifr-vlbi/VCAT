@@ -1247,7 +1247,7 @@ class ImageCube(object):
 
     def get_comp_collection(self,comp_id):
         for cc in self.comp_collections:
-            if cc.ids[0,0]==comp_id:
+            if cc.ids.flatten()[0]==comp_id:
                 return cc
 
         raise Exception(f"No component collection with id {comp_id} found.")
@@ -1256,11 +1256,9 @@ class ImageCube(object):
         #find available component ids
         comp_ids=[]
         for image in self.images.flatten():
-            try:
+            if isinstance(image, ImageData):
                 for comp in image.components:
                     comp_ids.append(comp.component_number)
-            except:
-                pass
 
         comp_ids=np.unique(comp_ids)
 
@@ -1269,12 +1267,10 @@ class ImageCube(object):
         for id in comp_ids:
             comps=[]
             for image in self.images.flatten():
-                try:
+                if isinstance(image, ImageData):
                     for comp in image.components:
                         if comp.component_number==id and comp.component_number!=-1:
                             comps.append(comp)
-                except:
-                    logger.debug("Skipping image since it is empty.")
 
             if id!=-1:
                 component_collections.append(ComponentCollection(components=comps,name="Component "+str(id),date_tolerance=date_tolerance,freq_tolerance=freq_tolerance))

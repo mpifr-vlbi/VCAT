@@ -502,7 +502,7 @@ class ImageData(object):
         if self.model_inp:
             #only do this if a model was specified explicitely
             core_id=0
-            for ind,comp in self.model.sort_values(by='Flux', ascending=False).reset_index().iterrows():
+            for ind,comp in self.model.reset_index().iterrows():
                 #use provided comp_id
                 try:
                     comp_id=comp_ids[ind]
