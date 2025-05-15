@@ -623,14 +623,14 @@ class ImageCube(object):
         return ImageCube(image_data_list=images,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
                          new_import=False)
 
-    def shift(self, mode="all", shift_x=0, shift_y=0, npix="",pixel_size="",weighting=uvw,useDIFMAP=True):
+    def shift(self, mode="all", shift_x=0, shift_y=0,weighting=uvw,useDIFMAP=True):
         # initialize empty array
         images = []
 
         if mode == "all":
             for image in self.images.flatten():
                 if isinstance(image, ImageData):
-                    new_image = image.shift(shift_x=shift_x,shift_y=shift_y,npix=npix, pixel_size=pixel_size,
+                    new_image = image.shift(shift_x=shift_x,shift_y=shift_y,
                                             weighting=weighting, useDIFMAP=useDIFMAP)
                     images.append(new_image)
         elif mode == "freq":
@@ -638,28 +638,24 @@ class ImageCube(object):
                 # check if parameters were input per frequency or for all frequencies
                 shift_x_i = shift_x[i] if isinstance(shift_x, list) else shift_x
                 shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
-                npix_i = n_pix[i] if isinstance(npix, list) else npix
-                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select = self.images[:, i]
                 for image in image_select:
                     if isinstance(image, ImageData):
                         images.append(
-                            image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
+                            image.shift(shift_x=shift_x_i, shift_y=shift_y_i,
                                         weighting=weighting, useDIFMAP=useDIFMAP))
         elif mode == "epoch":
             for i in range(len(self.dates)):
                 # check if parameters were input per frequency or for all frequencies
                 shift_x_i = shift_x[i] if isinstance(shift_x, list) else shift_x
                 shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
-                npix_i = npix[i] if isinstance(npix, list) else npix
-                pixel_size_i = pixel_size[i] if isinstance(pixel_size, list) else pixel_size
 
                 image_select = self.images[i, :]
                 for image in image_select:
                     if isinstance(image, ImageData):
                         images.append(
-                            image.shift(shift_x=shift_x_i, shift_y=shift_y_i, npix=npix_i, pixel_size=pixel_size_i,
+                            image.shift(shift_x=shift_x_i, shift_y=shift_y_i,
                                         weighting=weighting, useDIFMAP=useDIFMAP))
         else:
             raise Exception("Please specify valid shift mode ('all', 'epoch', 'freq')!")
@@ -1216,7 +1212,8 @@ class ImageCube(object):
     def center(self,mode="stokes_i",useDIFMAP=True):
         images=[]
 
-        for image in self.images.flatten():
+        logger.info("Centering images:")
+        for image in tqdm(self.images.flatten(), desc="Processing"):
             if isinstance(image, ImageData):
                 images.append(image.center(mode=mode,useDIFMAP=useDIFMAP))
 
