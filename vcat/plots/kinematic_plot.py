@@ -85,56 +85,109 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Distance from Core [mas]', fontsize=font_size_axis_title)
 
-    def plot_fluxs(self, component_collection, color, marker=".",plot_errors=True):
+    def plot_fluxs(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
+
+            years = component_collection.year.flatten()
+            fluxs = component_collection.fluxs.flatten()
+            fluxs_err = component_collection.fluxs_err.flatten()
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            fluxs = fluxs[snrs >= snr_cut]
+            fluxs_err = fluxs_err[snrs >= snr_cut]
+
             if plot_errors:
-                self.ax.errorbar(component_collection.year.flatten(),component_collection.fluxs.flatten(),
-                                 yerr=component_collection.fluxs_err.flatten(),c=color,fmt=marker)
+                self.ax.errorbar(years,fluxs,yerr=fluxs_err,c=color,fmt=marker)
             else:
-                self.ax.plot(component_collection.year, component_collection.fluxs, c=color,
+                self.ax.plot(years,fluxs, c=color,
                             label=component_collection.name, marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Flux Density [Jy]', fontsize=font_size_axis_title)
 
     def plot_pas(self, component_collection, color, marker="."):
         if component_collection.length() > 0:
-            self.ax.plot(component_collection.year, component_collection.posas, c=color,
+            years = component_collection.year.flatten()
+            pas = component_collection.posas.flatten()
+
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            pas = pas[snrs >= snr_cut]
+
+            self.ax.plot(years,pas, c=color,
                          label=component_collection.name, marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle [deg]', fontsize=font_size_axis_title)
 
-    def plot_theta(self, component_collection, color, marker=".",plot_errors=True):
+    def plot_theta(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
+            years = component_collection.year.flatten()
+            thetas = component_collection.thetas.flatten()
+            thetas_err = component_collection.thetas_err.flatten()
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            thetas = thetas[snrs >= snr_cut]
+            thetas_err = thetas_err[snrs >= snr_cut]
+
             if plot_errors:
-                self.ax.errorbar(component_collection.year.flatten(),component_collection.thetas.flatten(),
-                                 yerr=component_collection.thetas_err.flatten(),c=color,fmt=marker)
+                self.ax.errorbar(years,thetas,yerr=thetas_err,c=color,fmt=marker)
             else:
-                self.ax.plot(component_collection.year, component_collection.thetas, c=color,
+                self.ax.plot(years,thetas, c=color,
                              label=component_collection.name,
                              marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle of the Component Position [°]', fontsize=font_size_axis_title)
 
-    def plot_linpol(self, component_collection, color, marker="."):
+    def plot_linpol(self, component_collection, color, marker=".",snr_cut=1):
         if component_collection.length() > 0:
-            self.ax.plot(component_collection.year, component_collection.lin_pols, c=color,
+            years = component_collection.year.flatten()
+            lin_pols = component_collection.lin_pols.flatten()
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            lin_pols = lin_pols[snrs >= snr_cut]
+
+            self.ax.plot(years,lin_pols, c=color,
                          label=component_collection.name,
                          marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Linearly Polarized Flux Density [Jy]', fontsize=font_size_axis_title)
 
-    def plot_fracpol(self, component_collection, color, marker="."):
+    def plot_fracpol(self, component_collection, color, marker=".",snr_cut=1):
         if component_collection.length() > 0:
-            self.ax.plot(component_collection.year,
-                         np.array(component_collection.lin_pols) / np.array(component_collection.fluxs) * 100,
+            years = component_collection.year.flatten()
+            lin_pols = component_collection.lin_pols.flatten()
+            fluxs = component_collection.fluxs.flatten()
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            lin_pols = lin_pols[snrs>=snr_cut]
+            fluxs = fluxs[snrs >= snr_cut]
+
+            self.ax.plot(years,
+                         np.array(lin_pols) / np.array(fluxs) * 100,
                          c=color, label=component_collection.name, marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Fractional Polarized Flux Density [%]', fontsize=font_size_axis_title)
 
-    def plot_evpa(self, component_collection, color, marker="."):
+    def plot_evpa(self, component_collection, color, marker=".",snr_cut=1):
+        evpas = component_collection.evpas.flatten()
+        years = component_collection.year.flatten()
+
+        snrs = component_collection.snrs.flatten()
+
+        years = years[snrs >= snr_cut]
+        evpas = evpas[snrs >= snr_cut]
+
         if self.pol_plot:
-            evpas = component_collection.evpas.flatten()
-            years = component_collection.year.flatten()
+
 
             plot_evpas = 2 * np.array(wrap_evpas(evpas)) / 180 * np.pi  # we will plot two times EVPA
 
@@ -148,43 +201,72 @@ class KinematicPlot(object):
 
         else:
             if component_collection.length() > 0:
-                self.ax.plot(component_collection.year, component_collection.evpas, c=color,
+                self.ax.plot(years,evpas, c=color,
                              label=component_collection.name,
                              marker=marker)
             self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
             self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_maj(self, component_collection, color, marker=".",plot_errors=True):
+    def plot_maj(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
+            years = component_collection.year.flatten()
+            majs = component_collection.majs.flatten()
+            majs_err = component_collection.majs_err.flatten()
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            majs = majs[snrs >= snr_cut]
+            majs_err = majs_err[snrs >= snr_cut]
+
             if plot_errors:
-                self.ax.errorbar(component_collection.year.flatten(),component_collection.majs.flatten(),
-                                 yerr=component_collection.majs_err.flatten(),c=color,fmt=marker)
+                self.ax.errorbar(years,majs,yerr=majs_err,c=color,fmt=marker)
             else:
-                self.ax.plot(component_collection.year, component_collection.majs, c=color, label=component_collection.name,
+                self.ax.plot(year,majs, c=color, label=component_collection.name,
                             marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_min(self, component_collection, color, marker=".",plot_errors=True):
+    def plot_min(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
+
+            years = component_collection.year.flatten()
+            mins = component_collection.mins.flatten()
+            mins_err = component_collection.mins_err.flatten()
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            mins = mins[snrs >= snr_cut]
+            mins_err = mins_err[snrs >= snr_cut]
+
             if plot_errors:
-                self.ax.errorbar(component_collection.year.flatten(),component_collection.mins.flatten(),
-                                 yerr=component_collection.mins_err.flatten(),c=color,fmt=marker)
+                self.ax.errorbar(years,mins,yerr=mins_err,c=color,fmt=marker)
             else:
                 self.ax.plot(component_collection.year, component_collection.mins, c=color, label=component_collection.name,
                              marker=marker)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_tbs(self, component_collection, color, marker="."):
+    def plot_tbs(self, component_collection, color, marker=".",snr_cut=1):
         if component_collection.length() > 0:
-            lower_limit_inds = np.where(np.array(component_collection.tbs_lower_limit))[0]
-            tb_value_inds = np.where(np.array(component_collection.tbs_lower_limit) == False)[0]
-            self.ax.plot(np.array(component_collection.year)[tb_value_inds],
-                         np.array(component_collection.tbs)[tb_value_inds], c=color, label=component_collection.name,
+            years = component_collection.year.flatten()
+            tbs_lower_limit = component_collection.tbs_lower_limit.flatten()
+            tbs = component_collection.tbs.flatten()
+
+            snrs = component_collection.snrs.flatten()
+
+            years = years[snrs >= snr_cut]
+            tbs_lower_limit = tbs_lower_limit[snrs >= snr_cut]
+            tbs = tbs[snrs >= snr_cut]
+
+            lower_limit_inds = np.where(np.array(tbs_lower_limit))[0]
+            tb_value_inds = np.where(np.array(tbs_lower_limit) == False)[0]
+            self.ax.plot(np.array(years)[tb_value_inds],
+                         np.array(tbs)[tb_value_inds], c=color, label=component_collection.name,
                          marker=marker)
-            self.ax.scatter(np.array(component_collection.year)[lower_limit_inds],
-                            np.array(component_collection.tbs)[lower_limit_inds], c=color, marker="^")
+            self.ax.scatter(np.array(years)[lower_limit_inds],
+                            np.array(tbs)[lower_limit_inds], c=color, marker="^")
 
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)
