@@ -1778,7 +1778,7 @@ class ImageCube(object):
         if show:
             plot.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors,snr_cut=snr_cut):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors,snr_cut=1):
 
         if freq=="":
             freq=self.freqs
