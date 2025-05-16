@@ -1,0 +1,79 @@
+! Started logfile: difmap.log on Fri May 16 15:39:52 2025
+! Starting new interactive shell. Use the EOF character to exit.
+! Obeying initialization file: 
+observe tmp/mod_files_clean/0506+056_2011-02-27_15GHz.uvf
+! Reading UV FITS file: tmp/mod_files_clean/0506+056_2011-02-27_15GHz.uvf
+! AN table 1: 207 integrations on 45 of 45 possible baselines.
+! Apparent sampling: 0.671283 visibilities/baseline/integration-bin.
+! Found source: 0506+056
+! 
+! There are 8 IFs, and a total of 8 channels:
+! 
+!  IF  Channel    Frequency  Freq offset  Number of   Overall IF
+!       origin    at origin  per channel   channels    bandwidth
+!  ------------------------------------------------------------- (Hz)
+!  01        1  1.53295e+10        8e+06          1        8e+06
+!  02        2  1.53375e+10        8e+06          1        8e+06
+!  03        3  1.53455e+10        8e+06          1        8e+06
+!  04        4  1.53535e+10        8e+06          1        8e+06
+!  05        5  1.53615e+10        8e+06          1        8e+06
+!  06        6  1.53695e+10        8e+06          1        8e+06
+!  07        7  1.53775e+10        8e+06          1        8e+06
+!  08        8  1.53855e+10        8e+06          1        8e+06
+! 
+! Polarization(s): RR LL RL LR
+! 
+! Read 1688 lines of history.
+! 
+! Reading 200096 visibilities.
+select I
+! Selecting polarization: I,  channels: 1..8
+! Reading IF 1 channels: 1..1
+! Reading IF 2 channels: 2..2
+! Reading IF 3 channels: 3..3
+! Reading IF 4 channels: 4..4
+! Reading IF 5 channels: 5..5
+! Reading IF 6 channels: 6..6
+! Reading IF 7 channels: 7..7
+! Reading IF 8 channels: 8..8
+uvw 0,-1
+! Uniform weighting is not currently selected.
+! Gridding weights will be scaled by errors raised to the power -1.
+! Radial weighting is not currently selected.
+rmod tmp/mod_files_model/0506+056_2011-02-27_15GHz.mod
+! A total of 4 model components were read from file tmp/mod_files_model/0506+056_2011-02-27_15GHz.mod
+selfcal
+! Performing phase self-cal
+! Adding 4 model components to the UV plane model.
+! The established model now contains 4 components and 0.356451 Jy
+! 
+! Correcting IF 1.
+!  A total of 477 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 2.
+!  A total of 495 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 3.
+!  A total of 468 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 4.
+!  A total of 487 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 5.
+!  A total of 467 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 6.
+!  A total of 462 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 7.
+!  A total of 499 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 8.
+!  A total of 454 telescope corrections were flagged in sub-array 1.
+! 
+! Fit before self-cal, rms=0.370969Jy  sigma=6.077688
+! Fit after  self-cal, rms=0.085327Jy  sigma=0.996555
+mapsize 2048,0.05,2048,0.05
+! Map grid = 2048x2048 pixels with 0.0500x0.0500 milli-arcsec cellsize.
+wdmap tmp/resmap_model.fits
+! Inverting map and beam 

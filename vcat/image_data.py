@@ -14,6 +14,7 @@ from skimage.draw import disk, ellipse
 from skimage.registration import phase_cross_correlation
 from scipy.interpolate import RegularGridInterpolator
 import copy
+from sympy import Ellipse, Point, Line
 from astropy.utils.exceptions import ErfaWarning
 import numpy as np
 import scipy.ndimage
@@ -2092,6 +2093,64 @@ class ImageData(object):
         self.Z=np.array(self.Z)-image
 
         return self
+
+    def calculate_opening_angle(self,id):
+        comp=self.get_component(id)
+        core=self.get_core_component()
+
+        if comp.resolved:
+            delta_x = (comp.x - core.x) * comp.scale
+            delta_y = (comp.y - comp.y) * comp.scale
+
+            def calculate_theta():
+                if (delta_y > 0 and delta_x > 0) or (delta_y > 0 and delta_x < 0):
+                    return np.arctan(delta_x / delta_y) / np.pi * 180
+                elif delta_y < 0 and delta_x > 0:
+                    return np.arctan(delta_x / delta_y) / np.pi * 180 + 180
+                elif delta_y < 0 and delta_x < 0:
+                    return np.arctan(delta_x / delta_y) / np.pi * 180 - 180
+                else:
+                    return 0
+
+            theta = calculate_theta()
+
+            # check core resolution limit
+            theta_maj, theta_min = get_resolution_limit(self.beam_maj, self.beam_min, self.beam_pa, theta, core.snr,
+                                                        method=res_lim_method, weighting=uvw)
+
+            new_pos=theta-comp.pos+90
+            new_pos_core=theta-core.pos+90
+
+            line_comp = Line(Point(0, 0), Point(np.cos(new_pos / 180 * np.pi), np.sin(new_pos / 180 * np.pi)))
+            line_core = Line(Point(0, 0), Point(np.cos(new_pos_core / 180 * np.pi), np.sin(new_pos_core / 180 * np.pi)))
+
+            core_Ellipse=Ellipse(Point(0,0),hradius=core.maj*comp.scale,vradius=core.min*comp.scale)
+            comp_Ellipse=Ellipse(Point(0,0),hradius=comp.maj*comp.scale,vradius=comp.min*comp.scale)
+
+            if core.maj==0 or core.min==0:
+                core_dist=np.abs(theta_maj/2)
+            else:
+                p1, p2 = core_Ellipse.intersect(line_core)
+                core_dist=np.abs(float(p1.distance(p2))/2)
+            p1, p2 = comp_Ellipse.intersect(line_comp)
+            comp_dist=np.abs(float(p1.distance(p2))/2)
+
+            dist=np.sqrt(delta_x**2+delta_y**2)
+
+
+
+            if np.abs(theta_maj/2)>core_dist:
+                core_dist=np.abs(theta_maj/2)
+
+            #calculate opening angle
+            print(comp_dist,core_dist,dist)
+            angle=np.arctan((comp_dist-core_dist)/dist)/np.pi*180*2
+
+            return angle
+
+        else:
+            logger.debug("Component unresolved, will not calculate opening angle.")
+            return -1
 
     def fit_comp_polarization(self):
         write_mod_file_from_components(self.components,channel="i",export="tmp/model_q.mod",adv=[True])

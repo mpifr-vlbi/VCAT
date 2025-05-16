@@ -13,8 +13,8 @@ im_cube=ImageCube().import_files(uvf_files=uvf_files,model_fits_files=model_file
 #Import associations from GUI file
 im_cube.import_component_association("../dataset_example/0506+056_kinematic/component_info.csv")
 
-for comp in im_cube.images.flatten()[0].components:
-    print(comp.lin_pol)
+im= im_cube.images.flatten()[0]
+print(im.calculate_opening_angle(2))
 
 im_cube.plot(plot_model=True)
 im_cube=im_cube.shift("all",5,5)

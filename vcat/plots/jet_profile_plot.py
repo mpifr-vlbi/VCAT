@@ -70,16 +70,16 @@ class JetProfilePlot(object):
             #plot jet
             self.axes[0].scatter(dist[0], width[0], s=4, marker=marker, color=color, label='{}'.format(label))
             self.axes[0].errorbar(dist[0], width[0], yerr=width_err[0], fmt=marker, ms=0, color=color,
-                                 linewidth=0, elinewidth=0.4, errorevery=1, label='_nolegend_', alpha=0.3)
+                                 linewidth=0, elinewidth=0.4, errorevery=1, label=label, alpha=0.3)
             #plot counterjet
             self.axes[1].scatter(dist[1], width[1], s=4, marker=marker, color=color)
             self.axes[1].errorbar(dist[1], width[1], yerr=width_err[1], fmt=marker, ms=0, color=color,
-                                  linewidth=0, elinewidth=0.4, errorevery=1, label='_nolegend_', alpha=0.3)
+                                  linewidth=0, elinewidth=0.4, errorevery=1, label=label, alpha=0.3)
         else:
             logger.debug("Plotting only one jet.")
             self.axes[0].scatter(dist, width, s=4, marker=marker, color=color, label='{}'.format(label))
             self.axes[0].errorbar(dist, width, yerr=width_err, fmt=marker, ms=0, color=color, linewidth=0,
-                        elinewidth=0.4, errorevery=1, label='_nolegend_', alpha=0.3)
+                        elinewidth=0.4, errorevery=1, label=label, alpha=0.3)
 
     def plot_fit(self, x, fitfunc, beta, betaerr, chi2, jet="Jet",color="k",annotate=False,asize=8,annox=0.6,annoy=0.05,lw=1,ls="-",label=None):
 

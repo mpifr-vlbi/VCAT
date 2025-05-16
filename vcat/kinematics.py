@@ -6,7 +6,7 @@ import pandas as pd
 from sympy import Ellipse, Point, Line
 import vcat.fit_functions as ff
 import sys
-from vcat.helpers import closest_index, get_comp_peak_rms, calculate_dist_with_err, coreshift_fit
+from vcat.helpers import closest_index, get_comp_peak_rms, calculate_dist_with_err, coreshift_fit, get_resolution_limit
 from scipy.interpolate import interp1d
 
 #initialize logger
@@ -775,41 +775,3 @@ class ComponentCollection():
                          beam_maj=self.components[:,freq_ind].flatten()[0].beam_maj, beam_min=self.components[:,freq_ind].flatten()[0].beam_min,
                          beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
 
-
-def get_resolution_limit(beam_maj,beam_min,beam_pos,comp_pos,snr,method=res_lim_method,weighting=uvw):
-    if method == 'Kovalev05':
-        #here we need to check if the component is resolved or not!
-        if snr>1:
-            factor = np.sqrt(4*np.log(2)/np.pi*np.log(abs(snr)/(abs(snr)-1))) #following Kovalev et al. 2005
-        else:
-            factor = np.sqrt(4 * np.log(2) / np.pi * np.log(abs(2) / (abs(1))))
-
-
-        #rotate the beam to the x-axis
-        new_pos=beam_pos-comp_pos
-
-        #TODO double check the angles and check that new_pos and pos are both in degree!
-        #We use SymPy to intersect the beam with the component maj/min directions
-        beam=Ellipse(Point(0,0),hradius=beam_maj/2,vradius=beam_min/2)
-        line_maj=Line(Point(0,0),Point(np.cos(new_pos/180*np.pi),np.sin(new_pos/180*np.pi)))
-        line_min=Line(Point(0,0),Point(np.cos((new_pos+90)/180*np.pi),np.sin((new_pos+90)/180*np.pi)))
-        p1,p2=beam.intersect(line_maj)
-        b_phi_maj=float(p1.distance(p2)) #as in Kovalev et al. 2005
-        p1,p2=beam.intersect(line_min)
-        b_phi_min=float(p1.distance(p2)) #as in Kovalev et al. 2005
-        theta_min = b_phi_min*factor
-        theta_maj = b_phi_maj*factor
-        return theta_maj,theta_min
-    
-    elif method == 'Lobanov05':
-        if weighting[0] != 0:    # uniform weight
-            d_lim = 4./np.pi*np.sqrt(np.pi*np.log(2)*beam_maj*beam_min*np.log((abs(snr)+1)/abs(snr)))    # mas
-        else:    # this is the condition for natural weight
-            d_lim = 2./np.pi*np.sqrt(np.pi*np.log(2)*beam_maj*beam_min*np.log((abs(snr)+1)/abs(snr)))    # mas
-        theta_maj = d_lim
-        theta_min = d_lim
-    
-        return theta_maj,theta_min
-
-    elif method == "beam":
-        return beam_maj, beam_min

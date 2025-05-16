@@ -6,6 +6,8 @@ data_shifted=ImageData("../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08
         stokes_u="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.ucln",
         uvf_file="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.uvf",fit_comp_polarization=True)
 
+print(data_shifted.calculate_opening_angle(4))
+
 data_shifted.plot(plot_mode="lin_pol")
 print(data_shifted.pol_noise)
 
