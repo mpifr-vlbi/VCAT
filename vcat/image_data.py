@@ -2192,13 +2192,16 @@ class ImageData(object):
         comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,
                                 weighting=uvw,channel="u",do_selfcal=True,selfcal_model=self.stokes_i_mod_file)
 
-        for i, comp in enumerate(self.components):
-            #calculate lin_pol and EVPA from Q and U flux
-            lin_pol=np.sqrt(comps_q[i].flux**2+comps_u[i].flux**2)
-            evpa=0.5*np.arctan2(comps_u[i].flux,comps_q[i].flux)/np.pi*180
-            #set lin_pol and evpa of component
-            self.components[i].lin_pol = lin_pol
-            self.components[i].evpa = evpa
+        for j,comp in enumerate(self.components):
+            for i in range(len(comps_q)):
+                #we need to check the component association (just to be sure)
+                if abs(comps_q[i].x-comp.x)<1e-4/comp.scale and abs(comps_q[i].y-comp.y)<1e-4/comp.scale and abs(comps_q[i].maj-comp.maj)<1e-4/comp.scale:
+                    #calculate lin_pol and EVPA from Q and U flux
+                    lin_pol=np.sqrt(comps_q[i].flux**2+comps_u[i].flux**2)
+                    evpa=0.5*np.arctan2(comps_u[i].flux,comps_q[i].flux)/np.pi*180
+                    #set lin_pol and evpa of component
+                    self.components[j].lin_pol = lin_pol
+                    self.components[j].evpa = evpa
 
     def fit_collimation_profile(self,method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
                                 plot_data=True,plot_fit=True,plot="",show=False,label="",color=plot_colors[0],marker=plot_markers[0]):

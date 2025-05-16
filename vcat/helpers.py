@@ -549,7 +549,7 @@ def write_mod_file_from_components(components,channel="i",export="export.mod",ad
                              "PA": pos,
                              "Typ_obj": typ_obj})
     if len(components)>0:
-        write_mod_file(model_df,export,components[0].freq*1e-9,components[0].scale,adv=adv)
+        write_mod_file(model_df,export,components[0].freq,components[0].scale,adv=adv)
 
 def get_freq(fits_file):
     freq=0
