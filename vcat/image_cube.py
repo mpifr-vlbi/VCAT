@@ -1477,6 +1477,50 @@ class ImageCube(object):
 
         return dists, values, value_errs
 
+    def calculate_opening_angle(self,ids="",freq="",epochs="",snr_cut=1):
+        """
+        Calculate opening angle based on modelfit components
+
+        Args:
+            mode (str): Choose apply mode ('all', 'freq', 'epoch', "individual"), will average angle for 'all', per 'epoch' or per 'frequency'
+            id (int, list[int]): Component IDs to use
+            freq (float, list(float): Frequencies to use
+            epoch: Epochs to use
+            snr_cut: Mask component with signal-to-noise ratio less than this value
+        Returns:
+
+
+        """
+
+        if freq == "":
+            freq = self.freqs
+        elif isinstance(freq,(float,int)):
+            freq = [freq]
+        elif not isinstance(freq, list):
+            raise Exception("Invalid input for 'freq'.")
+
+        if epochs == "":
+            epochs = self.dates
+        elif isinstance(epochs, (float, int)):
+            epochs = [epochs]
+        elif not isinstance(epochs, list):
+            try:
+                epochs = epochs.tolist()
+            except:
+                raise Exception("Invalid input for 'epochs'.")
+
+        all_angles=[]
+        for f in freq:
+            for e in epochs:
+                ind_f=closest_index(self.freqs,f)
+                ind_e=closest_index(self.mjds,Time(e).mjd)
+                image=self.images[ind_e,ind_f]
+                if isinstance(image,ImageData):
+                    angles=image.calculate_opening_angle(ids=ids,snr_cut=snr_cut)
+                    all_angles=np.append(all_angles,angles)
+
+        return all_angles
+
     def get_model_profile(self,value="maj",id="",freq="",epoch="",show=False,core_position=False,plot=False,filter_unresolved=False,snr_cut=1):
         """
         Get information from the model components vs. distance from

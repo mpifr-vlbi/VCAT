@@ -1,10 +1,10 @@
-! Started logfile: difmap.log on Fri May 16 15:39:52 2025
+! Started logfile: difmap.log on Fri May 16 18:43:13 2025
 ! Starting new interactive shell. Use the EOF character to exit.
 ! Obeying initialization file: 
-observe tmp/mod_files_clean/0506+056_2011-02-27_15GHz.uvf
-! Reading UV FITS file: tmp/mod_files_clean/0506+056_2011-02-27_15GHz.uvf
-! AN table 1: 207 integrations on 45 of 45 possible baselines.
-! Apparent sampling: 0.671283 visibilities/baseline/integration-bin.
+obs tmp/mod_files_clean/0506+056_2012-02-06_15GHz.uvf
+! Reading UV FITS file: tmp/mod_files_clean/0506+056_2012-02-06_15GHz.uvf
+! AN table 1: 230 integrations on 45 of 45 possible baselines.
+! Apparent sampling: 0.877488 visibilities/baseline/integration-bin.
 ! Found source: 0506+056
 ! 
 ! There are 8 IFs, and a total of 8 channels:
@@ -23,10 +23,26 @@ observe tmp/mod_files_clean/0506+056_2011-02-27_15GHz.uvf
 ! 
 ! Polarization(s): RR LL RL LR
 ! 
-! Read 1688 lines of history.
+! Read 1525 lines of history.
 ! 
-! Reading 200096 visibilities.
-select I
+! Reading 290624 visibilities.
+uvw 0,-1
+! Uniform weighting is not currently selected.
+! Gridding weights will be scaled by errors raised to the power -1.
+! Radial weighting is not currently selected.
+select u
+! Selecting polarization: U,  channels: 1..8
+! Reading IF 1 channels: 1..1
+! Reading IF 2 channels: 2..2
+! Reading IF 3 channels: 3..3
+! Reading IF 4 channels: 4..4
+! Reading IF 5 channels: 5..5
+! Reading IF 6 channels: 6..6
+! Reading IF 7 channels: 7..7
+! Reading IF 8 channels: 8..8
+rmod tmp/model_u.mod
+! A total of 4 model components were read from file tmp/model_u.mod
+select i
 ! Selecting polarization: I,  channels: 1..8
 ! Reading IF 1 channels: 1..1
 ! Reading IF 2 channels: 2..2
@@ -36,44 +52,123 @@ select I
 ! Reading IF 6 channels: 6..6
 ! Reading IF 7 channels: 7..7
 ! Reading IF 8 channels: 8..8
-uvw 0,-1
-! Uniform weighting is not currently selected.
-! Gridding weights will be scaled by errors raised to the power -1.
-! Radial weighting is not currently selected.
-rmod tmp/mod_files_model/0506+056_2011-02-27_15GHz.mod
-! A total of 4 model components were read from file tmp/mod_files_model/0506+056_2011-02-27_15GHz.mod
 selfcal
 ! Performing phase self-cal
 ! Adding 4 model components to the UV plane model.
-! The established model now contains 4 components and 0.356451 Jy
+! The established model now contains 4 components and 0.337214 Jy
 ! 
 ! Correcting IF 1.
-!  A total of 477 telescope corrections were flagged in sub-array 1.
+!  A total of 152 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 2.
-!  A total of 495 telescope corrections were flagged in sub-array 1.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 3.
-!  A total of 468 telescope corrections were flagged in sub-array 1.
+!  A total of 152 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 4.
-!  A total of 487 telescope corrections were flagged in sub-array 1.
+!  A total of 155 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 5.
-!  A total of 467 telescope corrections were flagged in sub-array 1.
+!  A total of 153 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 6.
-!  A total of 462 telescope corrections were flagged in sub-array 1.
+!  A total of 155 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 7.
-!  A total of 499 telescope corrections were flagged in sub-array 1.
+!  A total of 151 telescope corrections were flagged in sub-array 1.
 ! 
 ! Correcting IF 8.
-!  A total of 454 telescope corrections were flagged in sub-array 1.
+!  A total of 149 telescope corrections were flagged in sub-array 1.
 ! 
-! Fit before self-cal, rms=0.370969Jy  sigma=6.077688
-! Fit after  self-cal, rms=0.085327Jy  sigma=0.996555
-mapsize 2048,0.05,2048,0.05
-! Map grid = 2048x2048 pixels with 0.0500x0.0500 milli-arcsec cellsize.
-wdmap tmp/resmap_model.fits
-! Inverting map and beam 
+! Fit before self-cal, rms=0.346072Jy  sigma=6.860665
+! Fit after  self-cal, rms=0.060233Jy  sigma=1.022962
+select u
+! Selecting polarization: U,  channels: 1..8
+! Reading IF 1 channels: 1..1
+! Reading IF 2 channels: 2..2
+! Reading IF 3 channels: 3..3
+! Reading IF 4 channels: 4..4
+! Reading IF 5 channels: 5..5
+! Reading IF 6 channels: 6..6
+! Reading IF 7 channels: 7..7
+! Reading IF 8 channels: 8..8
+modelfit  50
+! Partitioning the model into established and variable parts.
+! The fixed established model contains 0 components (0 Jy).
+! The variable part of the model contains 4 components (0.337214 Jy).
+! There are 4 variables and 72363 usable visibilities.
+! This gives 2 x 72363 - 4 = 144722 degrees of freedom.
+! Reduced Chi-squared = Chi-squared / 144722.
+! 
+! Iteration 00: Reduced Chi-squared=23.124896  Degrees of Freedom=144722
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+!   0.203833v     7.09077      44.9230      0.00000      1.00000     0.00000  0 \
+!      15.3575           0 
+!  0.0582212v     5.69222      54.8080     0.943335      1.00000    -158.000  1 \
+!      15.3575           0 
+!  0.0558084v     6.66829      47.1670     0.296932      1.00000    -171.457  1 \
+!      15.3575           0 
+!  0.0193514v     5.61832      71.2200      1.35668      1.00000    -145.765  1 \
+!      15.3575           0 
+! 
+! Iteration 01: Reduced Chi-squared=1.1489462  Degrees of Freedom=144722
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! -0.000578109v     7.09077      44.9230      0.00000      1.00000     0.00000  0 \
+!      15.3575           0 
+! 0.00409968v     5.69222      54.8080     0.943335      1.00000    -158.000  1 \
+!      15.3575           0 
+! -0.000432833v     6.66829      47.1670     0.296932      1.00000    -171.457  1 \
+!      15.3575           0 
+! -0.000144906v     5.61832      71.2200      1.35668      1.00000    -145.765  1 \
+!      15.3575           0 
+! 
+! Iteration 02: Reduced Chi-squared=1.1489414  Degrees of Freedom=144722
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! -0.000727619v     7.09077      44.9230      0.00000      1.00000     0.00000  0 \
+!      15.3575           0 
+! 0.00406745v     5.69222      54.8080     0.943335      1.00000    -158.000  1 \
+!      15.3575           0 
+! -0.000346132v     6.66829      47.1670     0.296932      1.00000    -171.457  1 \
+!      15.3575           0 
+! -0.000149064v     5.61832      71.2200      1.35668      1.00000    -145.765  1 \
+!      15.3575           0 
+! 
+! Iteration 03: Reduced Chi-squared=1.1489414  Degrees of Freedom=144722
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! -0.000727706v     7.09077      44.9230      0.00000      1.00000     0.00000  0 \
+!      15.3575           0 
+! 0.00406742v     5.69222      54.8080     0.943335      1.00000    -158.000  1 \
+!      15.3575           0 
+! -0.000346040v     6.66829      47.1670     0.296932      1.00000    -171.457  1 \
+!      15.3575           0 
+! -0.000149059v     5.61832      71.2200      1.35668      1.00000    -145.765  1 \
+!      15.3575           0 
+! 
+! Iteration 04: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 05: Reduced Chi-squared=1.1489414 (Increased)
+! 
+! Iteration 06: Reduced Chi-squared=1.1489414  Degrees of Freedom=144722
+! ! Flux (Jy) Radius (mas)  Theta (deg)  Major FWHM (mas)  Axial ratio   Phi (deg) T \
+! ! Freq (Hz)     SpecIndex
+! -0.000727706v     7.09077      44.9230      0.00000      1.00000     0.00000  0 \
+!      15.3575           0 
+! 0.00406742v     5.69222      54.8080     0.943335      1.00000    -158.000  1 \
+!      15.3575           0 
+! -0.000346040v     6.66829      47.1670     0.296932      1.00000    -171.457  1 \
+!      15.3575           0 
+! -0.000149059v     5.61832      71.2200      1.35668      1.00000    -145.765  1 \
+!      15.3575           0 
+! 
+! Iteration 07: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 08: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 09: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 10: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 11: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 12: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 13: Reduced Chi-squared=1.1489414 (Increased)
+! Iteration 14: Reduced Chi-squared=1.1489414 (Increased)

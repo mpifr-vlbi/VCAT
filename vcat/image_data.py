@@ -2094,71 +2094,103 @@ class ImageData(object):
 
         return self
 
-    def calculate_opening_angle(self,id):
-        comp=self.get_component(id)
-        core=self.get_core_component()
+    def calculate_opening_angle(self,ids="", snr_cut=1):
+        """
+        Calculates the opening angle for circular Gauss components between the core component and a given component
+        Args:
+            ids (int, list[int]): Component ID of component to calculate the opening angle for
 
-        if comp.resolved:
-            delta_x = (comp.x - core.x) * comp.scale
-            delta_y = (comp.y - comp.y) * comp.scale
+        Returns:
+            angle (list[float]): Opening angles in degrees
+        """
 
-            def calculate_theta():
-                if (delta_y > 0 and delta_x > 0) or (delta_y > 0 and delta_x < 0):
-                    return np.arctan(delta_x / delta_y) / np.pi * 180
-                elif delta_y < 0 and delta_x > 0:
-                    return np.arctan(delta_x / delta_y) / np.pi * 180 + 180
-                elif delta_y < 0 and delta_x < 0:
-                    return np.arctan(delta_x / delta_y) / np.pi * 180 - 180
-                else:
-                    return 0
-
-            theta = calculate_theta()
-
-            # check core resolution limit
-            theta_maj, theta_min = get_resolution_limit(self.beam_maj, self.beam_min, self.beam_pa, theta, core.snr,
-                                                        method=res_lim_method, weighting=uvw)
-
-            new_pos=theta-comp.pos+90
-            new_pos_core=theta-core.pos+90
-
-            line_comp = Line(Point(0, 0), Point(np.cos(new_pos / 180 * np.pi), np.sin(new_pos / 180 * np.pi)))
-            line_core = Line(Point(0, 0), Point(np.cos(new_pos_core / 180 * np.pi), np.sin(new_pos_core / 180 * np.pi)))
-
-            core_Ellipse=Ellipse(Point(0,0),hradius=core.maj*comp.scale,vradius=core.min*comp.scale)
-            comp_Ellipse=Ellipse(Point(0,0),hradius=comp.maj*comp.scale,vradius=comp.min*comp.scale)
-
-            if core.maj==0 or core.min==0:
-                core_dist=np.abs(theta_maj/2)
-            else:
-                p1, p2 = core_Ellipse.intersect(line_core)
-                core_dist=np.abs(float(p1.distance(p2))/2)
-            p1, p2 = comp_Ellipse.intersect(line_comp)
-            comp_dist=np.abs(float(p1.distance(p2))/2)
-
-            dist=np.sqrt(delta_x**2+delta_y**2)
-
-
-
-            if np.abs(theta_maj/2)>core_dist:
-                core_dist=np.abs(theta_maj/2)
-
-            #calculate opening angle
-            print(comp_dist,core_dist,dist)
-            angle=np.arctan((comp_dist-core_dist)/dist)/np.pi*180*2
-
-            return angle
-
+        if isinstance(ids,list):
+            ids=ids
+        elif isinstance(ids,int):
+            ids=[ids]
         else:
-            logger.debug("Component unresolved, will not calculate opening angle.")
-            return -1
+            if not isinstance(ids,str) or ids!="":
+                raise Exception("Invalid IDs provided.")
+            else:
+                ids,core_id=self.get_model_info()
+                ids.remove(core_id)
+
+        core=self.get_core_component()
+        angles = []
+
+        for id in ids:
+            if id in self.get_model_info()[0]:
+                comp = self.get_component(id)
+
+                if isinstance(comp,Component) and comp.resolved and comp.snr>=snr_cut:
+
+                    comp_dist=comp.maj*comp.scale/2
+                    if core.resolved:
+                        core_dist=core_maj*comp.scale/2
+                    else:
+                        core_dist=core.res_lim_maj*comp.scale/2
+                    delta_x = (comp.x - core.x) * comp.scale
+                    delta_y = (comp.y - core.y) * comp.scale
+
+                    """
+                    #this part allows to also do this calculation with elliptical components, but we should discuss if we want it like this
+                    def calculate_theta():
+                        if (delta_y > 0 and delta_x > 0) or (delta_y > 0 and delta_x < 0):
+                            return np.arctan(delta_x / delta_y) / np.pi * 180
+                        elif delta_y < 0 and delta_x > 0:
+                            return np.arctan(delta_x / delta_y) / np.pi * 180 + 180
+                        elif delta_y < 0 and delta_x < 0:
+                            return np.arctan(delta_x / delta_y) / np.pi * 180 - 180
+                        else:
+                            return 0
+        
+                    theta = calculate_theta()
+        
+                    # check core resolution limit
+                    theta_maj, theta_min = get_resolution_limit(self.beam_maj, self.beam_min, self.beam_pa, theta, core.snr,
+                                                                method=res_lim_method, weighting=uvw)
+        
+                    new_pos=theta-comp.pos+90
+                    new_pos_core=theta-core.pos+90
+        
+                    line_comp = Line(Point(0, 0), Point(np.cos(new_pos / 180 * np.pi), np.sin(new_pos / 180 * np.pi)))
+                    line_core = Line(Point(0, 0), Point(np.cos(new_pos_core / 180 * np.pi), np.sin(new_pos_core / 180 * np.pi)))
+        
+                    core_Ellipse=Ellipse(Point(0,0),hradius=core.maj*comp.scale/2,vradius=core.min*comp.scale/2)
+                    comp_Ellipse=Ellipse(Point(0,0),hradius=comp.maj*comp.scale/2,vradius=comp.min*comp.scale/2)
+        
+                    if core.maj==0 or core.min==0:
+                        core_dist=np.abs(theta_maj/2)
+                    else:
+                        p1, p2 = core_Ellipse.intersect(line_core)
+                        core_dist=np.abs(float(p1.distance(p2))/2)
+                    p1, p2 = comp_Ellipse.intersect(line_comp)
+                    comp_dist=np.abs(float(p1.distance(p2))/2)
+                    """
+
+                    dist=np.sqrt(delta_x**2+delta_y**2)
+                    #TODO check this, something is wrong with the resolution limit!!
+                    #calculate opening angle
+                    angle=np.arctan((comp_dist-core_dist)/dist)/np.pi*180*2
+
+                    angles.append(angle)
+
+                else:
+                    logger.debug(f"Component {comp.component_number} unresolved, will not calculate opening angle.")
+            else:
+                logger.debug(f"Component {id} not found, will skip it.")
+
+        return angles
 
     def fit_comp_polarization(self):
         write_mod_file_from_components(self.components,channel="i",export="tmp/model_q.mod",adv=[True])
         os.system("cp tmp/model_q.mod tmp/model_u.mod")
         comps_q=copy.deepcopy(self.components)
         comps_u=copy.deepcopy(self.components)
-        comps_q=modelfit_difmap(self.uvf_file,"tmp/model_q.mod",50,difmap_path,components=comps_q,weighting=uvw,channel="q",do_selfcal=True)
-        comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,weighting=uvw,channel="u",do_selfcal=True)
+        comps_q=modelfit_difmap(self.uvf_file,"tmp/model_q.mod",50,difmap_path,components=comps_q,
+                                weighting=uvw,channel="q",do_selfcal=True,selfcal_model=self.stokes_i_mod_file)
+        comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,
+                                weighting=uvw,channel="u",do_selfcal=True,selfcal_model=self.stokes_i_mod_file)
 
         for i, comp in enumerate(self.components):
             #calculate lin_pol and EVPA from Q and U flux
