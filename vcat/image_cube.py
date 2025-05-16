@@ -1245,7 +1245,7 @@ class ImageCube(object):
 
     def get_comp_collection(self,comp_id):
         for cc in self.comp_collections:
-            if cc.ids.flatten()[0]==comp_id:
+            if np.any(cc.ids.flatten()==comp_id):
                 return cc
 
         raise Exception(f"No component collection with id {comp_id} found.")

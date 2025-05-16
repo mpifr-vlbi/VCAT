@@ -6,7 +6,12 @@ data_shifted=ImageData("../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08
         stokes_u="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.ucln",
         uvf_file="../dataset_example/3C111_U_2014_05_08/3C111_U_2014_05_08.uvf",fit_comp_polarization=True)
 
+data_shifted.plot(plot_mode="lin_pol")
+print(data_shifted.pol_noise)
 
 data_shifted=data_shifted.shift(10,10)
+print(data_shifted.pol_noise)
+
+data_shifted.plot(plot_mode="lin_pol")
 
 print(data_shifted.uvf_file,data_shifted.stokes_q_mod_file,data_shifted.stokes_i_mod_file)
