@@ -320,7 +320,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa,
                                outname=new_model_fits, n_pixel=len(self.X)*2, pixel_size=self.degpp*self.scale,
-                               mod_files=[model], uvf_files=[uvf_file], do_selfcal=True)
+                               mod_files=[model],clean_mod_files=[model], uvf_files=[uvf_file], do_selfcal=True)
 
             else:
                 #copy the clean .fits file and write the model info to the header and store it as model_file_path
@@ -864,7 +864,7 @@ class ImageData(object):
                            bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                            channel="i", output_dir=self.model_save_dir + "mod_files_clean", outname=new_stokes_i_fits,
                            n_pixel=npix, pixel_size=pixel_size,
-                           mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                           mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
 
             new_stokes_i_fits += ".fits"
 
@@ -878,7 +878,7 @@ class ImageData(object):
                                    channel="i", output_dir=self.model_save_dir + "mod_files_model",
                                    outname=new_model_fits,
                                    n_pixel=npix, pixel_size=pixel_size,
-                                   mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                                   mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
 
                     new_model_fits += ".fits"
                 else:
@@ -895,7 +895,7 @@ class ImageData(object):
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="q", output_dir=self.model_save_dir + "mod_files_q", outname=new_stokes_q_fits,
                                n_pixel=npix, pixel_size=pixel_size,
-                               mod_files=[self.stokes_q_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                               mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
 
                 new_stokes_q_fits += ".fits"
 
@@ -903,7 +903,7 @@ class ImageData(object):
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="u", output_dir=self.model_save_dir + "mod_files_u", outname=new_stokes_u_fits,
                                n_pixel=npix, pixel_size=pixel_size,
-                               mod_files=[self.stokes_u_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                               mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file], weighting=weighting)
 
                 new_stokes_u_fits += ".fits"
 
@@ -1364,7 +1364,8 @@ class ImageData(object):
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
-                    mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+                    mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file],
+                    uvf_files=[self.uvf_file],weighting=weighting)
 
             new_stokes_i_fits+=".fits"
 
@@ -1377,7 +1378,7 @@ class ImageData(object):
                         bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
                         n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
-                        mod_files=[self.model_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                        mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
 
                     new_model_fits+=".fits"
                 else:
@@ -1395,7 +1396,8 @@ class ImageData(object):
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
-                    mod_files=[self.stokes_q_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+                    mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file],
+                               uvf_files=[self.uvf_file],weighting=weighting)
 
                 new_stokes_q_fits+=".fits"
 
@@ -1403,7 +1405,8 @@ class ImageData(object):
                     bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
-                    mod_files=[self.stokes_u_mod_file],uvf_files=[self.uvf_file],weighting=weighting)
+                    mod_files=[self.stokes_u_mod_file],clean_mod_files=[self.stokes_i_mod_file],
+                               uvf_files=[self.uvf_file],weighting=weighting)
 
                 new_stokes_u_fits+=".fits"
 

@@ -262,6 +262,7 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         pixel_size=-1, #pixel size in mas (default uses 1/10 of bmin)
         use_common_beam=False, #choose whether to fold with the common beam of the input arrays (TRUE) or whether to use the input bmaj,bmin,posa beam (FALSE, default)  
         mod_files=[], #optional input array of file paths to .mod files for fits_files
+        clean_mod_files=[], #optional input array of file paths to the clean .mod files for aligning the uvf file first with selfcal
         uvf_files=[], #optional input array of file paths to .uvf files for fits_files
         weighting=[0,-1], #weighting option for uvw in DIFMAP, default is natural weighting
         do_selfcal=True,
@@ -312,10 +313,12 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
             send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  #use custom weighting
             if abs(shift_x)>0 or abs(shift_y)>0:
                 send_difmap_command(f"shift {shift_x},{shift_y}")
+            if do_selfcal:
+                send_difmap_command("select i")
+                send_difmap_command("rmod " + clean_mod_files[ind])
+                send_difmap_command("selfcal")
             send_difmap_command("select " + channel)
             send_difmap_command("rmod " + mod_files[ind])
-            if do_selfcal:
-                send_difmap_command("selfcal")
             send_difmap_command("maps " + str(n_pixel) + "," + str(pixel_size))
             if not (bmaj==-1 and bmin ==-1 and posa==-1):
                 send_difmap_command("restore " + str(bmaj) + "," + str(bmin) + "," + str(posa))
