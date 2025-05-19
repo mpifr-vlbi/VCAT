@@ -2168,7 +2168,7 @@ class ImageData(object):
 
                     comp_dist=comp.maj*comp.scale/2
                     if core.resolved:
-                        core_dist=core_maj*comp.scale/2
+                        core_dist=core.maj*comp.scale/2
                     else:
                         core_dist=core.res_lim_maj*comp.scale/2
                     delta_x = (comp.x - core.x) * comp.scale
