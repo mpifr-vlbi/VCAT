@@ -425,7 +425,7 @@ class ComponentCollection():
 
             year = year[snrs >= snr_cut]
             dist = dist[snrs >= snr_cut]
-            dist_err = dist_err[snrs > snr_cut]
+            dist_err = dist_err[snrs >= snr_cut]
 
             #check if there is enough data to perform a fit
             if len(year) > 2:
