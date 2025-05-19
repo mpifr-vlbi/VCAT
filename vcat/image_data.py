@@ -952,6 +952,7 @@ class ImageData(object):
             "line_width" : 2,
             "plot_polar": False,
             "plot_beam": True,
+            "beam_color": "grey",
             "plot_model": False,
             "component_color": "black",
             "plot_comp_ids": False,

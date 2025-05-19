@@ -53,6 +53,7 @@ class FitsImage(object):
         plot_counter_ridgeline: Choose to plot counter ridgeline
         counter_ridgeline_color= Choose color for counter ridgeline
         plot_beam: Choose whether to plot the beam or not
+        beam_color: Choose beam color
         plot_gauss: Choose whether to plot modelfit components (if available in image_data)
         component_color: Choose color to plot components
         plot_clean: Choose whether to plot clean components (if available in image_data)
@@ -88,6 +89,7 @@ class FitsImage(object):
                  line_color="black",
                  line_width=2, #width of the line
                  plot_beam=True, #choose whether to plot beam or not
+                 beam_color="grey", #choose beam color for plot
                  plot_model=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
                  plot_comp_ids=False, #plot component ids
@@ -384,7 +386,7 @@ class FitsImage(object):
 
         if plot_beam:
             # Plot beam
-            beam = Ellipse([ell_x, ell_y], beam_maj, beam_min,angle= -beam_pa + 90, fc='grey')
+            beam = Ellipse([ell_x, ell_y], beam_maj, beam_min,angle= -beam_pa + 90, fc=beam_color)
             self.ax.add_artist(beam)
 
         if title=="":
