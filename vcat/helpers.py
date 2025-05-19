@@ -1310,6 +1310,30 @@ def set_figsize(width, fraction=1,subplots=(1,1),ratio=False):
     return (fig_width_in, fig_height_in)
 
 
+def calculate_beam_width(angle, beam_maj, beam_min, beam_pa):
+    """
+    Calculate width of a beam at a certain angle
+
+    Args:
+        angle: Angle in degrees
+        beam_maj: Beam major axis length
+        beam_min: beam minor axis length
+        beam_pa: beam position angle in degrees
+
+    Returns:
+        beam_width at the given angle
+    """
+    new_pos=beam_pa-angle
+
+    beam = Ellipse(Point(0, 0), hradius=beam_maj / 2, vradius=beam_min / 2)
+    line = Line(Point(0, 0), Point(np.cos(new_pos / 180 * np.pi), np.sin(new_pos / 180 * np.pi)))
+    p1, p2 = beam.intersect(line)
+    width = float(p1.distance(p2))
+
+    return width
+    return width
+
+
 def get_resolution_limit(beam_maj, beam_min, beam_pos, comp_pos, snr, method=res_lim_method, weighting=uvw):
     if method == 'Kovalev05':
         # here we need to check if the component is resolved or not!

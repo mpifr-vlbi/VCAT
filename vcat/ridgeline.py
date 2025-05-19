@@ -4,7 +4,7 @@ from astropy.modeling import models, fitting
 from scipy import integrate
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from vcat.helpers import closest_index
+from vcat.helpers import closest_index, calculate_beam_width
 
 #initialize logger
 from vcat.config import logger
@@ -25,7 +25,101 @@ class Ridgeline(object):
         self.intensity=[]
         self.intensity_err=[]
 
-    def get_ridgeline_polar(self,r,theta,polar_image,beam,error,chi_sq_val=100,start_radius=0,maxfev=10000):
+    def get_ridgeline_polar(self,r,theta,polar_image,image,beam,error,slice_width=100,counterjet=False,chi_sq_val=100,start_radius=0,maxfev=10000):
+
+        start_i=closest_index(r[0],start_radius)
+        # get slice
+        slice_width = slice_width * image.degpp * image.scale
+        for i in range(start_i,len(r[0])):
+            theta_slice=theta[:,i]
+            slice_to_fit=np.array(polar_image[:,i])
+            length=len(slice_to_fit)
+            diffs=[]
+
+            for k in range(length):
+                left_indices = [(k - j) % length for j in range(1, round(length/2))]
+                right_indices = [(k + j) % length for j in range(1, round(length/2))]
+
+                left_sum = np.sum(slice_to_fit[left_indices])
+                right_sum = np.sum(slice_to_fit[right_indices])
+                diffs.append(abs(left_sum - right_sum))
+
+            ridge_index = np.argmin(diffs)
+            theta0=theta_slice[ridge_index]
+            if theta0 > 90 and not counterjet:
+                theta0-=180
+            if theta0<-90 and not counterjet:
+                theta0+=180
+            if theta0>-90 and theta0 <0 and counterjet:
+                theta0+=180
+            if theta0>=0 and theta0 <90 and counterjet:
+                theta0-=180
+
+            print(theta0)
+
+            #fit gaussian for width
+            # append X/Y positions
+            x0=r[0][i] * np.sin(theta0/180*np.pi)
+            y0=r[0][i] * np.cos(theta0/180*np.pi)
+            self.X_ridg.append(r[0][i] * np.sin(theta0/180*np.pi))
+            self.Y_ridg.append(r[0][i] * np.cos(theta0/180*np.pi))
+
+
+            x_slice,y_slice=image.get_profile(point1=[x0+slice_width/2*np.sin(theta0+np.pi/2),y0+slice_width/2*np.cos(theta0+np.pi/2)],
+                                              point2=[x0-slice_width/2*np.sin(theta0+np.pi/2),y0-slice_width/2*np.cos(theta0+np.pi/2)],show=False)
+
+            def gaussian(x,amplitude,mean,stddev):
+                return amplitude * np.exp(-((x - mean) ** 2) / (2 * stddev ** 2))
+
+            beam_width=calculate_beam_width(theta0+90,beam[0],beam[1],beam[2])
+
+            initial_guess=[np.max(y_slice),x_slice[round(len(x_slice)/2)],beam_width/2]
+            try:
+                popt, pcov = curve_fit(gaussian, x_slice, y_slice, p0=initial_guess,maxfev=maxfev)
+
+                #extract fit parameters
+                perr = np.sqrt(np.diag(pcov))
+                amplitude=popt[0]
+                amplitude_err=perr[0]
+                width=popt[2]
+                width_err=perr[2]
+                FWHM=width*2*np.sqrt(2*np.log(2))
+                err_FWHM=width_err*2*np.sqrt(2*np.log(2))
+                slice_fitted = gaussian(x_slice, *popt)
+
+
+                #calculate chi_square of fit
+                chi_sq = 0.0
+                for z in range(len(y_slice)):
+                    chi_sq += (y_slice[z] - slice_fitted[z]) ** 2 / ((y_slice[z]*error) ** 2.0)
+                chi_sq_red = float(chi_sq / (len(y_slice) - 4))
+
+                logger.debug('The chi_square_red is = ' + str(chi_sq_red))
+                if not (chi_sq_red < chi_sq_val):
+                    if ((FWHM ** 2 - beam_width ** 2) > 0.0):
+                        self.width.append(np.sqrt(FWHM ** 2.0 - beam_width ** 2.0))
+                        logger.debug('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam_width ** 2.0)))
+                        self.width_err.append(err_FWHM * np.sqrt(FWHM ** 2 - beam_width ** 2))
+
+                        self.intensity.append(amplitude)
+                        self.intensity_err.append(amplitude_err)
+                        self.dist.append(r[0][i])
+                        self.dist_int.append(r[0][i])
+                        self.open_angle.append(2.0 * np.arctan(0.5 * np.sqrt(FWHM ** 2 - beam_width ** 2) / (
+                                r[0][i])) * 180.0 / np.pi)
+                        self.open_angle_err.append(err_FWHM * FWHM * 4 * r[0][i] * FWHM / (
+                                np.sqrt(FWHM ** 2 - beam_width ** 2) * (
+                                4.0 * r[0][i] ** 2 + FWHM ** 2 - beam_width ** 2)))
+                    else:
+                        self.dist_int.append(r[0][i])
+                        self.intensity.append(amplitude)
+                        self.intensity_err.append(amplitude_err)
+            except:
+                pass
+
+        return self
+
+    def get_ridgeline_polar_gauss(self,r,theta,polar_image,beam,error,chi_sq_val=100,start_radius=0,maxfev=10000):
 
         # TODO use actual beam width at angle instead of self.beam_maj
         beam = beam[0]
@@ -86,13 +180,13 @@ class Ridgeline(object):
                     chi_sq += (slice_to_fit[z] - slice_fitted[z]) ** 2 / ((slice_to_fit[z]*error) ** 2.0)
                 chi_sq_red = float(chi_sq / (len(slice_to_fit) - 4))
 
-                logger.info('The chi_square_red is = ' + str(chi_sq_red))
+                logger.debug('The chi_square_red is = ' + str(chi_sq_red))
                 #TODO something is not 100% correctly working with the chi_square values here!!!
                 if not (chi_sq_red < chi_sq_val):
                     if ((FWHM ** 2 - beam ** 2) > 0.0):
-                        self.width.append(width)
-                        logger.info('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
-                        self.width_err.append(width_err)
+                        self.width.append(np.sqrt(FWHM ** 2 - beam ** 2))
+                        logger.debug('The FWHM (de-convolved) is = ' + str(np.sqrt(FWHM ** 2.0 - beam ** 2.0)))
+                        self.width_err.append(err_FWHM * np.sqrt(FWHM ** 2 - beam ** 2))
 
                         self.intensity.append(amplitude*r[0][i])
                         self.intensity_err.append(amplitude_err*r[0][i])
@@ -124,8 +218,8 @@ class Ridgeline(object):
 
     def get_ridgeline_luca(self,image_data,noise,error,pixel_size,beam,X_ra,Y_dec,counterjet=False,angle_for_slices=0,cut_radial=5.0,
                            cut_final=10.0,width=40,j_len=100,chi_sq_val=100.0,err_FWHM=0.1,error_flux_slice=0.1):
-        # TODO use actual beam width at angle instead of self.beam_maj
-        beam=beam[0]
+
+        beam=calculate_beam_width(0,beam[0],beam[1],beam[2]) #we use angle=0 here because we are taking slices on the rotated image along the y axis.
 
         # reset attributes
         self.__init__()

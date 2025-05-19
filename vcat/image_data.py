@@ -1681,6 +1681,8 @@ class ImageData(object):
             if not self.model_inp:
                 new_model_fits=""
 
+            self.beam_pa+=angle
+
             newImageData= ImageData(fits_file=new_stokes_i_fits,
                          uvf_file=self.uvf_file,
                          stokes_q=new_stokes_q_fits,
@@ -1912,7 +1914,53 @@ class ImageData(object):
             return self.ridgeline, self.counter_ridgeline
 
         elif method=="polar":
-            #TODO Needs to be improved, think about if it is posible to fit counterjet.
+            #convert image to polar coordinates
+            image = self.copy()
+
+            if auto_rotate:
+                # convert image to polar coordinates
+                R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
+                # Integrate over the radius to find jet direction:
+                integrated_jet = np.zeros(len(Theta[:, 0]))
+                for i in range(len(R[0])):
+                    integrated_jet += Z_polar[:, i] * R[:, i]  # correct for rdTheta in integration
+                # plt.plot(Theta[:,0],integrated_jet)
+                # plt.show()
+                # find maximum flux
+                max_ind = np.argmax(integrated_jet)
+                jet_direction = Theta[:, 0][max_ind]
+                logger.info(f"Automatically determined jet direction {jet_direction}°.")
+                image = image.rotate(-jet_direction)
+            elif jet_angle != "":
+                image = image.rotate(-jet_angle)
+            else:
+                logger.warning("Will assume the jet was already rotated to position angle 0°.")
+
+            R, Theta, Z_polar = convert_image_to_polar(image.X, image.Y, image.Z)
+
+            ridgeline=Ridgeline().get_ridgeline_polar(R,Theta,Z_polar,self,[self.beam_maj,self.beam_min,self.beam_pa],self.error,
+                                                      start_radius=start_radius)
+
+            image.ridgeline=ridgeline
+
+            if counterjet:
+                counter_ridgeline=Ridgeline().get_ridgeline_polar(R,Theta,Z_polar,self,[self.beam_maj,self.beam_min,self.beam_pa],self.error,
+                                                      start_radius=start_radius,counterjet=True)
+
+                image.counter_ridgeline=counter_ridgeline
+
+            if auto_rotate:
+                # rotate image back
+                image.rotate(jet_direction)
+            elif jet_angle != "":
+                image = image.rotate(jet_angle)
+            # set new ridgeline
+            self.ridgeline = image.ridgeline
+            self.counter_ridgeline = image.counter_ridgeline
+
+            return self.ridgeline, self.counter_ridgeline
+
+        elif method=="polar_gauss":
             #convert image to polar coordinates
             R, Theta, Z_polar = convert_image_to_polar(self.X, self.Y, self.Z)
 
