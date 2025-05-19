@@ -1943,12 +1943,6 @@ class ImageData(object):
 
             image.ridgeline=ridgeline
 
-            if counterjet:
-                counter_ridgeline=Ridgeline().get_ridgeline_polar(R,Theta,Z_polar,self,[self.beam_maj,self.beam_min,self.beam_pa],self.error,
-                                                      start_radius=start_radius,counterjet=True)
-
-                image.counter_ridgeline=counter_ridgeline
-
             if auto_rotate:
                 # rotate image back
                 image.rotate(jet_direction)
@@ -1956,7 +1950,6 @@ class ImageData(object):
                 image = image.rotate(jet_angle)
             # set new ridgeline
             self.ridgeline = image.ridgeline
-            self.counter_ridgeline = image.counter_ridgeline
 
             return self.ridgeline, self.counter_ridgeline
 

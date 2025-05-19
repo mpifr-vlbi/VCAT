@@ -25,7 +25,7 @@ class Ridgeline(object):
         self.intensity=[]
         self.intensity_err=[]
 
-    def get_ridgeline_polar(self,r,theta,polar_image,image,beam,error,slice_width=100,counterjet=False,chi_sq_val=100,start_radius=0,maxfev=10000):
+    def get_ridgeline_polar(self,r,theta,polar_image,image,beam,error,slice_width=100,chi_sq_val=100,start_radius=0,maxfev=10000):
 
         start_i=closest_index(r[0],start_radius)
         # get slice
@@ -46,16 +46,10 @@ class Ridgeline(object):
 
             ridge_index = np.argmin(diffs)
             theta0=theta_slice[ridge_index]
-            if theta0 > 90 and not counterjet:
+            if theta0 > 90:
                 theta0-=180
-            if theta0<-90 and not counterjet:
+            if theta0<-90:
                 theta0+=180
-            if theta0>-90 and theta0 <0 and counterjet:
-                theta0+=180
-            if theta0>=0 and theta0 <90 and counterjet:
-                theta0-=180
-
-            print(theta0)
 
             #fit gaussian for width
             # append X/Y positions
