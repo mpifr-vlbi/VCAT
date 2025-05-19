@@ -66,7 +66,7 @@ class KinematicPlot(object):
 
         self.fig.subplots_adjust(left=0.13, top=0.96, right=0.93, bottom=0.2)
 
-    def plot_kinematics(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
+    def plot_kinematics(self, component_collection, color,label="", marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
             years=component_collection.year.flatten()
             dists=component_collection.dist.flatten()
@@ -79,9 +79,9 @@ class KinematicPlot(object):
             dist_err=dist_err[snrs>=snr_cut]
 
             if plot_errors:
-                self.ax.errorbar(years,dists,yerr=dist_err,c=color,fmt=marker)
+                self.ax.errorbar(years,dists,yerr=dist_err,c=color,fmt=marker,label=label)
             else:
-                self.ax.scatter(years, dists, c=color, marker=marker)
+                self.ax.scatter(years, dists, c=color, marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Distance from Core [mas]', fontsize=font_size_axis_title)
 

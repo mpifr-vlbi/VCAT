@@ -1821,8 +1821,7 @@ class ImageCube(object):
         if show:
             plot.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors,snr_cut=1):
-
+    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors,markers=plot_markers,snr_cut=1):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1851,12 +1850,14 @@ class ImageCube(object):
                     tmax=np.max(cc.year.flatten())
 
 
-                    ind = ind % len(colors)
-                    color=colors[ind]
+                    col_ind = ind % len(colors)
+                    color=colors[col_ind]
+                    mark_ind = ind % len(markers)
+                    marker=markers[mark_ind]
 
-                    plot.plot_kinematics(cc,color=color,snr_cut=snr_cut)
+                    plot.plot_kinematics(cc,color=color,label=cc.name,marker=marker,snr_cut=snr_cut)
                     plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
-                                         f["linear_fit"],color=color,label=cc.name,t_mid=f["t_mid"])
+                                         f["linear_fit"],color=color,t_mid=f["t_mid"])
 
                     fits.append(f)
 
