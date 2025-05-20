@@ -1708,7 +1708,7 @@ class ImageCube(object):
         return plot
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
-                                 evpa_pol_plot=True,plot_errors=True,snr_cut=1):
+                                 evpa_pol_plot=True,plot_errors=True,snr_cut=1,labels=True):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1737,27 +1737,35 @@ class ImageCube(object):
                 marker_ind = ind % len(markers)
                 marker = markers[marker_ind]
 
+                if isinstance(labels,list):
+                    lab_ind=ind%len(labels)
+                    label=labels[lab_ind]
+                elif labels:
+                    label=cc.name
+                else:
+                    label=""
+
                 if value=="flux":
-                    plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut)
+                    plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,snr_cut=snr_cut)
                 elif value=="tb":
-                    plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut)
+                    plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                 elif value=="dist":
-                    plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut)
+                    plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
                 elif value=="pos" or value=="PA":
-                    plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut)
+                    plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                 elif value=="lin_pol" or value=="linpol":
-                    plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut)
+                    plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                 elif value=="evpa" or value=="EVPA":
-                    plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut)
+                    plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                     years=np.concatenate((years,cc.year.flatten()))
                 elif value=="maj":
-                    plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut)
+                    plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
                 elif value=="min":
-                    plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut)
+                    plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
                 elif value=="theta":
-                    plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut)
+                    plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
                 elif value=="fracpol" or value=="frac_pol":
-                    plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut)
+                    plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
 
             #set plot lims for polar plot according to lowest and highest year
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
