@@ -2310,7 +2310,7 @@ class ImageData(object):
 
         if jet=="Jet" or jet=="Twin":
             try:
-                beta, sd_beta, chi2, out = fit_width(dists, widths, width_err=width_errs, dist_err=False,s=s
+                beta, sd_beta, chi2, out = fit_width(dists, widths, width_err=width_errs, dist_err=False,s=s,
                                                      fit_type=fit_type,x0=x0,fit_r0=fit_r0)
             except:
                 logger.warning("Collimation fit did not work for jet!")
