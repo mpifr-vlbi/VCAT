@@ -1608,8 +1608,8 @@ class ImageCube(object):
 
         return average_comps
 
-    def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0_bpl=[0.3,0,1,2],x0_pl=[0.1,1],
-                                plot_data=True,plot_fit=True,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
+    def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0=False,s=100,
+                                plot_data=True,plot_fit=True,fit_r0=True,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
         """
         Function to fit a collimation profile to the jet/counterjet
 
@@ -1617,10 +1617,11 @@ class ImageCube(object):
             method (str): Method to use for collimation profile ('model' to use model components, 'ridgeline' to use ridgeline fit)
             jet (str): Choose whether to do Jet ('Jet'), Counterjet ('Cjet') or both ('Twin')
             fit_type (str): Choose fit_type to use ('brokenPowerlaw' or 'Powerlaw')
-            x0_bpl (list[float]): Start values for broken power law fit
-            x0_pl (list[float]): Start values for powerlaw fit
+            x0 (list[float]): Start values for fit
+            s (float): Sharpness parameter for broken Powerlaw
             plot_data (bool): Choose whether to plot the fitted data
             plot_fit (bool): Choose whether to plot the fit
+            fit_r0 (bool): Choose whether to include (r+r0) in fit or just r
             plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
             show (bool): Choose whether to show the plot
             filter_unresolved (bool): Choose whether to filter out unresolved components
@@ -1660,16 +1661,16 @@ class ImageCube(object):
 
         if jet=="Jet" or jet=="Twin":
             try:
-                beta, sd_beta, chi2, out = fit_width(dists, widths, width_err=width_errs, dist_err=False,
-                                                     fit_type=fit_type,x0_bpl=x0_bpl,x0_pl=x0_pl)
+                beta, sd_beta, chi2, out = fit_width(dists, widths, width_err=width_errs, dist_err=False,s=s,
+                                                     fit_type=fit_type,x0=x0,fit_r0=fit_r0)
             except:
                 logger.warning("Collimation fit did not work for jet!")
                 fit_fail_jet=True
 
         if jet=="CJet" or jet=="Twin":
             try:
-                cbeta, csd_beta, cchi2, cout = fit_width(cdists, cwidths, width_err=cwidth_errs, dist_err=False,
-                                                     fit_type=fit_type,x0_bpl=x0_bpl,x0_pl=x0_pl)
+                cbeta, csd_beta, cchi2, cout = fit_width(cdists, cwidths, width_err=cwidth_errs, dist_err=False,s=s,
+                                                     fit_type=fit_type,x0=x0,fit_r0=fit_r0)
             except:
                 logger.warning("Collimation fit did not work for counter jet!")
                 fit_fail_counterjet=True
@@ -1695,10 +1696,10 @@ class ImageCube(object):
         if plot_fit:
             if jet=="Jet" or jet=="Twin":
                 if not fit_fail_jet:
-                    plot.plot_fit(x, fit_type, beta, sd_beta, chi2, "Jet", color, label=label)
+                    plot.plot_fit(x, fit_type, beta, sd_beta, chi2, "Jet", color, label=label,fit_r0=fit_r0,s=s)
             if jet=="CJet" or jet=="Twin":
                 if not fit_fail_counterjet:
-                    plot.plot_fit(x, fit_type, cbeta, csd_beta, cchi2, "CJet", color, label=label)
+                    plot.plot_fit(x, fit_type, cbeta, csd_beta, cchi2, "CJet", color, label=label,fit_r0=fit_r0,s=s)
 
         if show:
             plot.plot_legend()

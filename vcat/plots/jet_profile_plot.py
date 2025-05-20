@@ -2,7 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from vcat.helpers import set_figsize, scatter, mas2Rs, Rs2mas
 from vcat.config import logger,font
-from vcat.fit_functions import powerlaw, broken_powerlaw
+from vcat.fit_functions import powerlaw, broken_powerlaw, powerlaw_withr0, broken_powerlaw_withr0
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -81,7 +81,7 @@ class JetProfilePlot(object):
             self.axes[0].errorbar(dist, width, yerr=width_err, fmt=marker, ms=0, color=color, linewidth=0,
                         elinewidth=0.4, errorevery=1, label=label, alpha=0.3)
 
-    def plot_fit(self, x, fitfunc, beta, betaerr, chi2, jet="Jet",color="k",annotate=False,asize=8,annox=0.6,annoy=0.05,lw=1,ls="-",label=None):
+    def plot_fit(self, x, fitfunc, beta, betaerr, chi2, jet="Jet",color="k",annotate=False,asize=8,annox=0.6,annoy=0.05,lw=1,ls="-",label=None,fit_r0=True,s=100):
 
         if self.jet=="Twin":
             if jet=="Jet":
@@ -100,13 +100,23 @@ class JetProfilePlot(object):
                 beta[0], betaerr[1], beta[1], betaerr[1], chi2)
 
         if fitfunc == 'Powerlaw':
-            function = powerlaw(beta, x)
-            text = '{}\n$k={:.2f}\\pm{:.2f}$\n $\\chi_\\mathrm{{red}}^2={:.2f}$'.format(label, beta[1],
+            if fit_r0:
+                function = powerlaw_withr0(beta, x)
+                text = '{}\n$k={:.2f}\\pm{:.2f}$\n r0={:2.f}\\pm{:.2f}$mas\n $\\chi_\\mathrm{{red}}^2={:.2f}$'.format(label, beta[1],
+                                                                                            betaerr[1],beta[2],betaerr[2], chi2)
+            else:
+                function = powerlaw(beta, x)
+                text = '{}\n$k={:.2f}\\pm{:.2f}$\n $\\chi_\\mathrm{{red}}^2={:.2f}$'.format(label, beta[1],
                                                                                         betaerr[1], chi2)
         elif fitfunc == 'brokenPowerlaw':
-            function = broken_powerlaw(beta, x)
-            text = '{}\n$W_\\mathrm{{0}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{u}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{d}}={:.2f}\\pm{:.2f}$\n$z_\\mathrm{{B}} = {:.1f}\\pm {:.1f}$ mas'.format(
-                label, beta[0], betaerr[0], beta[1], betaerr[1], beta[2], betaerr[2], beta[-1], betaerr[-1])
+            if fit_r0:
+                function = broken_powerlaw_withr0(beta,x,s=s)
+                text = '{}\n$W_\\mathrm{{0}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{u}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{d}}={:.2f}\\pm{:.2f}$\n$z_\\mathrm{{B}} = {:.1f}\\pm {:.1f}$ mas'.format(
+                    label, beta[0], betaerr[0], beta[1], betaerr[1], beta[2], betaerr[2], beta[3], betaerr[3])
+            else:
+                function = broken_powerlaw(beta, x,s=s)
+                text = '{}\n$W_\\mathrm{{0}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{u}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{d}}={:.2f}\\pm{:.2f}$\n$z_\\mathrm{{B}} = {:.1f}\\pm {:.1f}$ mas \n r0={:2.f}\\pm{:.2f}$mas\n'.format(
+                    label, beta[0], betaerr[0], beta[1], betaerr[1], beta[2], betaerr[2], beta[3], betaerr[3],beta[4],betaerr[4])
 
         if label:
             ax.plot(x, function, color=color, lw=lw, ls=ls, label=label, zorder=1)

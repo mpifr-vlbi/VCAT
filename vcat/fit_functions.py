@@ -48,14 +48,21 @@ def powerlaw(p,x):
     a,b=p
     return a*(x**b)
 
+def powerlaw_withr0(p,x):
+    a,b,r0=p
+    return a*(x+r0)**b
+
 def powerlawVar(p,x):
     a,b,c=p
     return a*(x**(-1/b))+c
 
-def broken_powerlaw(p,x):
+def broken_powerlaw(p,x,s=100):
     w0,au,ad,xb=p
-    s=10
     return w0*2**((au-ad)/s)*(x/xb)**au*(1+(x/xb)**s)**((ad-au)/s)
+
+def broken_powerlaw_withr0(p,x,s=100):
+    w0,au,ad,xb,r0=p
+    return w0 * 2 ** ((au - ad) / s) * ((x+r0) / xb) ** au * (1 + ((x+r0) / xb) ** s) ** ((ad - au) / s)
 
 def Snu_real(p,nu):
     """SSA spectrum following Tuerler+ 1999
@@ -125,10 +132,16 @@ def fit_func(x,y,sd,function,x0=False):
     beta,sd_beta,chi2fit,out = odr_fit(function,[x,y,sd],x0,verbose=1)
     return beta,sd_beta,chi2fit,out
 
-def fit_pl(x,y,sd,x0=False):
+def fit_pl(x,y,sd,x0=False,fit_r0=True):
     if x0 is False:
-        x0 = np.array([0.1,1])
-    beta,sd_beta,chi2fit,out = odr_fit(powerlaw,[x,y,sd],x0,verbose=1)
+        if fit_r0:
+            x0 = np.array([0.1,1,0])
+        else:
+            x0 = np.array([0.1,1])
+    if fit_r0:
+        beta,sd_beta,chi2fit,out = odr_fit(powerlaw_withr0,[x,y,sd],x0,verbose=1)
+    else:
+        beta,sd_beta,chi2fit,out = odr_fit(powerlaw,[x,y,sd],x0,verbose=1)
     return beta,sd_beta,chi2fit,out
 
 def fit_scatter(x,y,sd,x0=False):
@@ -141,18 +154,27 @@ def fit_scatter(x,y,sd,x0=False):
     beta,sd_beta,chi2fit,out = odr_fit(scatter,[x,y,sd],x0,verbose=1)
     return beta,sd_beta,chi2fit,out
 
-def fit_bpl(x,y,sd,sx=False,x0=False):
+def fit_bpl(x,y,sd,sx=False,x0=False,fit_r0=False,s=100):
     if x0 is False:
-        x0=np.array([min(np.concatenate(y)),0,1,2])
+        if fit_r0:
+            x0=np.array([min(np.concatenate(y)),0,1,2,0])
+        else:
+            x0=np.array([min(np.concatenate(y)),0,1,2])
+
     if sx is False:
         print('only use y-error')
-        #beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[np.concatenate(x),np.concatenate(y),np.concatenate(sd)],x0,verbose=1)
-        beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[x,y,sd],x0,verbose=1)
+        if fit_r0:
+            beta, sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw_withr0,s=s),[x,y,sd],x0,verbose=1)
+        else:
+            beta,sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw,s=s),[x,y,sd],x0,verbose=1)
     else:
         if type(sx)==list:
             sx = np.concatenate(sx)
         print('include x error\n')
-        beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[x,y,sd,sx],x0,verbose=1)
+        if fit_r0:
+            beta, sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw_withr0,s=s),[x,y,sd,sx],x0,verbose=1)
+        else:
+            beta,sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw,s=s),[x,y,sd,sx],x0,verbose=1)
     return beta,sd_beta,chi2fit,out
 
 

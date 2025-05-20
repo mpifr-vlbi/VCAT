@@ -1235,21 +1235,34 @@ def fit_width(dist,width,
                 width_err=False,
                 dist_err=False,
                 fit_type='brokenPowerlaw',
-                x0_bpl=[0.3,0,1,2],
-                x0_pl=[0.1,1]):
+                x0=False,
+                fit_r0=True,
+                s=100):
     '''Fit a power-law or broken-powerlaw to jet width'''
+
+    if x0==False:
+        if fit_type='brokenPowerlaw' and fit_r0:
+            x0=[0.3, 0, 1, 2, 0]
+        elif fit_type='brokenPowerlaw':
+            x0=[0.3,0,1,2]
+        elif fit_type="Powerlaw" and fit_r0:
+            x0=[0.1,1,0]
+        elif fit_type="Powerlaw":
+            x0=[0.1,1]
+        else:
+            raise Exception("Please select valid fit_type ('Powerlaw', 'BrokenPowerlaw')")
 
     if fit_type == 'Powerlaw':
         if dist_err:
-            beta,sd_beta,chi2,out = fit_pl(dist,width,width_err,sx=dist_err,x0=x0_pl)
+            beta,sd_beta,chi2,out = fit_pl(dist,width,width_err,sx=dist_err,x0=x0,fit_r0=fit_r0)
         else:
-            beta,sd_beta,chi2,out = fit_pl(dist,width,width_err,x0=x0_pl)
+            beta,sd_beta,chi2,out = fit_pl(dist,width,width_err,x0=x0,fit_r0=fit_r0)
 
     elif fit_type=='brokenPowerlaw':
         if dist_err:
-            beta,sd_beta,chi2,out = fit_bpl(dist,width,width_err,sx=dist_err,x0=x0_bpl)
+            beta,sd_beta,chi2,out = fit_bpl(dist,width,width_err,sx=dist_err,x0=x0,fit_r0=fit_r0,s=s)
         else:
-            beta,sd_beta,chi2,out = fit_bpl(dist,width,width_err,x0=x0_bpl)
+            beta,sd_beta,chi2,out = fit_bpl(dist,width,width_err,x0=x0,fit_r0=fit_r0,s=s)
 
     return beta, sd_beta, chi2, out
 
