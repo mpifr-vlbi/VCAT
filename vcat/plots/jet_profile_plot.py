@@ -102,7 +102,7 @@ class JetProfilePlot(object):
         if fitfunc == 'Powerlaw':
             if fit_r0:
                 function = powerlaw_withr0(beta, x)
-                text = '{}\n$k={:.2f}\\pm{:.2f}$\n r0={:2.f}\\pm{:.2f}$mas\n $\\chi_\\mathrm{{red}}^2={:.2f}$'.format(label, beta[1],
+                text = '{}\n$k={:.2f}\\pm{:.2f}$\n r0={:.2f}\\pm{:.2f}$mas\n $\\chi_\\mathrm{{red}}^2={:.2f}$'.format(label, beta[1],
                                                                                             betaerr[1],beta[2],betaerr[2], chi2)
             else:
                 function = powerlaw(beta, x)
