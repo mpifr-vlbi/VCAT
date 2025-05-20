@@ -20,7 +20,7 @@ font_size_axis_tick=12
 class JetProfilePlot(object):
 
     def __init__(self,jet="Jet",fig_size="aanda*",xlabel="Distance from core [mas]",ylabel="De-convolved width [mas]",
-                 xscale="log",yscale="log",secxax=r"De-projected distance from core [pc]",
+                 xscale="log",yscale="log",secxax=r"Apparent distance from core [pc]",
                  secyax=r'De-convolved width [pc]',xlim=None,ylim=None,redshift=0):
 
         super().__init__()
@@ -77,18 +77,12 @@ class JetProfilePlot(object):
             logger.debug("Plotting twin jet.")
             #this means dist, width and width_err need to be 2d-lists
             #plot jet
-            self.axes[0].scatter(dist[0], width[0], s=4, marker=marker, color=color, label='{}'.format(label))
-            self.axes[0].errorbar(dist[0], width[0], yerr=width_err[0], fmt=marker, ms=0, color=color,
-                                 linewidth=0, elinewidth=0.4, errorevery=1, label=label, alpha=0.3)
+            self.axes[0].errorbar(dist[0], width[0], yerr=width_err[0], fmt=marker, color=color, errorevery=1, label=label)
             #plot counterjet
-            self.axes[1].scatter(dist[1], width[1], s=4, marker=marker, color=color)
-            self.axes[1].errorbar(dist[1], width[1], yerr=width_err[1], fmt=marker, ms=0, color=color,
-                                  linewidth=0, elinewidth=0.4, errorevery=1, label=label, alpha=0.3)
+            self.axes[1].errorbar(dist[1], width[1], yerr=width_err[1], fmt=marker, color=color,errorevery=1, label=label)
         else:
             logger.debug("Plotting only one jet.")
-            self.axes[0].scatter(dist, width, s=4, marker=marker, color=color, label='{}'.format(label))
-            self.axes[0].errorbar(dist, width, yerr=width_err, fmt=marker, ms=0, color=color, linewidth=0,
-                        elinewidth=0.4, errorevery=1, label=label, alpha=0.3)
+            self.axes[0].errorbar(dist, width, yerr=width_err, fmt=marker, color=color, errorevery=1, label=label)
 
     def plot_fit(self, x, fitfunc, beta, betaerr, chi2, jet="Jet",color="k",annotate=False,asize=8,annox=0.6,annoy=0.05,lw=1,ls="-",label=None,fit_r0=True,s=100):
 
@@ -108,7 +102,7 @@ class JetProfilePlot(object):
             text = '$theta_s={:.2f}\\pm{:.2f}$\n $theta_i={:.2f}\\pm{:.2f}$\n$\\chi_\\mathrm{{red}}^2={:.2f}$'.format(
                 beta[0], betaerr[1], beta[1], betaerr[1], chi2)
 
-        if fitfunc == 'Powerlaw':
+        elif fitfunc == 'Powerlaw':
             if fit_r0:
                 function = powerlaw_withr0(beta, x)
                 text = '{}\n$k={:.2f}\\pm{:.2f}$\n r0={:.2f}\\pm{:.2f}$mas\n $\\chi_\\mathrm{{red}}^2={:.2f}$'.format(label, beta[1],
@@ -139,11 +133,9 @@ class JetProfilePlot(object):
         handles, labels = self.axes[0].get_legend_handles_labels()
 
         if self.jet=="Twin":
-            self.axes[0].legend(handles, labels, loc='lower left', ncol=5, markerscale=1, labelspacing=0.1,
-                           bbox_to_anchor=(0.0, 1.3, 2., .4), mode='expand', borderaxespad=0., handletextpad=0.1)
+            self.axes[0].legend(handles, labels)
         else:
-            self.axes[0].legend(handles, labels, loc='lower left', ncol=2, markerscale=1, labelspacing=0.1,
-                           bbox_to_anchor=(0.0, 1.15, 2., .4), borderaxespad=0., handletextpad=0.1)
+            self.axes[0].legend(handles, labels)
 
     def savefig(self,savefig):
         plt.savefig(savefig,bbox_inches="tight")

@@ -1612,7 +1612,7 @@ class ImageCube(object):
         return average_comps
 
     def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0=False,s=100,
-                                plot_data=True,plot_fit=True,fit_r0=True,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker=plot_markers[0],core_position=[0,0]):
+                                plot_data=True,plot_fit=True,fit_r0=True,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker="o",core_position=[0,0]):
         """
         Function to fit a collimation profile to the jet/counterjet
 
@@ -1663,10 +1663,10 @@ class ImageCube(object):
             raise Exception("Please specify valid 'method' for fit_collimation_profile ('model', 'ridgeline').")
 
         if jet=="Jet" or jet=="Twin":
-            try:
+            if True:
                 beta, sd_beta, chi2, out = fit_width(dists, widths, width_err=width_errs, dist_err=False,s=s,
                                                      fit_type=fit_type,x0=x0,fit_r0=fit_r0)
-            except:
+            else:
                 logger.warning("Collimation fit did not work for jet!")
                 fit_fail_jet=True
 

@@ -15,6 +15,8 @@ im_cube.plot_component_evolution("frac_pol")
 #Import associations from GUI file
 im_cube.import_component_association("../dataset_example/0506+056_kinematic/component_info.csv")
 
+im_cube.fit_collimation_profile(method="model",fit_type="brokenPowerlaw",plot_data=True,plot_fit=True,show=True)
+
 im_cube.plot_component_evolution("frac_pol")
 im_cube.plot_component_evolution("lin_pol")
 

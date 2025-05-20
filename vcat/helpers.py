@@ -1163,7 +1163,7 @@ def mas2pc(z=None,d=None):
     if d:
         D=d*1e6*u.parsec
     else:
-        D   = cosmo.angular_diameter_distance(z)
+        D=cosmo.angular_diameter_distance(z)
     return (D*np.pi/180/3.6e6).to(u.parsec)
 
 #TODO change M and z here!!
@@ -1266,7 +1266,7 @@ def fit_width(dist,width,
         elif fit_type=="Powerlaw":
             x0=[0.1,1]
         else:
-            raise Exception("Please select valid fit_type ('Powerlaw', 'BrokenPowerlaw')")
+            raise Exception("Please select valid fit_type ('Powerlaw', 'brokenPowerlaw')")
 
     if fit_type == 'Powerlaw':
         if dist_err:
