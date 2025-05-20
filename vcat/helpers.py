@@ -1241,13 +1241,13 @@ def fit_width(dist,width,
     '''Fit a power-law or broken-powerlaw to jet width'''
 
     if x0==False:
-        if fit_type='brokenPowerlaw' and fit_r0:
+        if fit_type=='brokenPowerlaw' and fit_r0:
             x0=[0.3, 0, 1, 2, 0]
-        elif fit_type='brokenPowerlaw':
+        elif fit_type=='brokenPowerlaw':
             x0=[0.3,0,1,2]
-        elif fit_type="Powerlaw" and fit_r0:
+        elif fit_type=="Powerlaw" and fit_r0:
             x0=[0.1,1,0]
-        elif fit_type="Powerlaw":
+        elif fit_type=="Powerlaw":
             x0=[0.1,1]
         else:
             raise Exception("Please select valid fit_type ('Powerlaw', 'BrokenPowerlaw')")
