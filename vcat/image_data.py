@@ -118,6 +118,7 @@ class ImageData(object):
                  auto_identify=True,
                  core_comp_id=0,
                  redshift=0,
+                 query_redshift=True,
                  M=0,
                  model_save_dir="tmp/",
                  is_casa_model=False,
@@ -149,6 +150,7 @@ class ImageData(object):
             auto_identify (bool): If true and no comp_ids provided components will automatically be named
             core_comp_id (int): Component ID of the core component
             redshift (float): Redshift of the source
+            query_redshift (bool): Choose whether to query redshift automatically from NED
             M (float): Black hole mass
             model_save_dir (str): Directory where temporary data for VCAT operations will be stored
             is_casa_model (bool): If using a CASA .fits model for 'model', set to True
@@ -248,7 +250,7 @@ class ImageData(object):
         self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
 
         #get redshift
-        if redshift==0:
+        if redshift==0 and query_redshift:
             try:
                 self.redshift = np.average(Ned.get_table(self.name, table="redshifts")["Published Redshift"])
                 logger.debug(f"Redshift for {self.name} automatically determined from NED: {self.redshift}")
@@ -935,6 +937,7 @@ class ImageData(object):
                          stokes_u=new_stokes_u_fits,
                          mask=new_mask,
                          ridgeline=self.ridgeline,
+                         redshift=self.redshift,
                          counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,
                          model_save_dir=self.model_save_dir,
@@ -1441,6 +1444,7 @@ class ImageData(object):
                          stokes_u=new_stokes_u_fits,
                          mask=new_mask,
                          ridgeline=self.ridgeline,
+                         redshift=self.redshift,
                          counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,
                          model_save_dir=self.model_save_dir,
@@ -1703,6 +1707,7 @@ class ImageData(object):
                          stokes_q=new_stokes_q_fits,
                          stokes_u=new_stokes_u_fits,
                          mask=new_mask,
+                         redshift=self.redshift,
                          ridgeline=self.ridgeline,
                          counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,
@@ -1724,6 +1729,7 @@ class ImageData(object):
                          stokes_q=self.stokes_q_path,
                          stokes_u=self.stokes_u_path,
                          mask=self.mask,
+                         redshift=self.redshift,
                          ridgeline=self.ridgeline,
                          counter_ridgeline=self.counter_ridgeline,
                          noise_method=self.noise_method,

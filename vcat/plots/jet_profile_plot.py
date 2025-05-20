@@ -41,10 +41,10 @@ class JetProfilePlot(object):
             raise Exception("Please specify valid 'jet' parameter ('Jet','CJet','Twin')")
 
         def mas_to_pc(x):
-            return x * float(mas2pc(redshift))
+            return x * mas2pc(redshift).value
 
         def pc_to_mas(x):
-            return x / float(mas2pc(redshift))
+            return x / mas2pc(redshift).value
 
         for ax in self.axes:
             ax.set_xscale(xscale)
