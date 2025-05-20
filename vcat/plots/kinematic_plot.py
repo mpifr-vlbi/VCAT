@@ -85,7 +85,7 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Distance from Core [mas]', fontsize=font_size_axis_title)
 
-    def plot_fluxs(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
+    def plot_fluxs(self, component_collection, color, label="",marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
 
             years = component_collection.year.flatten()
@@ -99,14 +99,14 @@ class KinematicPlot(object):
             fluxs_err = fluxs_err[snrs >= snr_cut]
 
             if plot_errors:
-                self.ax.errorbar(years,fluxs,yerr=fluxs_err,c=color,fmt=marker)
+                self.ax.errorbar(years,fluxs,yerr=fluxs_err,c=color,fmt=marker,label=label)
             else:
                 self.ax.plot(years,fluxs, c=color,
-                            label=component_collection.name, marker=marker)
+                            label=component_collection.name, marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Flux Density [Jy]', fontsize=font_size_axis_title)
 
-    def plot_pas(self, component_collection, color, marker="."):
+    def plot_pas(self, component_collection, color, label="",marker="."):
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             pas = component_collection.posas.flatten()
@@ -118,11 +118,11 @@ class KinematicPlot(object):
             pas = pas[snrs >= snr_cut]
 
             self.ax.plot(years,pas, c=color,
-                         label=component_collection.name, marker=marker)
+                         label=component_collection.name, marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle [deg]', fontsize=font_size_axis_title)
 
-    def plot_theta(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
+    def plot_theta(self, component_collection, color, label="", marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             thetas = component_collection.thetas.flatten()
@@ -135,15 +135,15 @@ class KinematicPlot(object):
             thetas_err = thetas_err[snrs >= snr_cut]
 
             if plot_errors:
-                self.ax.errorbar(years,thetas,yerr=thetas_err,c=color,fmt=marker)
+                self.ax.errorbar(years,thetas,yerr=thetas_err,c=color,fmt=marker,label=label)
             else:
                 self.ax.plot(years,thetas, c=color,
                              label=component_collection.name,
-                             marker=marker)
+                             marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle of the Component Position [°]', fontsize=font_size_axis_title)
 
-    def plot_linpol(self, component_collection, color, marker=".",snr_cut=1):
+    def plot_linpol(self, component_collection, color,label="", marker=".",snr_cut=1):
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             lin_pols = component_collection.lin_pols.flatten()
@@ -155,11 +155,11 @@ class KinematicPlot(object):
 
             self.ax.plot(years,lin_pols, c=color,
                          label=component_collection.name,
-                         marker=marker)
+                         marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Linearly Polarized Flux Density [Jy]', fontsize=font_size_axis_title)
 
-    def plot_fracpol(self, component_collection, color, marker=".",snr_cut=1):
+    def plot_fracpol(self, component_collection, color, marker=".",label="",snr_cut=1):
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             lin_pols = component_collection.lin_pols.flatten()
@@ -173,11 +173,11 @@ class KinematicPlot(object):
 
             self.ax.plot(years,
                          np.array(lin_pols) / np.array(fluxs) * 100,
-                         c=color, label=component_collection.name, marker=marker)
+                         c=color, label=component_collection.name, marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Fractional Polarized Flux Density [%]', fontsize=font_size_axis_title)
 
-    def plot_evpa(self, component_collection, color, marker=".",snr_cut=1):
+    def plot_evpa(self, component_collection, color, label="",marker=".",snr_cut=1):
         evpas = component_collection.evpas.flatten()
         years = component_collection.year.flatten()
 
@@ -197,17 +197,17 @@ class KinematicPlot(object):
             self.ax.plot(evpa_interp(years_interp), years_interp, color=color)
 
             # scatter plot the actual values
-            self.ax.scatter(plot_evpas, years, color=color, label=component_collection.name,marker=marker)
+            self.ax.scatter(plot_evpas, years, color=color, label=component_collection.name,marker=marker,label=label)
 
         else:
             if component_collection.length() > 0:
                 self.ax.plot(years,evpas, c=color,
                              label=component_collection.name,
-                             marker=marker)
+                             marker=marker,label=label)
             self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
             self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_maj(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
+    def plot_maj(self, component_collection, color, marker=".",label="",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             majs = component_collection.majs.flatten()
@@ -220,14 +220,14 @@ class KinematicPlot(object):
             majs_err = majs_err[snrs >= snr_cut]
 
             if plot_errors:
-                self.ax.errorbar(years,majs,yerr=majs_err,c=color,fmt=marker)
+                self.ax.errorbar(years,majs,yerr=majs_err,c=color,fmt=marker,label=label)
             else:
                 self.ax.plot(year,majs, c=color, label=component_collection.name,
-                            marker=marker)
+                            marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_min(self, component_collection, color, marker=".",plot_errors=True,snr_cut=1):
+    def plot_min(self, component_collection, color, label="",marker=".",plot_errors=True,snr_cut=1):
         if component_collection.length() > 0:
 
             years = component_collection.year.flatten()
@@ -241,14 +241,14 @@ class KinematicPlot(object):
             mins_err = mins_err[snrs >= snr_cut]
 
             if plot_errors:
-                self.ax.errorbar(years,mins,yerr=mins_err,c=color,fmt=marker)
+                self.ax.errorbar(years,mins,yerr=mins_err,c=color,fmt=marker,label=label)
             else:
                 self.ax.plot(component_collection.year, component_collection.mins, c=color, label=component_collection.name,
-                             marker=marker)
+                             marker=marker,label=label)
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
-    def plot_tbs(self, component_collection, color, marker=".",snr_cut=1):
+    def plot_tbs(self, component_collection, color, label="",marker=".",snr_cut=1):
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             tbs_lower_limit = component_collection.tbs_lower_limit.flatten()
@@ -264,7 +264,7 @@ class KinematicPlot(object):
             tb_value_inds = np.where(np.array(tbs_lower_limit) == False)[0]
             self.ax.plot(np.array(years)[tb_value_inds],
                          np.array(tbs)[tb_value_inds], c=color, label=component_collection.name,
-                         marker=marker)
+                         marker=marker,label=label)
             self.ax.scatter(np.array(years)[lower_limit_inds],
                             np.array(tbs)[lower_limit_inds], c=color, marker="^")
 
