@@ -71,12 +71,15 @@ class ImageCube(object):
         self.dates=[]
         self.mjds=[]
         self.name=""
+        self.redshift=0
         self.date_tolerance=date_tolerance
         self.freq_tolerance=freq_tolerance
 
         images=[]
         #go through image data list and extract some info
         for image in image_data_list:
+            if self.redshift==0:
+                self.redshift=image.redshift
             if self.name=="":
                 self.name=image.name
             elif self.name != image.name and new_import:
@@ -1676,7 +1679,7 @@ class ImageCube(object):
                 fit_fail_counterjet=True
 
         if plot=="":
-            plot=JetProfilePlot(jet=jet)
+            plot=JetProfilePlot(jet=jet,redshift=self.redshift)
         else:
             try:
                 if plot.jet != jet:

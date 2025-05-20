@@ -19,6 +19,7 @@ from astropy.utils.exceptions import ErfaWarning
 import numpy as np
 import scipy.ndimage
 from astropy.nddata import Cutout2D
+from astroquery.ipac.ned import Ned
 from astropy.modeling import models, fitting
 from scipy import integrate
 from vcat.ridgeline import Ridgeline
@@ -117,6 +118,7 @@ class ImageData(object):
                  auto_identify=True,
                  core_comp_id=0,
                  redshift=0,
+                 M=0,
                  model_save_dir="tmp/",
                  is_casa_model=False,
                  noise_method=noise_method, #choose noise method
@@ -147,6 +149,7 @@ class ImageData(object):
             auto_identify (bool): If true and no comp_ids provided components will automatically be named
             core_comp_id (int): Component ID of the core component
             redshift (float): Redshift of the source
+            M (float): Black hole mass
             model_save_dir (str): Directory where temporary data for VCAT operations will be stored
             is_casa_model (bool): If using a CASA .fits model for 'model', set to True
             noise_method (str): Choose method to calculate image noise ('Histogram Fit', 'box', 'Image RMS', 'DIFMAP')
@@ -179,6 +182,7 @@ class ImageData(object):
         self.correct_rician_bias=correct_rician_bias
         self.fit_comp_pol = fit_comp_polarization
         self.error=error
+        self.M=M
         if ridgeline=="":
             self.ridgeline=Ridgeline()
         else:
@@ -242,6 +246,16 @@ class ImageData(object):
         self.date = get_date(fits_file)
         self.mjd = Time(self.date).mjd
         self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
+
+        #get redshift
+        if redshift==0:
+            try:
+                self.redshift = np.average(Ned.get_table(self.name, table="redshifts")["Published Redshift"])
+                logger.debug(f"Redshift for {self.name} automatically determined from NED: {self.redshift}")
+            except:
+                self.redshift = 0.00
+        else:
+            self.redshift=redshift
 
         # Unit selection and adjustment
         self.degpp = abs(hdu_list[0].header["CDELT1"])  # degree per pixel

@@ -1,8 +1,9 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from vcat.helpers import set_figsize, scatter, mas2Rs, Rs2mas
+from vcat.helpers import set_figsize, scatter, mas2pc
 from vcat.config import logger,font
 from vcat.fit_functions import powerlaw, broken_powerlaw, powerlaw_withr0, broken_powerlaw_withr0
+from functools import partial
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -19,8 +20,8 @@ font_size_axis_tick=12
 class JetProfilePlot(object):
 
     def __init__(self,jet="Jet",fig_size="aanda*",xlabel="Distance from core [mas]",ylabel="De-convolved width [mas]",
-                 xscale="log",yscale="log",secxax=r"Distance from core [$R_\mathrm{S}$]",
-                 secyax=r'De-convolved width [$R_\mathrm{S}$]',xlim=None,ylim=None):
+                 xscale="log",yscale="log",secxax=r"De-projected distance from core [pc]",
+                 secyax=r'De-convolved width [pc]',xlim=None,ylim=None,redshift=0):
 
         super().__init__()
 
@@ -39,6 +40,12 @@ class JetProfilePlot(object):
         else:
             raise Exception("Please specify valid 'jet' parameter ('Jet','CJet','Twin')")
 
+        def mas_to_pc(x):
+            return x * float(mas2pc(redshift))
+
+        def pc_to_mas(x):
+            return x / float(mas2pc(redshift))
+
         for ax in self.axes:
             ax.set_xscale(xscale)
             ax.set_yscale(yscale)
@@ -52,14 +59,16 @@ class JetProfilePlot(object):
             ax.tick_params(which='both', direction='inout')
             ax.label_outer()
 
-            secx = ax.secondary_xaxis('top', functions=(mas2Rs, Rs2mas))
+
+
+            secx = ax.secondary_xaxis('top', functions=(mas_to_pc, pc_to_mas))
             secx.set_xlabel(secxax)
 
         if jet=="Twin":
             self.axes[0].invert_xaxis()
 
             if secyax:
-                secy = self.axes[1].secondary_yaxis('right', functions=(mas2Rs, Rs2mas))
+                secy = self.axes[1].secondary_yaxis('right', functions=(mas_to_pc, pc_to_mas))
                 secy.set_ylabel(secyax)
 
     def plot_profile(self,dist,width,width_err,color,marker,label):

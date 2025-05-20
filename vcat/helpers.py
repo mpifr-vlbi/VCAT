@@ -1165,7 +1165,6 @@ def mas2pc(z=None,d=None):
     else:
         D   = cosmo.angular_diameter_distance(z)
     return (D*np.pi/180/3.6e6).to(u.parsec)
-#   return 1/(60*60*1e3)*D
 
 #TODO change M and z here!!
 def mas2Rs(x,M=10**8.2,z=0.005037,D=False):
