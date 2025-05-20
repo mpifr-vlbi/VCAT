@@ -25,8 +25,10 @@ from vcat.config import difmap_path, H0, Om0, res_lim_method
 import astropy.units as u
 import astropy.constants as const
 from astropy.cosmology import FlatLambdaCDM
-from vcat.fit_functions import broken_powerlaw,powerlaw
+from vcat.fit_functions import broken_powerlaw,powerlaw,broken_powerlaw_withr0,powerlaw_withr0
 from scipy.optimize import curve_fit
+from functools import partial
+
 
 #initialize logger
 from vcat.config import logger,uvw
@@ -1210,26 +1212,41 @@ def odr_fit(func,data,x0,fit_type=2,verbose=False,maxit=1e4):
     return out.beta,out.sd_beta,out.res_var ,out
 
 
-def fit_pl(x,y,sd,x0=False):
+def fit_pl(x,y,sd,x0=False,fit_r0=True):
     if x0 is False:
-        x0 = np.array([0.1,1])
-    beta,sd_beta,chi2fit,out = odr_fit(powerlaw,[x,y,sd],x0,verbose=1)
+        if fit_r0:
+            x0 = np.array([0.1,1,0])
+        else:
+            x0 = np.array([0.1,1])
+    if fit_r0:
+        beta,sd_beta,chi2fit,out = odr_fit(powerlaw_withr0,[x,y,sd],x0,verbose=1)
+    else:
+        beta,sd_beta,chi2fit,out = odr_fit(powerlaw,[x,y,sd],x0,verbose=1)
     return beta,sd_beta,chi2fit,out
 
-def fit_bpl(x,y,sd,sx=False,x0=False):
-    """ fit broken power law as definde in
-    """
+def fit_bpl(x,y,sd,sx=False,x0=False,fit_r0=False,s=100):
     if x0 is False:
-        x0=np.array([min(np.concatenate(y)),0,1,2])
-    if sx:
+        if fit_r0:
+            x0=np.array([min(np.concatenate(y)),0,1,2,0])
+        else:
+            x0=np.array([min(np.concatenate(y)),0,1,2])
+
+    if sx is False:
+        print('only use y-error')
+        if fit_r0:
+            beta, sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw_withr0,s=s),[x,y,sd],x0,verbose=1)
+        else:
+            beta,sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw,s=s),[x,y,sd],x0,verbose=1)
+    else:
         if type(sx)==list:
             sx = np.concatenate(sx)
         print('include x error\n')
-        beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[x,y,sd,sx],x0,verbose=1)
-    else:
-        print('only use y-error')
-        beta,sd_beta,chi2fit,out = odr_fit(broken_powerlaw,[x,y,sd],x0,verbose=1)
+        if fit_r0:
+            beta, sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw_withr0,s=s),[x,y,sd,sx],x0,verbose=1)
+        else:
+            beta,sd_beta,chi2fit,out = odr_fit(partial(broken_powerlaw,s=s),[x,y,sd,sx],x0,verbose=1)
     return beta,sd_beta,chi2fit,out
+
 
 def fit_width(dist,width,
                 width_err=False,
