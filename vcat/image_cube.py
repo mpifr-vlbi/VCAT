@@ -1755,12 +1755,12 @@ class ImageCube(object):
                     label=""
 
                 if value=="flux":
-                    x,y,err=plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,snr_cut=snr_cut)
+                    x,y,yerr=plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,snr_cut=snr_cut)
                     yerrs.append(yerr)
                 elif value=="tb":
                     x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                 elif value=="dist":
-                    x,y,yerrplot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
                     yerrs.append(yerr)
                 elif value=="pos" or value=="PA":
                     x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
