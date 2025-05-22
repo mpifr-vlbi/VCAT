@@ -1727,7 +1727,7 @@ class ImageCube(object):
         else:
             raise Exception("Invalid input for 'id'.")
 
-        xs[]
+        xs=[]
         ys=[]
         yer=[]
         for fr in freq:
