@@ -88,6 +88,9 @@ class KinematicPlot(object):
         years,dists,dist_err
 
     def plot_fluxs(self, component_collection, color, label="",marker=".",plot_errors=True,snr_cut=1):
+        years=[]
+        fluxs=[]
+        fluxs_err=[]
         if component_collection.length() > 0:
 
             years = component_collection.year.flatten()
@@ -111,6 +114,8 @@ class KinematicPlot(object):
         return years,fluxs,fluxs_err
 
     def plot_pas(self, component_collection, color, label="",marker="."):
+        years = []
+        pas = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             pas = component_collection.posas.flatten()
@@ -126,9 +131,12 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle [deg]', fontsize=font_size_axis_title)
 
-        return years, fluxs
+        return years, pas
 
     def plot_theta(self, component_collection, color, label="", marker=".",plot_errors=True,snr_cut=1):
+        years = []
+        thetas = []
+        thetas_err = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             thetas = component_collection.thetas.flatten()
@@ -152,6 +160,8 @@ class KinematicPlot(object):
         return years, thetas, thetas_err
 
     def plot_linpol(self, component_collection, color,label="", marker=".",snr_cut=1):
+        years = []
+        lin_pols = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             lin_pols = component_collection.lin_pols.flatten()
@@ -170,6 +180,8 @@ class KinematicPlot(object):
         return years, lin_pols
 
     def plot_fracpol(self, component_collection, color, marker=".",label="",snr_cut=1):
+        years = []
+        frac_pols = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             lin_pols = component_collection.lin_pols.flatten()
@@ -223,6 +235,9 @@ class KinematicPlot(object):
         return years,evpas
 
     def plot_maj(self, component_collection, color, marker=".",label="",plot_errors=True,snr_cut=1):
+        years = []
+        majs = []
+        majs_err = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             majs = component_collection.majs.flatten()
@@ -245,6 +260,9 @@ class KinematicPlot(object):
         return years, majs, majs_err
 
     def plot_min(self, component_collection, color, label="",marker=".",plot_errors=True,snr_cut=1):
+        years = []
+        mins = []
+        mins_err = []
         if component_collection.length() > 0:
 
             years = component_collection.year.flatten()
@@ -268,6 +286,8 @@ class KinematicPlot(object):
         return years,mins,mins_err
 
     def plot_tbs(self, component_collection, color, label="",marker=".",snr_cut=1):
+        years = []
+        tbs = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             tbs_lower_limit = component_collection.tbs_lower_limit.flatten()
