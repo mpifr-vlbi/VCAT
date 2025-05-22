@@ -1727,6 +1727,9 @@ class ImageCube(object):
         else:
             raise Exception("Invalid input for 'id'.")
 
+        xs[]
+        ys=[]
+        yer=[]
         for fr in freq:
             # One plot per frequency with all components
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
@@ -1734,6 +1737,9 @@ class ImageCube(object):
             else:
                 plot = KinematicPlot()
             years = []
+            xvalues = []
+            yvalues = []
+            yerrs = []
             for ind, cc in enumerate(ccs):
                 color_ind = ind % len(colors)
                 color = colors[color_ind]
@@ -1749,27 +1755,39 @@ class ImageCube(object):
                     label=""
 
                 if value=="flux":
-                    plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,snr_cut=snr_cut)
+                    x,y,err=plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,snr_cut=snr_cut)
+                    yerrs.append(yerr)
                 elif value=="tb":
-                    plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                 elif value=="dist":
-                    plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerrplot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    yerrs.append(yerr)
                 elif value=="pos" or value=="PA":
-                    plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                 elif value=="lin_pol" or value=="linpol":
-                    plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                 elif value=="evpa" or value=="EVPA":
-                    plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y=plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                     years=np.concatenate((years,cc.year.flatten()))
                 elif value=="maj":
-                    plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    yerrs.append(yerr)
                 elif value=="min":
-                    plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    yerrs.append(yerr)
                 elif value=="theta":
-                    plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    yerrs.append(yerr)
                 elif value=="fracpol" or value=="frac_pol":
-                    plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y=plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                else:
+                    raise Exception(f"Not possible to plot '{value}' for component!")
+                xvalues.append(x)
+                yvalues.append(y)
 
+            xs.append(xvalues)
+            ys.append(yvalues)
+            yer.append(yerrs)
             #set plot lims for polar plot according to lowest and highest year
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
                 years_range = max(years) - min(years)
@@ -1780,6 +1798,8 @@ class ImageCube(object):
             plt.legend()
             if show:
                 plt.show()
+
+        return xs,ys,yer
 
     def plot_components(self,id="",freq="",epoch="",show=False,xlim=[10,-10],ylim=[-10,10],colors="",fmts=[""],markersize=4,labels=[""],
                         filter_unresolved=False,snr_cut=1,capsize=None,plot_errorbar=True):
