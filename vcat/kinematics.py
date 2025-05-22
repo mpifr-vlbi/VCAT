@@ -774,4 +774,3 @@ class ComponentCollection():
                          scale=self.components[:,freq_ind].flatten()[0].scale,freq=self.freqs_distinct[freq_ind],noise=0,
                          beam_maj=self.components[:,freq_ind].flatten()[0].beam_maj, beam_min=self.components[:,freq_ind].flatten()[0].beam_min,
                          beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
-

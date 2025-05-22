@@ -28,6 +28,7 @@ from tqdm import tqdm
 from vcat.config import uvw, plot_colors, plot_markers, plot_linestyles
 from vcat.plots.jet_profile_plot import JetProfilePlot
 from joblib import Parallel, delayed
+from astropy import units as u
 
 #initialize logger
 from vcat.config import logger
@@ -1709,6 +1710,90 @@ class ImageCube(object):
             plt.show()
 
         return plot
+
+    def get_component_variability_doppler_factor(self,id="",freq="",flare_start="1900-01-01",flare_end="3000-01-01",
+                                                 fit_mode="lin-log",snr_cut=1,slope="down",size=0):
+        """
+        Function to calculate the variability doppler factor from modelfit components following Jorstad+05/Jorstad+17.
+
+        Args:
+            id:
+            freq:
+            flare_start (str): Flare start epoch
+            flare_end (str): Flare end epoch
+            fit_mode (str): decide whether to do a linear fit in ("lin-log") or exponential fit ("exp")
+            snr_cut (float): filter out components with SNR < snr_cut
+            slope (str): Decide which slope to fit decay ('down') or rise ('up')
+            size (float): Average component size in mas
+
+        Returns:
+
+        """
+
+        if size==0:
+            logger.warning("Component Size set to 0 mas, please define proper 'size' parameter.")
+
+        comp_times, comp_fluxs, comp_flux_errs = self.plot_component_evolution("flux",id=id,freq=freq,show=False,snr_cut=snr_cut)
+        delta_vars = []
+        delta_vars_err = []
+        for i in range(len(comp_times)):
+            time=comp_times[i]
+            flux=comp_fluxs[i]
+            flux_err=comp_flux_errs[i]
+
+            start_year=Time(flare_start).decimalyear
+            end_year=Time(flare_end).decimalyear
+
+            inds = (times > start_year) & (times < end_year)
+            filtered_time = time[inds]
+            filtered_flux = flux[inds]
+            filtered_flux_errs = flux_err[inds]
+
+            max_ind=np.argmax(filtered_flux)
+            min_ind_before=np.argmin(filtered_flux[:max_ind])
+            min_ind_after=np.argmin(filtered_flux[max_ind:])
+
+            if slope=="up":
+                times=filtered_time[min_ind_before:max_ind+1]
+                flux=filtered_flux[min_ind_before:max_ind+1]
+                flux_errs = filtered_flux_errs[min_ind_before:max_ind + 1]
+            elif slope=="down":
+                times = filtered_time[max_ind:min_ind_after + 1]
+                flux=filtered_flux[max_ind:min_ind_after+1]
+                flux_errs=filtered_flux_errs[max_ind:min_ind_after+1]
+            else:
+                raise Exception(f"Invalid slope parameter '{slope}'.")
+
+            if fit_mode=="lin-log":
+
+                def linear_model(t, k, c):
+                    return k * t + c
+
+                popt, pcov = curve_fit(linear_model, times, np.log(flux), sigma=flux_errs/flux*np.log(flux), absolute_sigma=True)
+                k, c = popt
+                dk, dc = np.sqrt(np.diag(pcov))
+
+            elif fit_mode=="exp":
+                def exponential_model(t, k, c, s0):
+                    return np.exp(k * (t - c)) + s0
+
+                popt, pcov = curve_fit(exponential_model, times, flux, p0=[1, times[0], 0],
+                                       sigma=flux_errs, absolute_sigma=True)
+                k, c, s0 = popt
+                dk, dc, ds0 = np.sqrt(np.diag(pcov))
+            else:
+                raise Exception(f"Invalid fit_mode '{fit_mode}'.")
+
+            delta_var = 15.8 * size * 1.6 * cosmo.luminosity_distance(self.redshift).to(u.Gpc).value / (
+                    abs(1 / k) * (1 + self.redshift))
+            delta_var_err = abs(dk / k * delta_var)
+
+            logger.debug(f"Fitted variability Doppler factor of {delta_var:.2f} +/- {delta_var_err:.2f}")
+
+            delta_vars.append(delta_var)
+            delta_vars_err.append(delta_var_err)
+
+        return delta_vars, delta_vars_err
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
                                  evpa_pol_plot=True,plot_errors=True,snr_cut=1,labels=True):
