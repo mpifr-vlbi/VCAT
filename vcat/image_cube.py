@@ -1744,7 +1744,7 @@ class ImageCube(object):
             start_year=Time(flare_start).decimalyear
             end_year=Time(flare_end).decimalyear
 
-            inds = (times > start_year) & (times < end_year)
+            inds = (time > start_year) & (time < end_year)
             filtered_time = time[inds]
             filtered_flux = flux[inds]
             filtered_flux_errs = flux_err[inds]
