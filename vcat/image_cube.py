@@ -2086,7 +2086,8 @@ class ImageCube(object):
                 ref_image.evpa = interp_evpa(query_points).reshape(len(images[0]), len(images[0][0])).T
 
                 #plot the ref_image
-                plot=ref_image.plot(plot_mode=plot_mode,fig=fig, ax=ax, show=False, title=f"Year: {Time(current_mjd,format="mjd").decimalyear:.2f}",
+                year_title=Time(current_mjd,format="mjd").decimalyear
+                plot=ref_image.plot(plot_mode=plot_mode,fig=fig, ax=ax, show=False, title=f"Year: {year_title:.2f}",
                                levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,
                                 linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,**kwargs)
 
