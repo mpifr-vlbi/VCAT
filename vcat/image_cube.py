@@ -2086,7 +2086,7 @@ class ImageCube(object):
                 ref_image.evpa = interp_evpa(query_points).reshape(len(images[0]), len(images[0][0])).T
 
                 #plot the ref_image
-                plot=ref_image.plot(plot_mode=plot_mode,fig=fig, ax=ax, show=False, title=f"MJD: {current_mjd:.0f}",
+                plot=ref_image.plot(plot_mode=plot_mode,fig=fig, ax=ax, show=False, title=f"Year: {Time(current_mjd,format="mjd").decimalyear:.2f}",
                                levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,
                                 linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,**kwargs)
 
@@ -2111,7 +2111,8 @@ class ImageCube(object):
 
                 #plot timeline
                 if plot_timeline:
-                    plot.plotTimeline(start_mjd,end_mjd,current_mjd,times)
+                    plot.plotTimeline(Time(start_mjd,format="mjd").decimalyear,Time(end_mjd,format="mjd").decimalyear,
+                                      Time(current_mjd,format="mjd").decimalyear,Time(np.array(times),format="mjd").decimalyear)
 
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)
