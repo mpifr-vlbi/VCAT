@@ -14,6 +14,7 @@ from scipy.interpolate import RegularGridInterpolator
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+from astropy.cosmology import FlatLambdaCDM
 from vcat.image_data import ImageData
 from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
                           sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit,fit_width, coreshift_fit)
@@ -25,7 +26,7 @@ from vcat.image_data import ImageData
 from vcat.kinematics import ComponentCollection
 from vcat.stacking_helpers import stack_fits, stack_pol_fits
 from tqdm import tqdm
-from vcat.config import uvw, plot_colors, plot_markers, plot_linestyles
+from vcat.config import uvw, plot_colors, plot_markers, plot_linestyles, H0, Om0
 from vcat.plots.jet_profile_plot import JetProfilePlot
 from joblib import Parallel, delayed
 from astropy import units as u
@@ -1729,6 +1730,8 @@ class ImageCube(object):
         Returns:
 
         """
+
+        cosmo = FlatLambdaCDM(H0=H0, Om0=Om0)
 
         if size==0:
             logger.warning("Component Size set to 0 mas, please define proper 'size' parameter.")
