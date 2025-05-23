@@ -1737,9 +1737,9 @@ class ImageCube(object):
         delta_vars = []
         delta_vars_err = []
         for i in range(len(comp_times)):
-            time=comp_times[i]
-            flux=comp_fluxs[i]
-            flux_err=comp_flux_errs[i]
+            time=np.array(comp_times[i])
+            flux=np.array(comp_fluxs[i])
+            flux_err=np.array(comp_flux_errs[i])
 
             start_year=Time(flare_start).decimalyear
             end_year=Time(flare_end).decimalyear
