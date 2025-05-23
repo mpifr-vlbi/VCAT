@@ -747,8 +747,8 @@ class FitsImage(object):
         self.ax.scatter(current_x, y_pos, color='black', s=100, zorder=3, label=f'Current MJD: {current_mjd}')
 
         # Add labels for min and max MJD
-        self.ax.text(min_x, y_pos*0.85, f'{min_mjd}', color='black', ha='center', fontsize=10)
-        self.ax.text(max_x, y_pos*0.85, f'{max_mjd}', color='black', ha='center', fontsize=10)
+        self.ax.text(min_x, y_pos*0.85, f'{min_mjd:.2f}', color='black', ha='center', fontsize=10)
+        self.ax.text(max_x, y_pos*0.85, f'{max_mjd:.2f}', color='black', ha='center', fontsize=10)
 
         #Add increments for real observations
         for time in times:
