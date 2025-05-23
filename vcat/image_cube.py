@@ -1751,7 +1751,7 @@ class ImageCube(object):
 
             max_ind=np.argmax(filtered_flux)
             min_ind_before=np.argmin(filtered_flux[:max_ind])
-            min_ind_after=np.argmin(filtered_flux[max_ind:])
+            min_ind_after=np.argmin(filtered_flux[max_ind:])+max_ind
 
             if slope=="up":
                 times=filtered_time[min_ind_before:max_ind+1]
@@ -1764,31 +1764,36 @@ class ImageCube(object):
             else:
                 raise Exception(f"Invalid slope parameter '{slope}'.")
 
-            if fit_mode=="lin-log":
-
-                def linear_model(t, k, c):
-                    return k * t + c
-
-                popt, pcov = curve_fit(linear_model, times, np.log(flux), sigma=flux_errs/flux*np.log(flux), absolute_sigma=True)
-                k, c = popt
-                dk, dc = np.sqrt(np.diag(pcov))
-
-            elif fit_mode=="exp":
-                def exponential_model(t, k, c, s0):
-                    return np.exp(k * (t - c)) + s0
-
-                popt, pcov = curve_fit(exponential_model, times, flux, p0=[1, times[0], 0],
-                                       sigma=flux_errs, absolute_sigma=True)
-                k, c, s0 = popt
-                dk, dc, ds0 = np.sqrt(np.diag(pcov))
+            if len(flux)<=1:
+                delta_var=0
+                delta_var_err=0
+                logger.warning("Doppler factor fit did not work, not enough data.")
             else:
-                raise Exception(f"Invalid fit_mode '{fit_mode}'.")
+                if fit_mode=="lin-log":
 
-            delta_var = 15.8 * size * 1.6 * cosmo.luminosity_distance(self.redshift).to(u.Gpc).value / (
-                    abs(1 / k) * (1 + self.redshift))
-            delta_var_err = abs(dk / k * delta_var)
+                    def linear_model(t, k, c):
+                        return k * t + c
 
-            logger.debug(f"Fitted variability Doppler factor of {delta_var:.2f} +/- {delta_var_err:.2f}")
+                    popt, pcov = curve_fit(linear_model, times, np.log(flux), sigma=flux_errs/flux*np.log(flux), absolute_sigma=True)
+                    k, c = popt
+                    dk, dc = np.sqrt(np.diag(pcov))
+
+                elif fit_mode=="exp":
+                    def exponential_model(t, k, c, s0):
+                        return np.exp(k * (t - c)) + s0
+
+                    popt, pcov = curve_fit(exponential_model, times, flux, p0=[1, times[0], 0],
+                                           sigma=flux_errs, absolute_sigma=True)
+                    k, c, s0 = popt
+                    dk, dc, ds0 = np.sqrt(np.diag(pcov))
+                else:
+                    raise Exception(f"Invalid fit_mode '{fit_mode}'.")
+
+                delta_var = 15.8 * size * 1.6 * cosmo.luminosity_distance(self.redshift).to(u.Gpc).value / (
+                        abs(1 / k) * (1 + self.redshift))
+                delta_var_err = abs(dk / k * delta_var)
+
+                logger.debug(f"Fitted variability Doppler factor of {delta_var:.2f} +/- {delta_var_err:.2f}")
 
             delta_vars.append(delta_var)
             delta_vars_err.append(delta_var_err)
