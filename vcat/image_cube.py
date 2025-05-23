@@ -1713,7 +1713,7 @@ class ImageCube(object):
         return plot
 
     def get_component_variability_doppler_factor(self,id="",freq="",flare_start="1900-01-01",flare_end="3000-01-01",
-                                                 fit_mode="lin-log",snr_cut=0,slope="down",size=0):
+                                                 fit_mode="lin-log",plot_fit=True,snr_cut=0,slope="down",size=0):
         """
         Function to calculate the variability doppler factor from modelfit components following Jorstad+05/Jorstad+17.
 
@@ -1753,17 +1753,23 @@ class ImageCube(object):
             filtered_flux_errs = flux_err[inds]
 
             max_ind=np.argmax(filtered_flux)
-            min_ind_before=np.argmin(filtered_flux[:max_ind])
-            min_ind_after=np.argmin(filtered_flux[max_ind:])+max_ind
 
             if slope=="up":
-                times=filtered_time[min_ind_before:max_ind+1]
-                flux=filtered_flux[min_ind_before:max_ind+1]
-                flux_errs = filtered_flux_errs[min_ind_before:max_ind + 1]
+                if len(filtered_flux[:max_ind])==0:
+                    raise Exception("Not enough data to fit.")
+                else:
+                    min_ind_before = np.argmin(filtered_flux[:max_ind])
+                    times=filtered_time[min_ind_before:max_ind+1]
+                    flux=filtered_flux[min_ind_before:max_ind+1]
+                    flux_errs = filtered_flux_errs[min_ind_before:max_ind + 1]
             elif slope=="down":
-                times = filtered_time[max_ind:min_ind_after + 1]
-                flux=filtered_flux[max_ind:min_ind_after+1]
-                flux_errs=filtered_flux_errs[max_ind:min_ind_after+1]
+                if len(filtered_flux[max_ind:])<=1:
+                    raise Exception("Not enough data to fit.")
+                else:
+                    min_ind_after = np.argmin(filtered_flux[max_ind:]) + max_ind
+                    times = filtered_time[max_ind:min_ind_after + 1]
+                    flux=filtered_flux[max_ind:min_ind_after+1]
+                    flux_errs=filtered_flux_errs[max_ind:min_ind_after+1]
             else:
                 raise Exception(f"Invalid slope parameter '{slope}'.")
 
@@ -1781,6 +1787,9 @@ class ImageCube(object):
                     k, c = popt
                     dk, dc = np.sqrt(np.diag(pcov))
 
+                    if plot_fit:
+                        plt.plot(times,np.exp(linear_model(times,*popt)))
+
                 elif fit_mode=="exp":
                     def exponential_model(t, k, c, s0):
                         return np.exp(k * (t - c)) + s0
@@ -1789,6 +1798,9 @@ class ImageCube(object):
                                            sigma=flux_errs, absolute_sigma=True)
                     k, c, s0 = popt
                     dk, dc, ds0 = np.sqrt(np.diag(pcov))
+
+                    if plot_fit:
+                        plt.plot(times,exponential_model(times,*popt))
                 else:
                     raise Exception(f"Invalid fit_mode '{fit_mode}'.")
 
