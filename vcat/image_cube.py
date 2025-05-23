@@ -1712,7 +1712,7 @@ class ImageCube(object):
         return plot
 
     def get_component_variability_doppler_factor(self,id="",freq="",flare_start="1900-01-01",flare_end="3000-01-01",
-                                                 fit_mode="lin-log",snr_cut=1,slope="down",size=0):
+                                                 fit_mode="lin-log",snr_cut=0,slope="down",size=0):
         """
         Function to calculate the variability doppler factor from modelfit components following Jorstad+05/Jorstad+17.
 
@@ -1736,10 +1736,10 @@ class ImageCube(object):
         comp_times, comp_fluxs, comp_flux_errs = self.plot_component_evolution("flux",id=id,freq=freq,show=False,snr_cut=snr_cut)
         delta_vars = []
         delta_vars_err = []
-        for i in range(len(comp_times)):
-            time=np.array(comp_times[i])
-            flux=np.array(comp_fluxs[i])
-            flux_err=np.array(comp_flux_errs[i])
+        for i in range(len(comp_times[0])):
+            time=np.array(comp_times[0][i])
+            flux=np.array(comp_fluxs[0][i])
+            flux_err=np.array(comp_flux_errs[0][i])
 
             start_year=Time(flare_start).decimalyear
             end_year=Time(flare_end).decimalyear
