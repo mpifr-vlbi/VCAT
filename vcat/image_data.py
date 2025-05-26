@@ -2231,7 +2231,6 @@ class ImageData(object):
                     """
 
                     dist=np.sqrt(delta_x**2+delta_y**2)
-                    #TODO check this, something is wrong with the resolution limit!!
                     #calculate opening angle
                     angle=np.arctan((comp_dist-core_dist)/dist)/np.pi*180*2
 

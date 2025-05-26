@@ -1593,7 +1593,7 @@ class ImageCube(object):
 
         return dists, values, value_errs
 
-    def get_average_component(self,id="",freq="",epoch="",weighted=True,filter_unresolved=True,snr_cur=0):
+    def get_average_component(self,id="",freq="",epoch="",weighted=True,filter_unresolved=True,snr_cut=0):
 
         if id=="":
             #do it for all components
@@ -1609,7 +1609,8 @@ class ImageCube(object):
 
         average_comps=[]
         for cc in ccs:
-            average_comps.append(cc.get_average_component(freq=freq,epochs=epoch,weighted=weighted,filter_unresolved=filter_unresolved,snr_cut=snr_cut))
+            average_comps.append(cc.get_average_component(freq=freq,epochs=epoch,weighted=weighted,
+                                                          filter_unresolved=filter_unresolved,snr_cut=snr_cut))
 
         return average_comps
 
@@ -1728,7 +1729,7 @@ class ImageCube(object):
             size (float): Average component size in mas
 
         Returns:
-
+            Variability Doppler Factor, Error
         """
 
         cosmo = FlatLambdaCDM(H0=H0, Om0=Om0)

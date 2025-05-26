@@ -495,7 +495,6 @@ class ComponentCollection():
         data=self.get_model_profile(freq=freq,epochs=epochs,filter_unresolved=filter_unresolved,snr_cut=snr_cut)
 
         if weighted:
-            #TODO include filter_unresolved and snr_cut!!!!!!!!!
             new_x = np.average(data["x"],weights=1/np.array(data["x_err"])**2)
             new_x_err = np.sqrt(1 / np.sum(1/np.array(data["x_err"])**2))
             new_y = np.average(data["y"],weights=1/np.array(data["y_err"])**2)
