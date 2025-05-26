@@ -573,29 +573,33 @@ def get_date(filename):
     """
 
     hdu_list=fits.open(filename)
-    # Plot date
-    time = hdu_list[0].header["DATE-OBS"]
-    time = time.split("T")[0]
-    time = time.split("/")
-    if len(time) == 1:
-        date = time[0]
-    elif len(time) == 3:
-        if len(time[0]) < 2:
-            day = "0" + time[0]
-        else:
-            day = time[0]
-        if len(time[1]) < 2:
-            month = "0" + time[1]
-        else:
-            month = time[1]
-        if len(time[2]) == 2:
-            if 45 < int(time[2]) < 100:
-                year = "19" + time[2]
-            elif int(time[2]) < 46:
-                year = "20" + time[2]
-        elif len(time[2]) == 4:
-            year = time[2]
-        date = year + "-" + month + "-" + day
+    try:
+        # Plot date
+        time = hdu_list[0].header["DATE-OBS"]
+        time = time.split("T")[0]
+        time = time.split("/")
+        if len(time) == 1:
+            date = time[0]
+        elif len(time) == 3:
+            if len(time[0]) < 2:
+                day = "0" + time[0]
+            else:
+                day = time[0]
+            if len(time[1]) < 2:
+                month = "0" + time[1]
+            else:
+                month = time[1]
+            if len(time[2]) == 2:
+                if 45 < int(time[2]) < 100:
+                    year = "19" + time[2]
+                elif int(time[2]) < 46:
+                    year = "20" + time[2]
+            elif len(time[2]) == 4:
+                year = time[2]
+            date = year + "-" + month + "-" + day
+    except:
+        time = hdu_list[0].header["MJD"]
+        date=Time(time,format="mjd").strftime('%Y-%m-%d')
     return date
 
 #needs a mod_file as input an returns the total flux
