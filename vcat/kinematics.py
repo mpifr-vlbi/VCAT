@@ -490,11 +490,12 @@ class ComponentCollection():
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
 
-    def get_average_component(self,freq="",epochs="",weighted=True):
+    def get_average_component(self,freq="",epochs="",weighted=True,filter_unresolved=True,snr_cut=0):
 
-        data=self.get_model_profile(freq=freq,epochs=epochs)
+        data=self.get_model_profile(freq=freq,epochs=epochs,filter_unresolved=filter_unresolved,snr_cut=snr_cut)
 
         if weighted:
+            #TODO include filter_unresolved and snr_cut!!!!!!!!!
             new_x = np.average(data["x"],weights=1/np.array(data["x_err"])**2)
             new_x_err = np.sqrt(1 / np.sum(1/np.array(data["x_err"])**2))
             new_y = np.average(data["y"],weights=1/np.array(data["y_err"])**2)
@@ -516,6 +517,8 @@ class ComponentCollection():
             new_min_err = np.std(data["min"])
             new_flux = np.average(data["flux"])
             new_flux_err = np.std(data["flux"])
+
+
 
         new_lin_pol = np.average(data["lin_pol"])
         new_evpa = np.average(data["evpa"])
