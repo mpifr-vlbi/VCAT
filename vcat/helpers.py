@@ -442,17 +442,16 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
 
     sys.stdout = original_stdout
 
-def write_mod_file_from_casa(file_path,channel="i",export="export.mod"):
+def write_mod_file_from_casa(image_data,channel="i",export="export.mod"):
     """Writes a .mod file from a CASA exported .fits model file.
     Args:
-        file_path: File path to a .fits model file as exported from a CASA .model file (e.g. with exportfits() in CASA)
+        file_path: Image_data object
         channel: Choose the Stokes channel to use (options: "i","q","u","v")
         export: File path where to write the .mod file
     Returns:
         Nothing, but writes a .mod file to export
     """
 
-    image_data=ImageData(file_path)
     if channel=="i":
         clean_map=image_data.Z
     elif channel=="q":
@@ -573,29 +572,33 @@ def get_date(filename):
     """
 
     hdu_list=fits.open(filename)
-    # Plot date
-    time = hdu_list[0].header["DATE-OBS"]
-    time = time.split("T")[0]
-    time = time.split("/")
-    if len(time) == 1:
-        date = time[0]
-    elif len(time) == 3:
-        if len(time[0]) < 2:
-            day = "0" + time[0]
-        else:
-            day = time[0]
-        if len(time[1]) < 2:
-            month = "0" + time[1]
-        else:
-            month = time[1]
-        if len(time[2]) == 2:
-            if 45 < int(time[2]) < 100:
-                year = "19" + time[2]
-            elif int(time[2]) < 46:
-                year = "20" + time[2]
-        elif len(time[2]) == 4:
-            year = time[2]
-        date = year + "-" + month + "-" + day
+    try:
+        # Plot date
+        time = hdu_list[0].header["DATE-OBS"]
+        time = time.split("T")[0]
+        time = time.split("/")
+        if len(time) == 1:
+            date = time[0]
+        elif len(time) == 3:
+            if len(time[0]) < 2:
+                day = "0" + time[0]
+            else:
+                day = time[0]
+            if len(time[1]) < 2:
+                month = "0" + time[1]
+            else:
+                month = time[1]
+            if len(time[2]) == 2:
+                if 45 < int(time[2]) < 100:
+                    year = "19" + time[2]
+                elif int(time[2]) < 46:
+                    year = "20" + time[2]
+            elif len(time[2]) == 4:
+                year = time[2]
+            date = year + "-" + month + "-" + day
+    except:
+        time = hdu_list[0].header["MJD"]
+        date=Time(time,format="mjd").strftime('%Y-%m-%d')
     return date
 
 #needs a mod_file as input an returns the total flux
@@ -970,7 +973,13 @@ def convolve_with_elliptical_gaussian(image, sigma_x, sigma_y, theta):
 
 def get_frequency(filepath):
     with fits.open(filepath) as hdu_list:
-        return float(hdu_list[0].header["CRVAL3"])
+        try:
+            return float(hdu_list[0].header["CRVAL3"])
+        except:
+            try:
+                return float(hdu_list[0].header["FREQ"])
+            except:
+                raise Exception("No frequency defined in FITS header.")
 
 def sort_fits_by_date_and_frequency(fits_files):
     if not isinstance(fits_files,str) or fits_files!="":

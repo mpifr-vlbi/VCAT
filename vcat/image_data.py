@@ -223,7 +223,10 @@ class ImageData(object):
         if stokes_q != "":
             try:
                 q_fits=fits.open(stokes_q)
-                stokes_q = q_fits[0].data[0, 0, :, :]
+                try:
+                    stokes_q = q_fits[0].data[0, 0, :, :]
+                except:
+                    stokes_q = q_fits[0].data
                 q_fits.close()
             except:
                 stokes_q=stokes_q
@@ -233,7 +236,10 @@ class ImageData(object):
         if stokes_u != "":
             try:
                 u_fits=fits.open(stokes_u)
-                stokes_u = u_fits[0].data[0, 0, :, :]
+                try:
+                    stokes_u = u_fits[0].data[0, 0, :, :]
+                except:
+                    stokes_u = u_fits[0].data
                 u_fits.close()
             except:
                 stokes_u = stokes_u
@@ -247,7 +253,14 @@ class ImageData(object):
         self.name = hdu_list[0].header["OBJECT"]
         self.date = get_date(fits_file)
         self.mjd = Time(self.date).mjd
-        self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
+        try:
+            self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
+        except:
+            try:
+                self.freq = float(hdu_list[0].header["FREQ"])
+            except:
+                self.freq = 15000000000
+
 
         #get redshift
         if redshift==0 and query_redshift:
@@ -315,7 +328,10 @@ class ImageData(object):
 
         if not self.no_fits:
             self.image_data = hdu_list[0].data
-            self.Z = self.image_data[0, 0, :, :]
+            try:
+                self.Z = self.image_data[0, 0, :, :]
+            except:
+                self.Z = self.image_data
 
         else:
             try:
@@ -385,6 +401,8 @@ class ImageData(object):
         self.only_stokes_i = False
         if hdu_list[0].data.shape[0] == 1:
             self.only_stokes_i = True
+        elif len(hdu_list[0].data.shape) == 2:
+            self.only_stokes_i = True
         if (np.shape(self.Z) == np.shape(stokes_q) and np.shape(self.Z) == np.shape(stokes_u) and
                         np.shape(stokes_q) == np.shape(stokes_u)):
             self.only_stokes_i = True #in this case override the polarization data with the data that was input to Q and U
@@ -412,7 +430,10 @@ class ImageData(object):
                 else:
                     self.lin_pol=np.zeros(np.shape(self.Z))
                     self.evpa=np.zeros(np.shape(self.Z))
-            self.image_data[0, 0, :, :] = self.Z
+            try:
+                self.image_data[0, 0, :, :] = self.Z
+            except:
+                self.image_data = self.Z
         else:
             #CASA STYLE
             pols=3
@@ -463,14 +484,17 @@ class ImageData(object):
         self.integrated_pol_flux_image = JyPerBeam2Jy(np.sum(self.lin_pol),self.beam_maj,self.beam_min,self.degpp*self.scale)
 
         if not is_casa_model:
-            #TODO basic checks if file is valid
-            self.model=getComponentInfo(self.model_file_path, scale=self.scale)
-            #write .mod file from .fits input
-            os.makedirs(model_save_dir,exist_ok=True)
-            os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
-            if self.model is not None:
-                self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
-                write_mod_file(self.model, self.model_mod_file, freq=self.freq)
+            try:
+                #TODO basic checks if file is valid
+                self.model=getComponentInfo(self.model_file_path, scale=self.scale)
+                #write .mod file from .fits input
+                os.makedirs(model_save_dir,exist_ok=True)
+                os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
+                if self.model is not None:
+                    self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
+                    write_mod_file(self.model, self.model_mod_file, freq=self.freq)
+            except:
+                logger.warning("FITS file does not contain model extension!")
         else:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)
@@ -478,11 +502,11 @@ class ImageData(object):
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
             os.makedirs(model_save_dir + "mod_files_u", exist_ok=True)
             self.stokes_i_mod_file=model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
-            write_mod_file_from_casa(self.file_path,channel="i", export=self.stokes_i_mod_file)    
+            self.write_mod_file_from_casa(channel="i", export=self.stokes_i_mod_file)
             self.stokes_q_mod_file=model_save_dir+"mod_files_q/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
-            write_mod_file_from_casa(self.file_path,channel="q", export=self.stokes_q_mod_file)
+            self.write_mod_file_from_casa(channel="q", export=self.stokes_q_mod_file)
             self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
-            write_mod_file_from_casa(self.file_path,channel="u", export=self.stokes_u_mod_file)
+            self.write_mod_file_from_casa(channel="u", export=self.stokes_u_mod_file)
         try:
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
@@ -662,6 +686,53 @@ class ImageData(object):
             return "".join(output)
         except:
             return "No data loaded yet."
+
+    def write_mod_file_from_casa(self,channel="i",export="export.mod"):
+
+        """Writes a .mod file from a CASA exported .fits model file.
+            Args:
+                file_path: File path to a .fits model file as exported from a CASA .model file (e.g. with exportfits() in CASA)
+                channel: Choose the Stokes channel to use (options: "i","q","u","v")
+                export: File path where to write the .mod file
+            Returns:
+                Nothing, but writes a .mod file to export
+            """
+
+        if channel == "i":
+            clean_map = self.Z
+        elif channel == "q":
+            clean_map = self.stokes_q
+        elif channel == "u":
+            clean_map = self.stokes_u
+        else:
+            raise Exception("Please enter a valid channel (i,q,u)")
+
+        # read out clean components from pixel map
+        delta_x = []
+        delta_y = []
+        flux = []
+        zeros = []
+        for i in range(len(self.X)):
+            for j in range(len(self.Y)):
+                if clean_map[j][i] > 0:
+                    delta_x.append(self.X[i] / self.scale)
+                    delta_y.append(self.Y[j] / self.scale)
+                    flux.append(clean_map[j][i])
+                    zeros.append(0.0)
+
+        # create model_df
+        model_df = pd.DataFrame(
+            {'Flux': flux,
+             'Delta_x': delta_x,
+             'Delta_y': delta_y,
+             'Major_axis': zeros,
+             'Minor_axis': zeros,
+             'PA': zeros,
+             'Typ_obj': zeros
+             })
+
+        # create mod file
+        write_mod_file(model_df, export, self.freq, self.scale)
 
     def get_pixel_value(self,x,y):
         Xind=closest_index(self.X,x)
@@ -2231,7 +2302,6 @@ class ImageData(object):
                     """
 
                     dist=np.sqrt(delta_x**2+delta_y**2)
-                    #TODO check this, something is wrong with the resolution limit!!
                     #calculate opening angle
                     angle=np.arctan((comp_dist-core_dist)/dist)/np.pi*180*2
 
