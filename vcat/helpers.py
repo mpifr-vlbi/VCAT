@@ -442,17 +442,16 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
 
     sys.stdout = original_stdout
 
-def write_mod_file_from_casa(file_path,channel="i",export="export.mod"):
+def write_mod_file_from_casa(image_data,channel="i",export="export.mod"):
     """Writes a .mod file from a CASA exported .fits model file.
     Args:
-        file_path: File path to a .fits model file as exported from a CASA .model file (e.g. with exportfits() in CASA)
+        file_path: Image_data object
         channel: Choose the Stokes channel to use (options: "i","q","u","v")
         export: File path where to write the .mod file
     Returns:
         Nothing, but writes a .mod file to export
     """
 
-    image_data=ImageData(file_path)
     if channel=="i":
         clean_map=image_data.Z
     elif channel=="q":
