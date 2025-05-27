@@ -974,7 +974,13 @@ def convolve_with_elliptical_gaussian(image, sigma_x, sigma_y, theta):
 
 def get_frequency(filepath):
     with fits.open(filepath) as hdu_list:
-        return float(hdu_list[0].header["CRVAL3"])
+        try:
+            return float(hdu_list[0].header["CRVAL3"])
+        except:
+            try:
+                return float(hdu_list[0].header["FREQ"])
+            except:
+                raise Exception("No frequency defined in FITS header.")
 
 def sort_fits_by_date_and_frequency(fits_files):
     if not isinstance(fits_files,str) or fits_files!="":

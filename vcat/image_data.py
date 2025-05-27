@@ -247,7 +247,14 @@ class ImageData(object):
         self.name = hdu_list[0].header["OBJECT"]
         self.date = get_date(fits_file)
         self.mjd = Time(self.date).mjd
-        self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
+        try:
+            self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
+        except:
+            try:
+                self.freq = float(hdu_list[0].header["FREQ"])
+            except:
+                self.freq = 15000000000
+
 
         #get redshift
         if redshift==0 and query_redshift:
