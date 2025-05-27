@@ -223,7 +223,10 @@ class ImageData(object):
         if stokes_q != "":
             try:
                 q_fits=fits.open(stokes_q)
-                stokes_q = q_fits[0].data[0, 0, :, :]
+                try:
+                    stokes_q = q_fits[0].data[0, 0, :, :]
+                except:
+                    stokes_q = q_fits[0].data
                 q_fits.close()
             except:
                 stokes_q=stokes_q
@@ -233,7 +236,10 @@ class ImageData(object):
         if stokes_u != "":
             try:
                 u_fits=fits.open(stokes_u)
-                stokes_u = u_fits[0].data[0, 0, :, :]
+                try:
+                    stokes_u = u_fits[0].data[0, 0, :, :]
+                except:
+                    stokes_u = u_fits[0].data
                 u_fits.close()
             except:
                 stokes_u = stokes_u
