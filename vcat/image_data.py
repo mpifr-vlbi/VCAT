@@ -1911,6 +1911,10 @@ class ImageData(object):
             image_data=self.spix
         elif image=="rm":
             image_data=self.rm
+        elif image=="frac_pol"
+            image_data=self.lin_pol/self.Z
+        else:
+            raise Exception(f"Please specify valid 'image' parameter, image='{image}' not supported.")
 
         intensity_profile=profile_line(image_data, (y_ind1,x_ind1), (y_ind2,x_ind2))
 
