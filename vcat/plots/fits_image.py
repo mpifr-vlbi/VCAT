@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib.collections import LineCollection
+import matplotlib.patheffects as PathEffects
 import matplotlib.colors as colors
 from astropy.io import fits
 from astropy.modeling import models, fitting
@@ -794,9 +795,15 @@ class FitsImage(object):
 
         # plot the evpas
         evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width,zorder=5)
-        if evpa_border_color!="":
-            evpa_border = LineCollection(lines, colors=self.evpa_border_color, linewidths=self.evpa_width+self.evpa_border_width*2,zorder=4)
-            self.ax.add_collection(evpa_border)
+
+        if self.evpa_border_color!="":
+            #evpa_border = LineCollection(lines, colors=self.evpa_border_color, linewidths=self.evpa_width+self.evpa_border_width*2,zorder=4)
+            #self.ax.add_collection(evpa_border)
+            evpa_lines.set_path_effects([
+                PathEffects.Stroke(linewidth=self.evpa_width + self.evpa_border_width, foreground=self.evpa_border_color),  # Border
+                PathEffects.Normal()  # Main line
+            ])
+
         self.ax.add_collection(evpa_lines)
 
 
