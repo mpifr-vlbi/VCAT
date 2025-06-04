@@ -800,7 +800,7 @@ class FitsImage(object):
             #evpa_border = LineCollection(lines, colors=self.evpa_border_color, linewidths=self.evpa_width+self.evpa_border_width*2,zorder=4)
             #self.ax.add_collection(evpa_border)
             evpa_lines.set_path_effects([
-                PathEffects.Stroke(linewidth=self.evpa_width + self.evpa_border_width, foreground=self.evpa_border_color),  # Border
+                PathEffects.Stroke(linewidth=self.evpa_width + self.evpa_border_width*2, foreground=self.evpa_border_color),  # Border
                 PathEffects.Normal()  # Main line
             ])
 
