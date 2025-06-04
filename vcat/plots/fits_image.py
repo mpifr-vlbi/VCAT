@@ -5,9 +5,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib.collections import LineCollection
+import matplotlib.patheffects as PathEffects
 import matplotlib.colors as colors
 from astropy.io import fits
 from astropy.modeling import models, fitting
+from matplotlib.lines import Line2D
 import os
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.time import Time
@@ -109,6 +111,8 @@ class FitsImage(object):
                  plot_evpa=False, #decide whether to plot EVPA or not
                  evpa_width=1.5, #choose width of EVPA lines
                  evpa_len=-1,  # choose length of EVPA in pixels
+                 evpa_border_color="", #choose color of EVPA border
+                 evpa_border_width=0.5, #choose width of EVPA border
                  lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
                  evpa_distance=-1,  # choose distance of EVPA vectors to draw in pixels
                  fractional_evpa_distance=0.02, #if evpa_distance==-1 and evpa_len==-1, this chooses the fractional evpa distance
@@ -177,6 +181,8 @@ class FitsImage(object):
         beam_min = self.clean_image.beam_min
         beam_pa = self.clean_image.beam_pa
         self.evpa_color=evpa_color
+        self.evpa_border_color=evpa_border_color
+        self.evpa_border_width=evpa_border_width
         self.background_color=background_color
         self.noise_method=self.clean_image.noise_method
         self.do_colorbar=do_colorbar
@@ -786,11 +792,23 @@ class FitsImage(object):
                 X0 = float(Xpos - x_evpa[i] / 2.)
                 X1 = float(Xpos + x_evpa[i] / 2.)
                 lines.append(((X0, Y0), (X1, Y1)))
-        lines = tuple(lines)
 
-        # plot the evpas
-        evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width,zorder=5)
-        self.ax.add_collection(evpa_lines)
+                line = Line2D(
+                        [X0,X1],
+                        [Y0,Y1],
+                        color=self.evpa_color,
+                        linewidth=self.evpa_width,
+                        zorder=5,
+                        solid_capstyle="round"
+                        )
+                if self.evpa_border_color!="":
+                    line.set_path_effects([
+                        PathEffects.Stroke(linewidth=self.evpa_width + self.evpa_border_width*2, foreground=self.evpa_border_color),  # Border
+                        PathEffects.Normal()  # Main line
+                    ])
+
+                self.ax.add_line(line)
+
 
     def plotCompCollection(self,cc,freq="",epoch="",color="black",fmt="o",markersize=4,capsize=None,filter_unresolved=False,label="",
                            plot_errorbar=True):
