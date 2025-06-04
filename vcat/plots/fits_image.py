@@ -109,6 +109,8 @@ class FitsImage(object):
                  plot_evpa=False, #decide whether to plot EVPA or not
                  evpa_width=1.5, #choose width of EVPA lines
                  evpa_len=-1,  # choose length of EVPA in pixels
+                 evpa_border_color="", #choose color of EVPA border
+                 evpa_border_width=0.5, #choose width of EVPA border
                  lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
                  evpa_distance=-1,  # choose distance of EVPA vectors to draw in pixels
                  fractional_evpa_distance=0.02, #if evpa_distance==-1 and evpa_len==-1, this chooses the fractional evpa distance
@@ -177,6 +179,8 @@ class FitsImage(object):
         beam_min = self.clean_image.beam_min
         beam_pa = self.clean_image.beam_pa
         self.evpa_color=evpa_color
+        self.evpa_border_color=evpa_border_color
+        self.evpa_border_width=evpa_border_width
         self.background_color=background_color
         self.noise_method=self.clean_image.noise_method
         self.do_colorbar=do_colorbar
@@ -790,7 +794,11 @@ class FitsImage(object):
 
         # plot the evpas
         evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width,zorder=5)
+        if evpa_border_color!="":
+            evpa_border = LineCollection(lines, colors=self.evpa_border_color, linewidths=self.evpa_width+self.evpa_border_width*2,zorder=4)
+            self.ax.add_collection(evpa_border)
         self.ax.add_collection(evpa_lines)
+
 
     def plotCompCollection(self,cc,freq="",epoch="",color="black",fmt="o",markersize=4,capsize=None,filter_unresolved=False,label="",
                            plot_errorbar=True):

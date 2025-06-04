@@ -270,6 +270,8 @@ class MultiFitsImage(object):
                                         evpa_distance=kwargs["evpa_distance"][image_i,image_j],
                                         rotate_evpa=kwargs["rotate_evpa"][image_i,image_j],
                                         evpa_color=kwargs["evpa_color"][image_i,image_j],
+                                        evpa_border_color=kwargs["evpa_border_color"][image_i,image_j],
+                                        evpa_border_width=kwargs["evpa_border_width"][image_i,image_j],
                                         title=kwargs["title"][image_i,image_j],
                                         background_color=kwargs["background_color"][image_i,image_j],
                                         fig=self.fig,
