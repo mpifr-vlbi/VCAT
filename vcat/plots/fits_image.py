@@ -9,6 +9,7 @@ import matplotlib.patheffects as PathEffects
 import matplotlib.colors as colors
 from astropy.io import fits
 from astropy.modeling import models, fitting
+from matplotlib.lines import Line2D
 import os
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.time import Time
@@ -791,20 +792,22 @@ class FitsImage(object):
                 X0 = float(Xpos - x_evpa[i] / 2.)
                 X1 = float(Xpos + x_evpa[i] / 2.)
                 lines.append(((X0, Y0), (X1, Y1)))
-        lines = tuple(lines)
 
-        # plot the evpas
-        evpa_lines = LineCollection(lines, colors=self.evpa_color, linewidths=self.evpa_width,zorder=5)
+                line = Line2D(
+                        [X0,X1],
+                        [Y0,Y1],
+                        color=self.evpa_color,
+                        linewidth=self.evpa_width,
+                        zorder=5,
+                        solid_capstyle="round"
+                        )
+                if self.evpa_border_color!="":
+                    line.set_path_effects([
+                        PathEffects.Stroke(linewidth=self.evpa_width + self.evpa_border_width*2, foreground=self.evpa_border_color),  # Border
+                        PathEffects.Normal()  # Main line
+                    ])
 
-        if self.evpa_border_color!="":
-            #evpa_border = LineCollection(lines, colors=self.evpa_border_color, linewidths=self.evpa_width+self.evpa_border_width*2,zorder=4)
-            #self.ax.add_collection(evpa_border)
-            evpa_lines.set_path_effects([
-                PathEffects.Stroke(linewidth=self.evpa_width + self.evpa_border_width*2, foreground=self.evpa_border_color),  # Border
-                PathEffects.Normal()  # Main line
-            ])
-
-        self.ax.add_collection(evpa_lines)
+                self.ax.add_line(line)
 
 
     def plotCompCollection(self,cc,freq="",epoch="",color="black",fmt="o",markersize=4,capsize=None,filter_unresolved=False,label="",
