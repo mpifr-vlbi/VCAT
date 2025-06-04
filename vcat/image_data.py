@@ -1911,7 +1911,7 @@ class ImageData(object):
             image_data=self.spix
         elif image=="rm":
             image_data=self.rm
-        elif image=="frac_pol"
+        elif image=="frac_pol":
             image_data=self.lin_pol/self.Z
         else:
             raise Exception(f"Please specify valid 'image' parameter, image='{image}' not supported.")
