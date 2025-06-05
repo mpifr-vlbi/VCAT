@@ -153,6 +153,8 @@ class Component():
 
             ### Calculate errors ###
             S_p = self.snr*self.noise
+            if S_p ==0:
+                S_p=0.00001
             sigma_p = self.noise*np.sqrt(1 + self.snr)
             SNR_p = S_p/sigma_p
 

@@ -66,7 +66,7 @@ class KinematicPlot(object):
 
         self.fig.subplots_adjust(left=0.13, top=0.96, right=0.93, bottom=0.2)
 
-    def plot_kinematics(self, component_collection, color,label="", marker=".",plot_errors=True,snr_cut=1):
+    def plot_kinematics(self, component_collection, color,label="", marker=".",plot_errors=False,snr_cut=1):
         years = []
         dists = []
         dist_err = []
@@ -90,7 +90,7 @@ class KinematicPlot(object):
 
         return years,dists,dist_err
 
-    def plot_fluxs(self, component_collection, color, label="",marker=".",plot_errors=True,snr_cut=1):
+    def plot_fluxs(self, component_collection, color, label="",marker=".",plot_errors=False,snr_cut=1):
         years=[]
         fluxs=[]
         fluxs_err=[]
@@ -116,7 +116,7 @@ class KinematicPlot(object):
 
         return years,fluxs,fluxs_err
 
-    def plot_pas(self, component_collection, color, label="",marker="."):
+    def plot_pas(self, component_collection, color, label="",marker=".",snr_cut=1):
         years = []
         pas = []
         if component_collection.length() > 0:
@@ -136,7 +136,7 @@ class KinematicPlot(object):
 
         return years, pas
 
-    def plot_theta(self, component_collection, color, label="", marker=".",plot_errors=True,snr_cut=1):
+    def plot_theta(self, component_collection, color, label="", marker=".",plot_errors=False,snr_cut=1):
         years = []
         thetas = []
         thetas_err = []
@@ -237,7 +237,7 @@ class KinematicPlot(object):
 
         return years,evpas
 
-    def plot_maj(self, component_collection, color, marker=".",label="",plot_errors=True,snr_cut=1):
+    def plot_maj(self, component_collection, color, marker=".",label="",plot_errors=False,snr_cut=1):
         years = []
         majs = []
         majs_err = []
@@ -262,7 +262,7 @@ class KinematicPlot(object):
 
         return years, majs, majs_err
 
-    def plot_min(self, component_collection, color, label="",marker=".",plot_errors=True,snr_cut=1):
+    def plot_min(self, component_collection, color, label="",marker=".",plot_errors=False,snr_cut=1):
         years = []
         mins = []
         mins_err = []

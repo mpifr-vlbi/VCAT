@@ -1817,7 +1817,7 @@ class ImageCube(object):
         return delta_vars, delta_vars_err
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
-                                 evpa_pol_plot=True,plot_errors=True,snr_cut=1,labels=True):
+                                 evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
