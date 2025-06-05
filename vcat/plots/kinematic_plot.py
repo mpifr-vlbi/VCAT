@@ -67,6 +67,9 @@ class KinematicPlot(object):
         self.fig.subplots_adjust(left=0.13, top=0.96, right=0.93, bottom=0.2)
 
     def plot_kinematics(self, component_collection, color,label="", marker=".",plot_errors=True,snr_cut=1):
+        years = []
+        dists = []
+        dist_err = []
         if component_collection.length() > 0:
             years=component_collection.year.flatten()
             dists=component_collection.dist.flatten()
@@ -85,7 +88,7 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Distance from Core [mas]', fontsize=font_size_axis_title)
 
-        years,dists,dist_err
+        return years,dists,dist_err
 
     def plot_fluxs(self, component_collection, color, label="",marker=".",plot_errors=True,snr_cut=1):
         years=[]
