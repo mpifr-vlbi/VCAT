@@ -1617,7 +1617,7 @@ class ImageCube(object):
         return average_comps
 
     def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0=False,s=100,
-                                plot_data=True,plot_fit=True,fit_r0=True,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker="o",core_position=[0,0]):
+                                plot_data=True,plot_fit=True,fit_r0=True,shift_r=0,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker="o",core_position=[0,0]):
         """
         Function to fit a collimation profile to the jet/counterjet
 
@@ -1630,6 +1630,7 @@ class ImageCube(object):
             plot_data (bool): Choose whether to plot the fitted data
             plot_fit (bool): Choose whether to plot the fit
             fit_r0 (bool): Choose whether to include (r+r0) in fit or just r
+            shift_r (float): Shift plot by given radius in mas.
             plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
             show (bool): Choose whether to show the plot
             filter_unresolved (bool): Choose whether to filter out unresolved components
@@ -1684,7 +1685,7 @@ class ImageCube(object):
                 fit_fail_counterjet=True
 
         if plot=="":
-            plot=JetProfilePlot(jet=jet,redshift=self.redshift)
+            plot=JetProfilePlot(jet=jet,redshift=self.redshift,shift_r=shift_r)
         else:
             try:
                 if plot.jet != jet:

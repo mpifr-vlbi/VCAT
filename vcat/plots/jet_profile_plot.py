@@ -21,11 +21,12 @@ class JetProfilePlot(object):
 
     def __init__(self,jet="Jet",fig_size="aanda*",xlabel="Distance from core [mas]",ylabel="De-convolved width [mas]",
                  xscale="log",yscale="log",secxax=r"Apparent distance from core [pc]",
-                 secyax=r'De-convolved width [pc]',xlim=None,ylim=None,redshift=0):
+                 secyax=r'De-convolved width [pc]',xlim=None,ylim=None,shift_r=0,redshift=0):
 
         super().__init__()
 
         self.jet=jet
+        self.shift_r=shift_r
 
         if jet=="Jet" or jet=="CJet":
             figsize = (set_figsize(fig_size, subplots=(1, 1)))
@@ -77,12 +78,12 @@ class JetProfilePlot(object):
             logger.debug("Plotting twin jet.")
             #this means dist, width and width_err need to be 2d-lists
             #plot jet
-            self.axes[0].errorbar(dist[0], width[0], yerr=width_err[0], fmt=marker, color=color, errorevery=1, label=label)
+            self.axes[0].errorbar(np.array(dist[0])-self.shift_r, width[0], yerr=width_err[0], fmt=marker, color=color, errorevery=1, label=label)
             #plot counterjet
-            self.axes[1].errorbar(dist[1], width[1], yerr=width_err[1], fmt=marker, color=color,errorevery=1, label=label)
+            self.axes[1].errorbar(np.array(dist[1])-self.shift_r, width[1], yerr=width_err[1], fmt=marker, color=color,errorevery=1, label=label)
         else:
             logger.debug("Plotting only one jet.")
-            self.axes[0].errorbar(dist, width, yerr=width_err, fmt=marker, color=color, errorevery=1, label=label)
+            self.axes[0].errorbar(np.array(dist)-self.shift_r, width, yerr=width_err, fmt=marker, color=color, errorevery=1, label=label)
 
     def plot_fit(self, x, fitfunc, beta, betaerr, chi2, jet="Jet",color="k",annotate=False,asize=8,annox=0.6,annoy=0.05,lw=1,ls="-",label=None,fit_r0=True,s=100):
 
@@ -122,9 +123,9 @@ class JetProfilePlot(object):
                     label, beta[0], betaerr[0], beta[1], betaerr[1], beta[2], betaerr[2], beta[3], betaerr[3],beta[4],betaerr[4])
 
         if label:
-            ax.plot(x, function, color=color, lw=lw, ls=ls, label=label, zorder=1)
+            ax.plot(np.array(x)-self.shift_r, function, color=color, lw=lw, ls=ls, label=label, zorder=1)
         else:
-            ax.plot(x, function, color=color, lw=lw, ls=ls, zorder=1)
+            ax.plot(np.array(x)-self.shift_r, function, color=color, lw=lw, ls=ls, zorder=1)
         if annotate:
             ax.annotate(text, xy=(annox, annoy), xycoords='axes fraction', size=asize,
                         horizontalalignment='left', verticalalignment='bottom', bbox=bbox_props)
