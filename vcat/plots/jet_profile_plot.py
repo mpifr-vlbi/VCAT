@@ -4,6 +4,7 @@ from vcat.helpers import set_figsize, scatter, mas2pc
 from vcat.config import logger,font
 from vcat.fit_functions import powerlaw, broken_powerlaw, powerlaw_withr0, broken_powerlaw_withr0
 from functools import partial
+import numpy as np
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
