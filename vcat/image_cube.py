@@ -567,6 +567,8 @@ class ImageCube(object):
             "shared_colorbar_label": "",  # choose custom colorbar label
             "shared_colorbar_labelsize" : 10,  # choose labelsize of custom colorbar
             "plot_evpa": False,
+            "evpa_border_color": "",
+            "evpa_border_width": 0.5,
             "evpa_width": 1.5,
             "evpa_len": -1,
             "lin_pol_sigma_cut": 3,
