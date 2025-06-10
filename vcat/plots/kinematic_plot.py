@@ -66,14 +66,16 @@ class KinematicPlot(object):
 
         self.fig.subplots_adjust(left=0.13, top=0.96, right=0.93, bottom=0.2)
 
-    def plot_kinematics(self, component_collection, color,label="", marker=".",plot_errors=False,snr_cut=1):
+    def plot_kinematics(self, component_collection, color,label="", marker=".",plot_errors=False,snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         dists = []
         dist_err = []
+
         if component_collection.length() > 0:
             years=component_collection.year.flatten()
             dists=component_collection.dist.flatten()
             dist_err=component_collection.dist_err.flatten()
+            evpas=component_collection.evpas.flatten()
 
             snrs=component_collection.snrs.flatten()
 
@@ -85,20 +87,34 @@ class KinematicPlot(object):
                 self.ax.errorbar(years,dists,yerr=dist_err,c=color,fmt=marker,label=label)
             else:
                 self.ax.scatter(years, dists, c=color, marker=marker,label=label)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = dists[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Distance from Core [mas]', fontsize=font_size_axis_title)
 
         return years,dists,dist_err
 
-    def plot_fluxs(self, component_collection, color, label="",marker=".",plot_errors=False,snr_cut=1):
+    def plot_fluxs(self, component_collection, color, label="",marker=".",plot_errors=False,snr_cut=1,plot_evpa=False,evpa_len=200):
         years=[]
         fluxs=[]
         fluxs_err=[]
+
         if component_collection.length() > 0:
 
             years = component_collection.year.flatten()
             fluxs = component_collection.fluxs.flatten()
             fluxs_err = component_collection.fluxs_err.flatten()
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -111,18 +127,31 @@ class KinematicPlot(object):
             else:
                 self.ax.plot(years,fluxs, c=color,
                             label=label, marker=marker)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = fluxs[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Flux Density [Jy]', fontsize=font_size_axis_title)
 
         return years,fluxs,fluxs_err
 
-    def plot_pas(self, component_collection, color, label="",marker=".",snr_cut=1):
+    def plot_pas(self, component_collection, color, label="",marker=".",snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         pas = []
+
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             pas = component_collection.posas.flatten()
-
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -131,12 +160,24 @@ class KinematicPlot(object):
 
             self.ax.plot(years,pas, c=color,
                          label=label, marker=marker)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = pas[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle [deg]', fontsize=font_size_axis_title)
 
         return years, pas
 
-    def plot_theta(self, component_collection, color, label="", marker=".",plot_errors=False,snr_cut=1):
+    def plot_theta(self, component_collection, color, label="", marker=".",plot_errors=False,snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         thetas = []
         thetas_err = []
@@ -144,6 +185,7 @@ class KinematicPlot(object):
             years = component_collection.year.flatten()
             thetas = component_collection.thetas.flatten()
             thetas_err = component_collection.thetas_err.flatten()
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -157,17 +199,30 @@ class KinematicPlot(object):
                 self.ax.plot(years,thetas, c=color,
                              label=label,
                              marker=marker)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = thetas[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Position Angle of the Component Position [°]', fontsize=font_size_axis_title)
 
         return years, thetas, thetas_err
 
-    def plot_linpol(self, component_collection, color,label="", marker=".",snr_cut=1):
+    def plot_linpol(self, component_collection, color,label="", marker=".",snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         lin_pols = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             lin_pols = component_collection.lin_pols.flatten()
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -177,18 +232,31 @@ class KinematicPlot(object):
             self.ax.plot(years,lin_pols, c=color,
                          label=label,
                          marker=marker)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = lin_pols[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Linearly Polarized Flux Density [Jy]', fontsize=font_size_axis_title)
 
         return years, lin_pols
 
-    def plot_fracpol(self, component_collection, color, marker=".",label="",snr_cut=1):
+    def plot_fracpol(self, component_collection, color, marker=".",label="",snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         frac_pols = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             lin_pols = component_collection.lin_pols.flatten()
             fluxs = component_collection.fluxs.flatten()
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -200,6 +268,18 @@ class KinematicPlot(object):
             self.ax.plot(years,
                          frac_pols,
                          c=color, label=label, marker=marker)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = frac_pols[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Fractional Polarized Flux Density [%]', fontsize=font_size_axis_title)
 
@@ -215,7 +295,6 @@ class KinematicPlot(object):
         evpas = evpas[snrs >= snr_cut]
 
         if self.pol_plot:
-
 
             plot_evpas = 2 * np.array(wrap_evpas(evpas)) / 180 * np.pi  # we will plot two times EVPA
 
@@ -237,7 +316,7 @@ class KinematicPlot(object):
 
         return years,evpas
 
-    def plot_maj(self, component_collection, color, marker=".",label="",plot_errors=False,snr_cut=1):
+    def plot_maj(self, component_collection, color, marker=".",label="",plot_errors=False,snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         majs = []
         majs_err = []
@@ -245,6 +324,7 @@ class KinematicPlot(object):
             years = component_collection.year.flatten()
             majs = component_collection.majs.flatten()
             majs_err = component_collection.majs_err.flatten()
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -257,12 +337,24 @@ class KinematicPlot(object):
             else:
                 self.ax.plot(year,majs, c=color,label=label,
                             marker=marker)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = majs[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Major Axis [deg]', fontsize=font_size_axis_title)
 
         return years, majs, majs_err
 
-    def plot_min(self, component_collection, color, label="",marker=".",plot_errors=False,snr_cut=1):
+    def plot_min(self, component_collection, color, label="",marker=".",plot_errors=False,snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         mins = []
         mins_err = []
@@ -271,6 +363,7 @@ class KinematicPlot(object):
             years = component_collection.year.flatten()
             mins = component_collection.mins.flatten()
             mins_err = component_collection.mins_err.flatten()
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -283,18 +376,31 @@ class KinematicPlot(object):
             else:
                 self.ax.plot(component_collection.year, component_collection.mins, c=color,label=label,
                              marker=marker)
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = mins[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
+
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('EVPA [deg]', fontsize=font_size_axis_title)
 
         return years,mins,mins_err
 
-    def plot_tbs(self, component_collection, color, label="",marker=".",snr_cut=1):
+    def plot_tbs(self, component_collection, color, label="",marker=".",snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         tbs = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             tbs_lower_limit = component_collection.tbs_lower_limit.flatten()
             tbs = component_collection.tbs.flatten()
+            evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
 
@@ -309,6 +415,17 @@ class KinematicPlot(object):
                          marker=marker)
             self.ax.scatter(np.array(years)[lower_limit_inds],
                             np.array(tbs)[lower_limit_inds], c=color, marker="^")
+
+            if plot_evpa:
+                for i in range(len(years)):
+                    year = years[i]
+                    val = tbs[i]
+                    evpa = evpas[i]
+
+                    # make a markerstyle class instance and modify its transform prop
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa)
+                    self.ax.scatter(year, val, marker=t, s=evpa_len, c=color)
 
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)

@@ -524,6 +524,8 @@ class ImageCube(object):
             elif (value=="flux+evpa" or value=="linpol+evpa" or value=="lin_pol+evpa" or value=="fracpol+evpa" or value=="frac_pol+evpa"):
                 plot.plotEvolutionWithEVPA(np.array(mjds),np.array(values),np.array(evpas),c=colors[i%len(colors)],marker=markers[i%len(markers)],
                                            label=label,linestyle=linestyles[i%len(linestyles)],evpa_len=evpa_len[i%len(evpa_len)])
+
+                plt.ylabel(ylabel)
             else:
                 plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
                                label=label,linestyle=linestyles[i % len(linestyles)])
@@ -1837,7 +1839,7 @@ class ImageCube(object):
         return delta_vars, delta_vars_err
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
-                                 evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True):
+                                 evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True,evpa_len=200):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1906,6 +1908,14 @@ class ImageCube(object):
                     yerrs.append(yerr)
                 elif value=="fracpol" or value=="frac_pol":
                     x,y=plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                elif value=="flux+evpa":
+                    x, y, yerr = plot.plot_fluxs(cc, color=color, marker=marker, plot_errors=plot_errors, label=label,
+                                                 snr_cut=snr_cut,plot_evpa=True,evpa_len=evpa_len)
+                    yerrs.append(yerr)
+                elif value=="linpol+evpa" or "lin_pol+evpa":
+                    x, y = plot.plot_linpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                elif value=="fracpol+evpa" or "frac_pol+evpa":
+                    x, y = plot.plot_fracpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
                 else:
                     raise Exception(f"Not possible to plot '{value}' for component!")
                 xvalues.append(x)
