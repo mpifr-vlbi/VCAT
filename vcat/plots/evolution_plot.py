@@ -6,11 +6,13 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib.collections import LineCollection
 import matplotlib.colors as colors
+import matplotlib.markers as markers
 from astropy.io import fits
 from astropy.modeling import models, fitting
 import os
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.time import Time
+from matplotlib.lines import Line2D
 import sys
 import pexpect
 from datetime import datetime
@@ -21,6 +23,7 @@ import vcat.fit_functions as ff
 from vcat.kinematics import Component
 from vcat.config import logger, font
 from scipy.interpolate import interp1d
+
 
 #optimized draw on Agg backend
 mpl.rcParams['path.simplify'] = True
@@ -67,6 +70,22 @@ class EvolutionPlot(object):
 
     def plotEvolution(self,mjds,value,c="black",marker=".",label="",linestyle="none"):
         self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
+
+    def plotEvolutionWithEVPA(self,mjds,value,evpas,c="black",marker=".",label="",linestyle="none",evpa_len=200,evpa_color=""):
+        self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
+
+        for i in range(len(mjds)):
+            mjd=mjds[i]
+            val=value[i]
+            evpa=evpas[i]
+
+            # make a markerstyle class instance and modify its transform prop
+            t = markers.MarkerStyle(marker="|")
+            t._transform = t.get_transform().rotate_deg(evpa)
+            if evpa_color=="":
+                evpa_color=c
+            plt.scatter(mjd, val, marker=t, s=evpa_len,c=evpa_color)
+
 
     def plotEVPAevolution(self,mjds,evpas,c="black",marker=".",label="",linestyle="-"):
 

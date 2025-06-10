@@ -459,7 +459,8 @@ class ImageCube(object):
                        colors=plot_colors, #default colors
                        markers=plot_markers, #default markers
                        linestyles=plot_linestyles,
-                       evpa_pol_plot=True):
+                       evpa_pol_plot=True,
+                       evpa_len=[200]):
 
         #TODO also make ridgeline plot over several epochs possible
         if freq == "":
@@ -477,6 +478,7 @@ class ImageCube(object):
         for i,f in enumerate(freq):
             values = []
             mjds = []
+            evpas = []
             ind_f=closest_index(freq,f)
             for image in self.images[:,ind_f].flatten():
                 mjds.append(image.mjd)
@@ -487,7 +489,7 @@ class ImageCube(object):
                     values.append(image.integrated_pol_flux_clean)
                     ylabel = "Linear Polarized Flux [Jy/beam]"
                 elif value=="frac_pol" or value=="fracpol":
-                    values.append(image.frac_pol*100)
+                    values.append(image.integrated_pol_flux_clean/image.integrated_flux_clean*100)
                     ylabel = "Fractional Polarization [%]"
                 elif value=="evpa" or value=="evpa_average":
                     values.append(image.evpa_average/np.pi*180)
@@ -498,6 +500,18 @@ class ImageCube(object):
                 elif value=="pol_noise" or value=="polnoise":
                     values.append(image.pol_noise)
                     ylabel = "Polarization Noise [Jy/beam]"
+                elif value=="flux+evpa":
+                    values.append(image.integrated_flux_clean)
+                    evpas.append(image.evpa_average)
+                    ylabel = "Flux Density [Jy/beam]"
+                elif value=="linpol+evpa" or "lin_pol+evpa":
+                    value.append(image.integrated_pol_flux_clean)
+                    evpas.append(image.evpa_average)
+                    ylabel = "Linear Polarized Flux [Jy/beam]"
+                elif value=="fracpol+evpa" or "frac_pol+evpa":
+                    value.append(image.integrated_pol_flux_clean/image.integrated_flux_clean*100)
+                    evpas.append(image.evpa_average)
+                    ylabel = "Fractional Polarization [%]"
                 else:
                     raise Exception("Please specify valid plot mode")
 
@@ -507,6 +521,9 @@ class ImageCube(object):
             if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
                 plot.plotEVPAevolution(np.array(mjds),np.array(values),c=colors[i%len(colors)],marker=markers[i%len(markers)],
                                        label=label,linestyle=linestyles[i%len(linestyles)])
+            elif (value=="flux+evpa" or value=="linpol+evpa" or value=="lin_pol+evpa" or value=="fracpol+evpa" or value=="frac_pol+evpa"):
+                plot.plotEvolutionWithEVPA(np.array(mjds),np.array(values),np.array(evpas),c=colors[i%len(colors)],marker=markers[i%len(markers)],
+                                           label=label,linestyle=linestyles[i%len(linestyles)],evpa_len=evpa_len[i%len(evpa_len)])
             else:
                 plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
                                label=label,linestyle=linestyles[i % len(linestyles)])
