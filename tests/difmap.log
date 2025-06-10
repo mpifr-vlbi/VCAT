@@ -1,10 +1,10 @@
-! Started logfile: difmap.log on Tue May 20 16:27:59 2025
+! Started logfile: difmap.log on Tue Jun 10 17:14:44 2025
 ! Starting new interactive shell. Use the EOF character to exit.
 ! Obeying initialization file: 
-obs tmp/mod_files_clean/0506+056_2010-07-12_15GHz.uvf
-! Reading UV FITS file: tmp/mod_files_clean/0506+056_2010-07-12_15GHz.uvf
-! AN table 1: 219 integrations on 36 of 36 possible baselines.
-! Apparent sampling: 0.797818 visibilities/baseline/integration-bin.
+observe ../dataset_example/0506+056_kinematic/0506+056.u.2010_11_13.uvf
+! Reading UV FITS file: ../dataset_example/0506+056_kinematic/0506+056.u.2010_11_13.uvf
+! AN table 1: 215 integrations on 45 of 45 possible baselines.
+! Apparent sampling: 0.79969 visibilities/baseline/integration-bin.
 ! Found source: 0506+056
 ! 
 ! There are 8 IFs, and a total of 8 channels:
@@ -23,9 +23,60 @@ obs tmp/mod_files_clean/0506+056_2010-07-12_15GHz.uvf
 ! 
 ! Polarization(s): RR LL RL LR
 ! 
-! Read 1503 lines of history.
+! Read 1725 lines of history.
 ! 
-! Reading 201280 visibilities.
+! Reading 247584 visibilities.
+select I
+! Selecting polarization: I,  channels: 1..8
+! Reading IF 1 channels: 1..1
+! Reading IF 2 channels: 2..2
+! Reading IF 3 channels: 3..3
+! Reading IF 4 channels: 4..4
+! Reading IF 5 channels: 5..5
+! Reading IF 6 channels: 6..6
+! Reading IF 7 channels: 7..7
+! Reading IF 8 channels: 8..8
+uvw 0,-1
+! Uniform weighting is not currently selected.
+! Gridding weights will be scaled by errors raised to the power -1.
+! Radial weighting is not currently selected.
+rmod tmp/mod_files_model/0506+056_2010-11-13_15GHz.mod
+! A total of 4 model components were read from file tmp/mod_files_model/0506+056_2010-11-13_15GHz.mod
+selfcal
+! Performing phase self-cal
+! Adding 4 model components to the UV plane model.
+! The established model now contains 4 components and 0.369289 Jy
 ! 
-! Terminated interactive shell.
-! Log file difmap.log closed on Tue May 20 16:27:59 2025
+! Correcting IF 1.
+!  A total of 250 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 2.
+!  A total of 242 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 3.
+!  A total of 250 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 4.
+!  A total of 244 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 5.
+!  A total of 240 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 6.
+!  A total of 241 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 7.
+!  A total of 241 telescope corrections were flagged in sub-array 1.
+! 
+! Correcting IF 8.
+!  A total of 241 telescope corrections were flagged in sub-array 1.
+! 
+! Fit before self-cal, rms=0.066123Jy  sigma=1.046778
+! Fit after  self-cal, rms=0.065436Jy  sigma=1.022576
+mapsize 2048,0.05,2048,0.05
+! Map grid = 2048x2048 pixels with 0.0500x0.0500 milli-arcsec cellsize.
+wdmap tmp/resmap_model.fits
+! Inverting map and beam 
+! Estimated beam: bmin=0.6015 mas, bmaj=1.321 mas, bpa=-5.869 degrees
+! Estimated noise=0.156849 mJy/beam.
+! Writing dirty map to FITS file: tmp/resmap_model.fits

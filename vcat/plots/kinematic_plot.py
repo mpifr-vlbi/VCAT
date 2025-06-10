@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib.collections import LineCollection
+import matplotlib.markers as markers
 import matplotlib.colors as colors
 from astropy.io import fits
 from astropy.modeling import models, fitting
