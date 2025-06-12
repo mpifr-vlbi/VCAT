@@ -510,7 +510,8 @@ class FitsImage(object):
             self.ax.invert_xaxis()
             self.ax.set_xlabel('Relative R.A. [' + unit + ']',fontsize=font_size_axis_title)
             self.ax.set_ylabel('Relative DEC. [' + unit + ']',fontsize=font_size_axis_title)
-        self.fig.tight_layout()
+
+        #self.fig.tight_layout()
 
 
     def plotColormap(self,

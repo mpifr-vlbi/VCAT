@@ -39,11 +39,16 @@ font_size_axis_tick=12
 
 
 class EvolutionPlot(object):
-    def __init__(self,xlabel="",ylabel="",font_size_axis_title=10,pol_plot=False):
+    def __init__(self,xlabel="",ylabel="",font_size_axis_title=10,pol_plot=False,fig="",ax=""):
 
         super().__init__()
         if pol_plot:
-            self.fig, self.ax = plt.subplots(subplot_kw={'projection': 'polar'})
+
+            if fig=="" or ax=="":
+                self.fig, self.ax = plt.subplots(subplot_kw={'projection': 'polar'})
+            else:
+                self.fig=fig
+                self.ax=ax
 
             #Set 0° to top
             self.ax.set_theta_zero_location("N")
@@ -63,7 +68,11 @@ class EvolutionPlot(object):
             self.ax.set_xticks(np.deg2rad(tick_angles_deg))
             self.ax.set_xticklabels(tick_labels)
         else:
-            self.fig, self.ax = plt.subplots(1, 1)
+            if fig == "" or ax == "":
+                self.fig, self.ax = plt.subplots(1, 1)
+            else:
+                self.fig=fig
+                self.ax=ax
             self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)
             self.ax.set_ylabel(ylabel, fontsize=font_size_axis_title)
         self.fig.subplots_adjust(left=0.13,top=0.96,right=0.93,bottom=0.2)

@@ -1839,7 +1839,7 @@ class ImageCube(object):
         return delta_vars, delta_vars_err
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
-                                 evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True,plot_evpa=False,evpa_len=200):
+                                 evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True,plot_evpa=False,evpa_len=200,fig="",ax=""):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1861,7 +1861,7 @@ class ImageCube(object):
         for fr in freq:
             # One plot per frequency with all components
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
-                plot=KinematicPlot(pol_plot=True)
+                plot=KinematicPlot(pol_plot=True,fig=fig,ax=ax)
             else:
                 plot = KinematicPlot()
             years = []
@@ -1884,28 +1884,28 @@ class ImageCube(object):
 
                 if value=="flux":
                     x,y,yerr=plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,
-                                             snr_cut=snr_cut,plot_evpa=False,evpa_len=200)
+                                             snr_cut=snr_cut,plot_evpa=plot_evpa,evpa_len=200)
                     yerrs.append(yerr)
                 elif value=="tb":
-                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=200)
+                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=200)
                 elif value=="dist":
                     x,y,yerr=plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
-                                                  label=label,plot_evpa=False,evpa_len=200)
+                                                  label=label,plot_evpa=plot_evpa,evpa_len=200)
                     yerrs.append(yerr)
                 elif value=="pos" or value=="PA":
-                    x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=200)
+                    x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=200)
                 elif value=="lin_pol" or value=="linpol":
-                    x,y=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=200)
+                    x,y=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=200)
                 elif value=="evpa" or value=="EVPA":
                     x,y=plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
                     years=np.concatenate((years,cc.year.flatten()))
                 elif value=="maj":
                     x,y,yerr=plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
-                                           label=label,plot_evpa=False,evpa_len=200)
+                                           label=label,plot_evpa=plot_evpa,evpa_len=200)
                     yerrs.append(yerr)
                 elif value=="min":
                     x,y,yerr=plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label,
-                                           plot_evpa=False,evpa_len=200)
+                                           plot_evpa=plot_evpa,evpa_len=200)
                     yerrs.append(yerr)
                 elif value=="theta":
                     x,y,yerr=plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label,
