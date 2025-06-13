@@ -505,11 +505,11 @@ class ImageCube(object):
                     evpas.append(image.evpa_average)
                     ylabel = "Flux Density [Jy/beam]"
                 elif value=="linpol+evpa" or "lin_pol+evpa":
-                    value.append(image.integrated_pol_flux_clean)
+                    values.append(image.integrated_pol_flux_clean)
                     evpas.append(image.evpa_average)
                     ylabel = "Linear Polarized Flux [Jy/beam]"
                 elif value=="fracpol+evpa" or "frac_pol+evpa":
-                    value.append(image.integrated_pol_flux_clean/image.integrated_flux_clean*100)
+                    values.append(image.integrated_pol_flux_clean/image.integrated_flux_clean*100)
                     evpas.append(image.evpa_average)
                     ylabel = "Fractional Polarization [%]"
                 else:
