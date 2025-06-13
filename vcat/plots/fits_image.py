@@ -775,7 +775,7 @@ class FitsImage(object):
 
         # create mask where to plot EVPA (only where stokes i and lin pol have plotted contours)
         mask = np.zeros(np.shape(stokes_i), dtype=bool)
-        mask[:] = (self.lin_pol > self.levs1_linpol[0]) * (stokes_i > self.levs1[0])
+        mask[:] = (self.lin_pol > self.clean_image.pol_noise*self.lin_pol_sigma_cut) * (stokes_i > self.clean_image.noise*self.stokes_i_sigma_cut_sigma_cut)
         YLoc, XLoc = np.where(mask)
 
         y_evpa = evpa_len * np.cos(evpa[mask])
