@@ -562,7 +562,7 @@ class ImageData(object):
                 #calculate component SNR
                 if self.uvf_file!="" and self.difmap_path!="":
                     S_p, rms = get_comp_peak_rms(comp["Delta_x"]*self.scale,comp["Delta_y"]*self.scale,
-                                                 self.fits_file,self.uvf_file,self.model_mod_file,
+                                                 self.fits_file,self.uvf_file,self.model_mod_file,self.stokes_i_mod_file,
                                                  weighting=uvw, difmap_path=self.difmap_path)
                     comp_snr = S_p/rms
                 else:
@@ -2338,6 +2338,22 @@ class ImageData(object):
                     #set lin_pol and evpa of component
                     self.components[j].lin_pol = lin_pol
                     self.components[j].evpa = evpa
+
+                    #get component error in lin pol and evpa
+                    S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
+                                                self.fits_file, self.uvf_file, "tmp/model_q.mod",
+                                                self.stokes_i_mod_file,channel="q",
+                                                weighting=uvw, difmap_path=self.difmap_path)
+                    comp_snr_q = S_p / rms
+
+                    # get component error in lin pol and evpa
+                    S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
+                                                 self.fits_file, self.uvf_file, "tmp/model_u.mod",
+                                                 self.stokes_i_mod_file, channel="u",
+                                                 weighting=uvw, difmap_path=self.difmap_path)
+                    comp_snr_u = S_p / rms
+
+
 
     def fit_collimation_profile(self,method="model",jet="Jet",fit_type='brokenPowerlaw',x0=False,s=100,
                                 plot_data=True,plot_fit=True,fit_r0=True,shift_r=0,plot="",show=False,label="",color=plot_colors[0],marker=plot_markers[0]):

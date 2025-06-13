@@ -1944,7 +1944,7 @@ class ImageCube(object):
         return xs,ys,yer
 
     def plot_components(self,id="",freq="",epoch="",show=False,xlim=[10,-10],ylim=[-10,10],colors="",fmts=[""],markersize=4,labels=[""],
-                        filter_unresolved=False,snr_cut=1,capsize=None,plot_errorbar=True):
+                        filter_unresolved=False,snr_cut=1,capsize=None,plot_errorbar=True,fig="",ax=""):
         if id=="":
             #do it for all components
             ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
@@ -1958,7 +1958,7 @@ class ImageCube(object):
         if colors=="":
             colors=plot_colors
 
-        plot=ModelImagePlot(xlim=xlim,ylim=ylim)
+        plot=ModelImagePlot(xlim=xlim,ylim=ylim,fig=fig,ax=ax)
 
         for i,cc in enumerate(ccs):
             color=colors[i % len(colors)]
