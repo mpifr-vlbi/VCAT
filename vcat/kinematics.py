@@ -227,7 +227,7 @@ class Component():
             self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/self.scale    # in deg
             self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22.
                 # this assumes that the beam is ~ 2 times more elongated in North-South direction. TODO: generalize this.
-            self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (0.05*self.flux**2))    # in Jy, assumes 5 % gain error added in quadrature
+            self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (self.gain_err*self.flux**2))    # in Jy, assumes gain error added in quadrature
 
             self.maj_err = 6.5*Tb_obs**(-0.25)/self.scale    # in deg
             self.min_err = 6.5*Tb_obs**(-0.25)/self.scale    # in deg

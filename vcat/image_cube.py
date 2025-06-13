@@ -1996,7 +1996,7 @@ class ImageCube(object):
         if show:
             plot.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors,markers=plot_markers,snr_cut=1):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, plot_errors=False, plot_evpa=False, evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -2030,7 +2030,8 @@ class ImageCube(object):
                     mark_ind = ind % len(markers)
                     marker=markers[mark_ind]
 
-                    plot.plot_kinematics(cc,color=color,label=cc.name,marker=marker,snr_cut=snr_cut)
+                    plot.plot_kinematics(cc,color=color,label=cc.name,marker=marker,plot_errors=plot_errors,plot_evpa=plot_evpa,
+                                         evpa_len=evpa_len,snr_cut=snr_cut)
                     plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
                                          f["linear_fit"],color=color,t_mid=f["t_mid"])
 
@@ -2042,7 +2043,8 @@ class ImageCube(object):
 
         return fits
 
-    def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,colors=plot_colors,markers=plot_markers,snr_cut=1):
+    def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,plot_errors=False,plot_evpa=False,
+                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1):
 
         if freq == "":
             freq = self.freqs
@@ -2084,7 +2086,8 @@ class ImageCube(object):
                                              fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
                                                color=color,label=cc.name,t_mid=fit_x[0]["t_mid"])
                 else:
-                    plot.plot_kinematics(cc,color=color,marker=marker,label=cc.name,snr_cut=snr_cut)
+                    plot.plot_kinematics(cc,color=color,marker=marker,label=cc.name,snr_cut=snr_cut,plot_errors=plot_errors,plot_evpa=plot_evpa,
+                                         evpa_len=evpa_len)
                     plot.plot_kinematic_2d_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
                                              fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
                                                color=color,t_mid=fit_x[0]["t_mid"])
