@@ -1898,9 +1898,11 @@ class ImageCube(object):
                 elif value=="lin_pol" or value=="linpol":
                     x,y,yerr=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_errors=plot_errors,
                                               plot_evpa=plot_evpa,evpa_len=evpa_len)
+                    yerrs.append(yerr)
                 elif value=="evpa" or value=="EVPA":
                     x,y,yerr=plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,plot_errors=plot_errors,label=label)
                     years=np.concatenate((years,cc.year.flatten()))
+                    yerrs.append(yerr)
                 elif value=="maj":
                     x,y,yerr=plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
                                            label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
