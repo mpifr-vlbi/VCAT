@@ -502,15 +502,15 @@ class ImageCube(object):
                     ylabel = "Polarization Noise [Jy/beam]"
                 elif value=="flux+evpa":
                     values.append(image.integrated_flux_clean)
-                    evpas.append(image.evpa_average)
+                    evpas.append(image.evpa_average/np.pi*180)
                     ylabel = "Flux Density [Jy/beam]"
                 elif value=="linpol+evpa" or "lin_pol+evpa":
                     values.append(image.integrated_pol_flux_clean)
-                    evpas.append(image.evpa_average)
+                    evpas.append(image.evpa_average/np.pi*180)
                     ylabel = "Linear Polarized Flux [Jy/beam]"
                 elif value=="fracpol+evpa" or "frac_pol+evpa":
                     values.append(image.integrated_pol_flux_clean/image.integrated_flux_clean*100)
-                    evpas.append(image.evpa_average)
+                    evpas.append(image.evpa_average/np.pi*180)
                     ylabel = "Fractional Polarization [%]"
                 else:
                     raise Exception("Please specify valid plot mode")
