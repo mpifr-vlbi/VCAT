@@ -128,6 +128,7 @@ class ImageData(object):
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities,
                  fit_comp_polarization=False,
+                 gain_err=0.05,
                  difmap_path=difmap_path):
 
         """
@@ -184,6 +185,7 @@ class ImageData(object):
         self.correct_rician_bias=correct_rician_bias
         self.fit_comp_pol = fit_comp_polarization
         self.error=error
+        self.gain_err=gain_err
         self.M=M
         if ridgeline=="":
             self.ridgeline=Ridgeline()
@@ -577,7 +579,8 @@ class ImageData(object):
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
                                     comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
                                     redshift=redshift, is_core=is_core,beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,
-                                    freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr,error_method=mfit_err_method,res_lim_method=res_lim_method)
+                                    freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr,error_method=mfit_err_method,
+                                    res_lim_method=res_lim_method,gain_err=self.gain_err)
                 self.components.append(component)
 
             #set core
@@ -2340,18 +2343,39 @@ class ImageData(object):
                     self.components[j].evpa = evpa
 
                     #get component error in lin pol and evpa
+                    #first get q_flux_err
                     S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
                                                 self.fits_file, self.uvf_file, "tmp/model_q.mod",
                                                 self.stokes_i_mod_file,channel="q",
                                                 weighting=uvw, difmap_path=self.difmap_path)
+
                     comp_snr_q = S_p / rms
 
+                    if S_p == 0:
+                        S_p = 0.00001
+                    sigma_p = rms * np.sqrt(1 + comp_snr_q)
+
+                    sigma_t = sigma_p * np.sqrt(1 + (comps_q[i].flux ** 2 / S_p ** 2))
+                    q_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_q[i].flux) ** 2)
+
                     # get component error in lin pol and evpa
+                    #second get u_flux_err
                     S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
                                                  self.fits_file, self.uvf_file, "tmp/model_u.mod",
                                                  self.stokes_i_mod_file, channel="u",
                                                  weighting=uvw, difmap_path=self.difmap_path)
                     comp_snr_u = S_p / rms
+
+                    if S_p == 0:
+                        S_p = 0.00001
+                    sigma_p = rms * np.sqrt(1 + comp_snr_u)
+
+                    sigma_t = sigma_p * np.sqrt(1 + (comps_u[i].flux ** 2 / S_p ** 2))
+                    u_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_u[i].flux) ** 2)
+
+                    #calculate EVPA and lin_pol error for component:
+                    comp.lin_pol_err=abs(np.sqrt(comps_q[i].flux**2*q_flux_err**2+comps_u[i].flux**2*u_flux_err**2)/comp.lin_pol)
+                    comp.evpa_err=abs(np.sqrt(comps_q[i].flux**2*u_flux_err**2+comps_u[i].flux**2*q_flux_err**2)/(2*comp.lin_pol**2)/np.pi*180)
 
 
 
