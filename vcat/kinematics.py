@@ -342,6 +342,8 @@ class ComponentCollection():
         self.lin_pols = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.evpas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.snrs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.lin_pols_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.evpas_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
 
         for i, year in enumerate(epochs):
             for j, freq in enumerate(freqs):
@@ -375,6 +377,8 @@ class ComponentCollection():
                         self.lin_pols[i,j]=comp.lin_pol
                         self.evpas[i,j]=comp.evpa
                         self.snrs[i,j]=comp.snr
+                        self.lin_pols_err[i,j]=comp.lin_pol_err
+                        self.evpas_err[i,j]=comp.evpa_err
 
         try:
             self.id=np.unique(self.ids.flatten())[0]

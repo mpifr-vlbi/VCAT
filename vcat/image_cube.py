@@ -1885,35 +1885,36 @@ class ImageCube(object):
 
                 if value=="flux":
                     x,y,yerr=plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,
-                                             snr_cut=snr_cut,plot_evpa=plot_evpa,evpa_len=200)
+                                             snr_cut=snr_cut,plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="tb":
-                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=200)
+                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                 elif value=="dist":
                     x,y,yerr=plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
-                                                  label=label,plot_evpa=plot_evpa,evpa_len=200)
+                                                  label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="pos" or value=="PA":
-                    x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=200)
+                    x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                 elif value=="lin_pol" or value=="linpol":
-                    x,y=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=200)
+                    x,y,yerr=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_errors=plot_errors,
+                                              plot_evpa=plot_evpa,evpa_len=evpa_len)
                 elif value=="evpa" or value=="EVPA":
-                    x,y=plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,plot_errors=plot_errors,label=label)
                     years=np.concatenate((years,cc.year.flatten()))
                 elif value=="maj":
                     x,y,yerr=plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
-                                           label=label,plot_evpa=plot_evpa,evpa_len=200)
+                                           label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="min":
                     x,y,yerr=plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label,
-                                           plot_evpa=plot_evpa,evpa_len=200)
+                                           plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="theta":
                     x,y,yerr=plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label,
-                                             plot_evpa=False,evpa_len=200)
+                                             plot_evpa=False,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="fracpol" or value=="frac_pol":
-                    x,y=plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=200)
+                    x,y,yerr=plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=evpa_len)
                 elif value=="flux+evpa":
                     x, y, yerr = plot.plot_fluxs(cc, color=color, marker=marker, plot_errors=plot_errors, label=label,
                                                  snr_cut=snr_cut,plot_evpa=True,evpa_len=evpa_len)

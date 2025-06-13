@@ -128,6 +128,7 @@ class ImageData(object):
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities,
                  fit_comp_polarization=False,
+                 fit_comp_pol_errors=False,
                  gain_err=0.05,
                  difmap_path=difmap_path):
 
@@ -161,6 +162,7 @@ class ImageData(object):
             correct_rician_bias (bool): Choose whether to correct polarization for Rician Bias
             error (float): Set relative error on the flux density scale
             fit_comp_polarization (bool): Choose whether to fit polarization of modelfit components
+            fit_comp_pol_errors (bool): Choose whether to determine lin_pol and evpa errors for components
             difmap_path (str): Path to the folder of your DIFMAP installation
         """
 
@@ -184,6 +186,7 @@ class ImageData(object):
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
         self.fit_comp_pol = fit_comp_polarization
+        self.fit_comp_pol_errors = fit_comp_pol_errors
         self.error=error
         self.gain_err=gain_err
         self.M=M
@@ -1020,7 +1023,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
     def plot(self,show=True,savefig="",**kwargs):
         defaults = {
@@ -1527,7 +1531,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
     def shift(self,shift_x,shift_y,weighting=uvw,useDIFMAP=True):
         """
@@ -1791,7 +1796,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
         else:
 
@@ -1813,7 +1819,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
             rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
             try:
@@ -2343,39 +2350,40 @@ class ImageData(object):
                     self.components[j].evpa = evpa
 
                     #get component error in lin pol and evpa
-                    #first get q_flux_err
-                    S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
-                                                self.fits_file, self.uvf_file, "tmp/model_q.mod",
-                                                self.stokes_i_mod_file,channel="q",
-                                                weighting=uvw, difmap_path=self.difmap_path)
+                    if self.fit_comp_pol_errors:
+                        #first get q_flux_err
+                        S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
+                                                    self.fits_file, self.uvf_file, "tmp/model_q.mod",
+                                                    self.stokes_i_mod_file,channel="q",
+                                                    weighting=uvw, difmap_path=self.difmap_path)
 
-                    comp_snr_q = S_p / rms
+                        comp_snr_q = S_p / rms
 
-                    if S_p == 0:
-                        S_p = 0.00001
-                    sigma_p = rms * np.sqrt(1 + comp_snr_q)
+                        if S_p == 0:
+                            S_p = 0.00001
+                        sigma_p = rms * np.sqrt(1 + comp_snr_q)
 
-                    sigma_t = sigma_p * np.sqrt(1 + (comps_q[i].flux ** 2 / S_p ** 2))
-                    q_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_q[i].flux) ** 2)
+                        sigma_t = sigma_p * np.sqrt(1 + (comps_q[i].flux ** 2 / S_p ** 2))
+                        q_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_q[i].flux) ** 2)
 
-                    # get component error in lin pol and evpa
-                    #second get u_flux_err
-                    S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
-                                                 self.fits_file, self.uvf_file, "tmp/model_u.mod",
-                                                 self.stokes_i_mod_file, channel="u",
-                                                 weighting=uvw, difmap_path=self.difmap_path)
-                    comp_snr_u = S_p / rms
+                        # get component error in lin pol and evpa
+                        #second get u_flux_err
+                        S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
+                                                     self.fits_file, self.uvf_file, "tmp/model_u.mod",
+                                                     self.stokes_i_mod_file, channel="u",
+                                                     weighting=uvw, difmap_path=self.difmap_path)
+                        comp_snr_u = S_p / rms
 
-                    if S_p == 0:
-                        S_p = 0.00001
-                    sigma_p = rms * np.sqrt(1 + comp_snr_u)
+                        if S_p == 0:
+                            S_p = 0.00001
+                        sigma_p = rms * np.sqrt(1 + comp_snr_u)
 
-                    sigma_t = sigma_p * np.sqrt(1 + (comps_u[i].flux ** 2 / S_p ** 2))
-                    u_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_u[i].flux) ** 2)
+                        sigma_t = sigma_p * np.sqrt(1 + (comps_u[i].flux ** 2 / S_p ** 2))
+                        u_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_u[i].flux) ** 2)
 
-                    #calculate EVPA and lin_pol error for component:
-                    comp.lin_pol_err=abs(np.sqrt(comps_q[i].flux**2*q_flux_err**2+comps_u[i].flux**2*u_flux_err**2)/comp.lin_pol)
-                    comp.evpa_err=abs(np.sqrt(comps_q[i].flux**2*u_flux_err**2+comps_u[i].flux**2*q_flux_err**2)/(2*comp.lin_pol**2)/np.pi*180)
+                        #calculate EVPA and lin_pol error for component:
+                        self.components[j].lin_pol_err=abs(np.sqrt(comps_q[i].flux**2*q_flux_err**2+comps_u[i].flux**2*u_flux_err**2)/comp.lin_pol)
+                        self.components[j].evpa_err=abs(np.sqrt(comps_q[i].flux**2*u_flux_err**2+comps_u[i].flux**2*q_flux_err**2)/(2*comp.lin_pol**2)/np.pi*180)
 
 
 
