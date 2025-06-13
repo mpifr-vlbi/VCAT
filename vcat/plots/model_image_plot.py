@@ -36,10 +36,15 @@ font_size_axis_tick=12
 
 
 class ModelImagePlot(object):
-    def __init__(self,xlim=[10,-10],ylim=[-10,10],xlabel="Relative R.A. [mas]",ylabel="Relative Dec. [mas]",font_size_axis_title=10):
+    def __init__(self,xlim=[10,-10],ylim=[-10,10],xlabel="Relative R.A. [mas]",ylabel="Relative Dec. [mas]",font_size_axis_title=10,fig="",ax=""):
 
         super().__init__()
-        self.fig, self.ax = plt.subplots(1, 1)
+
+        if fig=="" and ax=="":
+            self.fig, self.ax = plt.subplots(1, 1)
+        else:
+            self.fig=fig
+            self.ax=ax
         self.ax.set_xlim(xlim[0], xlim[1])
         self.ax.set_ylim(ylim[0], ylim[1])
         self.ax.set_xlabel(xlabel, fontsize=font_size_axis_title)

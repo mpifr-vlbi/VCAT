@@ -278,6 +278,7 @@ class MultiFitsImage(object):
                                         ax=self.axes[i,j],
                                         font_size_axis_title=kwargs["font_size_axis_title"][image_i,image_j],
                                         font_size_axis_tick=kwargs["font_size_axis_tick"][image_i,image_j],
+                                        adjust_comp_size_to_res_lim=kwargs["adjust_comp_size_to_res_lim"][image_i,image_j],
                                         rcparams=kwargs["rcparams"][image_i,image_j])
 
         #get colorbar label:

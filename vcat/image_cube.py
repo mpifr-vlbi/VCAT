@@ -600,6 +600,7 @@ class ImageCube(object):
             "figsize": "",
             "font_size_axis_title": 8,
             "font_size_axis_tick": 6,
+            "adjust_comp_size_to_res_lim": True,
             "rcparams": {}
         }
 
