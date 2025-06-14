@@ -460,7 +460,9 @@ class ImageCube(object):
                        markers=plot_markers, #default markers
                        linestyles=plot_linestyles,
                        evpa_pol_plot=True,
-                       evpa_len=[200]):
+                       evpa_len=[200],
+                       fig="",
+                       ax=""):
 
         #TODO also make ridgeline plot over several epochs possible
         if freq == "":
@@ -471,9 +473,9 @@ class ImageCube(object):
             raise Exception("Invalid input for 'freq'.")
 
         if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
-            plot = EvolutionPlot(pol_plot=True)
+            plot = EvolutionPlot(pol_plot=True,fig=fig,ax=ax)
         else:
-            plot = EvolutionPlot(xlabel="MJD [days]")
+            plot = EvolutionPlot(xlabel="MJD [days]",fig=fig,ax=ax)
 
         for i,f in enumerate(freq):
             values = []
