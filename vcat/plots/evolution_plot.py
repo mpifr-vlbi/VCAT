@@ -107,6 +107,10 @@ class EvolutionPlot(object):
                                c=evpa_err_color, alpha=evpa_err_alpha, zorder=evpa_err_zorder)
 
         if len(value_err) == len(value):
+            sort_ind=np.argsort(mjd)
+            mjds=mjds[sort_ind]
+            value=value[sort_ind]
+            value_err=value_err[sort_ind]
             self.ax.fill_between(mjds, np.array(value) + np.array(value_err),
                                  np.array(value) - np.array(value_err), color=c, alpha=err_alpha,zorder=err_zorder)
 
