@@ -80,8 +80,11 @@ class EvolutionPlot(object):
     def plotEvolution(self,mjds,value,c="black",marker=".",label="",linestyle="none"):
         self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
 
-    def plotEvolutionWithEVPA(self,mjds,value,evpas,c="black",marker=".",label="",linestyle="none",evpa_len=200,evpa_color=""):
-        self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle)
+    def plotEvolutionWithEVPA(self,mjds,value,evpas,evpas_err=[],evpa_err_increment=100,
+                              evpa_width=2,evpa_err_color="lightgrey",evpa_err_alpha=1,zorder=1,evpa_err_zorder=-1,
+                              c="black",marker=".",label="",
+                              linestyle="none",evpa_len=200,evpa_color=""):
+        self.ax.plot(mjds, value, c=c, marker=marker,label=label,linestyle=linestyle,zorder=zorder)
 
         for i in range(len(mjds)):
             mjd=mjds[i]
@@ -93,7 +96,14 @@ class EvolutionPlot(object):
             t._transform = t.get_transform().rotate_deg(evpa)
             if evpa_color=="":
                 evpa_color=c
-            plt.scatter(mjd, val, marker=t, s=evpa_len,c=evpa_color)
+            self.ax.scatter(mjd, val, marker=t, s=evpa_len,c=evpa_color,zorder=zorder)
+
+            if len(evpas_err) == len(evpas):
+                for i in np.linspace(-evpas_err[i], +evpas_err[i], evpa_err_increment):
+                    t = markers.MarkerStyle(marker="|")
+                    t._transform = t.get_transform().rotate_deg(evpa + i)
+                    self.ax.scatter(mjd, val, marker=t, s=evpa_len, linewidths=evpa_width,
+                               c=evpa_err_color, alpha=evpa_err_alpha, zorder=evpa_err_zorder)
 
 
     def plotEVPAevolution(self,mjds,evpas,c="black",marker=".",label="",linestyle="-"):
