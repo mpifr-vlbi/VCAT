@@ -518,7 +518,7 @@ class ImageCube(object):
                 else:
                     raise Exception("Please specify valid plot mode")
 
-            if labels=[""]:
+            if labels==[""]:
                 label="{:.1f}".format(f*1e-9)+" GHz"
             else:
                 label=labels[i%len(labels)]
