@@ -458,6 +458,7 @@ class ImageCube(object):
     def plot_evolution(self, value="flux",freq="",show=True, savefig="",
                        colors=plot_colors, #default colors
                        markers=plot_markers, #default markers
+                       labels=[""],
                        linestyles=plot_linestyles,
                        evpa_pol_plot=True,
                        evpa_len=[200],
@@ -517,8 +518,10 @@ class ImageCube(object):
                 else:
                     raise Exception("Please specify valid plot mode")
 
-
-            label="{:.1f}".format(f*1e-9)+" GHz"
+            if labels=[""]:
+                label="{:.1f}".format(f*1e-9)+" GHz"
+            else:
+                label=labels[i%len(labels)]
 
             if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
                 plot.plotEVPAevolution(np.array(mjds),np.array(values),c=colors[i%len(colors)],marker=markers[i%len(markers)],
