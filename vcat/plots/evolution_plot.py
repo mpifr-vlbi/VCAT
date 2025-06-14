@@ -107,8 +107,8 @@ class EvolutionPlot(object):
                                c=evpa_err_color, alpha=evpa_err_alpha, zorder=evpa_err_zorder)
 
         if len(value_err) == len(value):
-            self.ax.fill_between(mjds, np.array(values) + np.array(value_err),
-                                 np.array(values) - np.array(value_err), color=c, alpha=err_alpha,zorder=err_zorder)
+            self.ax.fill_between(mjds, np.array(value) + np.array(value_err),
+                                 np.array(value) - np.array(value_err), color=c, alpha=err_alpha,zorder=err_zorder)
 
 
     def plotEVPAevolution(self,mjds,evpas,c="black",marker=".",label="",linestyle="-"):
