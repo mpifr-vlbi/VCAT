@@ -378,7 +378,107 @@ def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=
         logger.warning("No components provided will only write modfile")
         return None
 
-def modelfit_ehtim(uvf_file,components,niter,npix=1024,fov=10):
+def modelfit_ehtim(uvf_file,components,niter,npix=1024,nwalker=200,fov=10,plot=False):
+    """
+    code to modelfit gaussian components to polarization (no Stokes-I) using ehtim
+    Args:
+        uvf_file: .uvf file
+        components: Starting model as component objects
+        niter: number of iterations
+        npix: number of  pixels for ehtim to consider
+        nwalker: number of walkers in bayesian fitting
+        fov: field of view for ehtim to consider in mas
+        plot: decide whether to create model plot
+
+    Returns:
+
+    """
+    import ehtim as eh
+
+    #fov in mas!!
+    scale=components[0].scale
+
+    try:
+        npix=int(npix)
+    except:
+        npix=1024
+    try:
+        fov=float(fov)
+    except:
+        fov=10
+
+    obs=eh.obsdata.load_uvfits(uvf_file)
+
+    mod = eh.model.Model()
+
+    params = []
+    for comp in components:
+        params.append(comp.lin_pol)
+        params.append(comp.maj * scale)
+        params.append(comp.min * scale)
+        params.append(comp.pos)
+        params.append(comp.x * scale)
+        params.append(comp.y * scale)
+        params.append(comp.evpa)
+
+    params = np.array(params).reshape(-1, 7)
+
+    for param in params:
+        # actually add it
+        mod = mod.add_gauss(F0=param[0],
+                            FWHM_maj=param[1] *eh.RADPERUAS*1e3,
+                            FWHM_min=param[2] *eh.RADPERUAS*1e3,
+                            PA=param[3] / 180 * np.pi,
+                            x0=param[4] / scale / 180 * np.pi,
+                            y0=param[5] / scale / 180 * np.pi,
+                            pol_frac=1,
+                            pol_evpa=param[6] / 180 * np.pi)
+
+    # make image from model
+    im = mod.make_image(fov*1e3*eh.RADPERUAS, npix)
+
+    #setup prior for modelling
+    mod_prior = mod.default_prior(fit_pol=True)
+
+    for i,param in enumerate(params):
+        mod_prior[i]["F0"] = {'prior_type':'flat', 'min':0, 'max':1}
+        mod_prior[i]["FWHM_maj"] = {'prior_type':'flat', 'min':0.01*1e3*eh.RADPERUAS, 'max':3*1e3*eh.RADPERUAS}
+        mod_prior[i]["FWHM_min"] = {'prior_type': 'flat', 'min': 0.01 * 1e3 * eh.RADPERUAS,
+                                    'max': 3 * 1e3 * eh.RADPERUAS}
+        mod_prior[i]["PA"] = {'prior_type':'flat','min':0, 'max': np.pi}
+        mod_prior[i]["x0"] = {'prior_type':'flat','min':-5*1e3*eh.RADPERUAS,'max':5*1e3*eh.RADPERUAS}
+        mod_prior[i]["y0"] = {'prior_type':'flat','min':-5*1e3*eh.RADPERUAS,'max':5*1e3*eh.RADPERUAS}
+        mod_prior[i]["pol_frac"] = {'prior_type':'fixed'}
+        mod_prior[i]["pol_evpa"] = {'prior_type':'flat', 'min':0, 'max':np.pi}
+
+    run_nested_kwargs = {'maxiter': niter}
+    kwargs = {'run_nested_kwargs': run_nested_kwargs}
+
+    #do modelfit
+    mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func='dynesty_dynamic', fit_pol=True,
+                              alpha_d1=20, minimizer_kwargs={'nlive': nwalker, 'sample': 'rslice'}, pol1='I', pol2='Q',
+                              pol3='U', processes=0, **kwargs)
+
+    if plot:
+        im = im.blur_gauss(obs.fit_beam(weighting="natural"))
+        im.display(plotp=True, show=True, export_pdf="fitted_model.pdf")
+
+    models = np.array(mod_fit["mean"]).reshape(-1, 7)
+
+    #plot final model
+
+    for ind,model in enumerate(models):
+        components[ind].lin_pol=model[0]
+        components[ind].maj=model[1]/np.pi*180
+        components[ind].min=model[2]/np.pi*180
+        components[ind].pos=model[3]/np.pi*180
+        components[ind].x=model[4]/np.pi*180
+        components[ind].y=model[5]/np.pi*180
+        components[ind].evpa=model[6]/np.pi*180
+
+    return components
+
+def modelfit_ehtim_old(uvf_file,components,niter,npix=1024,fov=10):
     import ehtim as eh
 
     #fov in mas!!

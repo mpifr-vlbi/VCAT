@@ -124,6 +124,7 @@ class FitsImage(object):
                  fig=None, #define custom figure
                  font_size_axis_title=font_size_axis_title, #set fontsize for axis title
                  font_size_axis_tick=font_size_axis_tick, #set fontsize for axis ticks
+                 adjust_comp_size_to_res_lim=True, #will adjust the component size to the minimum resolvable size in the plots
                  rcparams={} # option to modify matplotlib look
                  ):
 
@@ -194,6 +195,7 @@ class FitsImage(object):
         self.col=""
         self.lin_pol_sigma_cut=lin_pol_sigma_cut
         self.stokes_i_sigma_cut=stokes_i_sigma_cut
+        self.adjust_comp_size_to_res_lim = adjust_comp_size_to_res_lim
 
         #modify these parameters if polar plot is selected
         if plot_polar:
@@ -457,11 +459,19 @@ class FitsImage(object):
                 for i,comp in enumerate(self.clean_image.components):
                     if comp.flux==g_flux[j]:
                         comp_id=comp.component_number
+                        if comp.maj<comp.res_lim_maj and self.adjust_comp_size_to_res_lim:
+                            plot_maj=comp.res_lim_maj
+                        else:
+                            plot_maj=comp.maj
+                        if comp.min<comp.res_lim_min and self.adjust_comp_size_to_res_lim:
+                            plot_min=comp.res_lim_min
+                        else:
+                            plot_min=comp.min
 
                 if plot_comp_ids:
-                    component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale, id=comp_id)
+                    component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale, id=comp_id)
                 else:
-                    component_plot = self.plotComponent(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], scale)
+                    component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale)
 
 
                 #calculate noise at the position of the component
@@ -510,7 +520,8 @@ class FitsImage(object):
             self.ax.invert_xaxis()
             self.ax.set_xlabel('Relative R.A. [' + unit + ']',fontsize=font_size_axis_title)
             self.ax.set_ylabel('Relative DEC. [' + unit + ']',fontsize=font_size_axis_title)
-        self.fig.tight_layout()
+
+        #self.fig.tight_layout()
 
 
     def plotColormap(self,

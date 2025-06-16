@@ -17,7 +17,10 @@ dataX=ImageData("../dataset_example/3C111_X_2014_05_08/3C111_X_2014_05_08.fits",
 
 dataU.set_core_component(10)
 dataU=dataU.center(mode="core")
-dataU.plot(plot_model=True,plot_comp_ids=True)
+dataU.plot(plot_model=True,plot_comp_ids=True,adjust_comp_size_to_res_lim=False)
+
+for comp in dataU.components:
+    print(comp.resolved)
 
 
 data=[dataC,dataQ,dataU,dataW,dataX]

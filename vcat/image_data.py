@@ -128,6 +128,8 @@ class ImageData(object):
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities,
                  fit_comp_polarization=False,
+                 fit_comp_pol_errors=False,
+                 gain_err=0.05,
                  difmap_path=difmap_path):
 
         """
@@ -160,6 +162,7 @@ class ImageData(object):
             correct_rician_bias (bool): Choose whether to correct polarization for Rician Bias
             error (float): Set relative error on the flux density scale
             fit_comp_polarization (bool): Choose whether to fit polarization of modelfit components
+            fit_comp_pol_errors (bool): Choose whether to determine lin_pol and evpa errors for components
             difmap_path (str): Path to the folder of your DIFMAP installation
         """
 
@@ -183,7 +186,9 @@ class ImageData(object):
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
         self.fit_comp_pol = fit_comp_polarization
+        self.fit_comp_pol_errors = fit_comp_pol_errors
         self.error=error
+        self.gain_err=gain_err
         self.M=M
         if ridgeline=="":
             self.ridgeline=Ridgeline()
@@ -562,7 +567,7 @@ class ImageData(object):
                 #calculate component SNR
                 if self.uvf_file!="" and self.difmap_path!="":
                     S_p, rms = get_comp_peak_rms(comp["Delta_x"]*self.scale,comp["Delta_y"]*self.scale,
-                                                 self.fits_file,self.uvf_file,self.model_mod_file,
+                                                 self.fits_file,self.uvf_file,self.model_mod_file,self.stokes_i_mod_file,
                                                  weighting=uvw, difmap_path=self.difmap_path)
                     comp_snr = S_p/rms
                 else:
@@ -577,7 +582,8 @@ class ImageData(object):
                 component=Component(comp["Delta_x"],comp["Delta_y"],comp["Major_axis"],comp["Minor_axis"],
                                     comp["PA"],comp["Flux"],self.date,self.mjd,Time(self.mjd,format="mjd").decimalyear,component_number=comp_id,
                                     redshift=redshift, is_core=is_core,beam_maj=self.beam_maj,beam_min=self.beam_min,beam_pa=self.beam_pa,
-                                    freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr,error_method=mfit_err_method,res_lim_method=res_lim_method)
+                                    freq=self.freq,noise=rms, scale=self.scale, snr=comp_snr,error_method=mfit_err_method,
+                                    res_lim_method=res_lim_method,gain_err=self.gain_err)
                 self.components.append(component)
 
             #set core
@@ -1017,7 +1023,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
     def plot(self,show=True,savefig="",**kwargs):
         defaults = {
@@ -1524,7 +1531,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
     def shift(self,shift_x,shift_y,weighting=uvw,useDIFMAP=True):
         """
@@ -1788,7 +1796,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
         else:
 
@@ -1810,7 +1819,8 @@ class ImageData(object):
                          comp_ids=self.get_model_info()[0],
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol)
+                         fit_comp_polarization=self.fit_comp_pol,
+                         fit_comp_pol_errors=self.fit_comp_pol_errors)
 
             rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
             try:
@@ -2339,8 +2349,46 @@ class ImageData(object):
                     self.components[j].lin_pol = lin_pol
                     self.components[j].evpa = evpa
 
+                    #get component error in lin pol and evpa
+                    if self.fit_comp_pol_errors:
+                        #first get q_flux_err
+                        S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
+                                                    self.fits_file, self.uvf_file, "tmp/model_q.mod",
+                                                    self.stokes_i_mod_file,channel="q",
+                                                    weighting=uvw, difmap_path=self.difmap_path)
+
+                        comp_snr_q = S_p / rms
+
+                        if S_p == 0:
+                            S_p = 0.00001
+                        sigma_p = rms * np.sqrt(1 + comp_snr_q)
+
+                        sigma_t = sigma_p * np.sqrt(1 + (comps_q[i].flux ** 2 / S_p ** 2))
+                        q_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_q[i].flux) ** 2)
+
+                        # get component error in lin pol and evpa
+                        #second get u_flux_err
+                        S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
+                                                     self.fits_file, self.uvf_file, "tmp/model_u.mod",
+                                                     self.stokes_i_mod_file, channel="u",
+                                                     weighting=uvw, difmap_path=self.difmap_path)
+                        comp_snr_u = S_p / rms
+
+                        if S_p == 0:
+                            S_p = 0.00001
+                        sigma_p = rms * np.sqrt(1 + comp_snr_u)
+
+                        sigma_t = sigma_p * np.sqrt(1 + (comps_u[i].flux ** 2 / S_p ** 2))
+                        u_flux_err = np.sqrt(sigma_t ** 2 + (self.gain_err * comps_u[i].flux) ** 2)
+
+                        #calculate EVPA and lin_pol error for component:
+                        self.components[j].lin_pol_err=abs(np.sqrt(comps_q[i].flux**2*q_flux_err**2+comps_u[i].flux**2*u_flux_err**2)/comp.lin_pol)
+                        self.components[j].evpa_err=abs(np.sqrt(comps_q[i].flux**2*u_flux_err**2+comps_u[i].flux**2*q_flux_err**2)/(2*comp.lin_pol**2)/np.pi*180)
+
+
+
     def fit_collimation_profile(self,method="model",jet="Jet",fit_type='brokenPowerlaw',x0=False,s=100,
-                                plot_data=True,plot_fit=True,fit_r0=True,plot="",show=False,label="",color=plot_colors[0],marker=plot_markers[0]):
+                                plot_data=True,plot_fit=True,fit_r0=True,shift_r=0,plot="",show=False,label="",color=plot_colors[0],marker=plot_markers[0]):
         """
         Function to fit a collimation profile to the jet/counterjet
 
@@ -2352,6 +2400,7 @@ class ImageData(object):
             plot_data (bool): Choose whether to plot the fitted data
             plot_fit (bool): Choose whether to plot the fit
             fit_r0 (bool): Choose whether to include (r+r0) in fit or just r
+            shift_r (float): Shift plot by radius in mas.
             plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
             show (bool): Choose whether to show the plot
             label (str): Label for the fitted data/fit
@@ -2419,7 +2468,7 @@ class ImageData(object):
                 fit_fail_counterjet=True
 
         if plot=="":
-            plot=JetProfilePlot(jet=jet)
+            plot=JetProfilePlot(jet=jet,redshift=self.redshift,shift_r=shift_r)
         else:
             try:
                 if plot.jet != jet:

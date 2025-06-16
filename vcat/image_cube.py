@@ -458,8 +458,12 @@ class ImageCube(object):
     def plot_evolution(self, value="flux",freq="",show=True, savefig="",
                        colors=plot_colors, #default colors
                        markers=plot_markers, #default markers
+                       labels=[""],
                        linestyles=plot_linestyles,
-                       evpa_pol_plot=True):
+                       evpa_pol_plot=True,
+                       evpa_len=[200],
+                       fig="",
+                       ax=""):
 
         #TODO also make ridgeline plot over several epochs possible
         if freq == "":
@@ -470,13 +474,14 @@ class ImageCube(object):
             raise Exception("Invalid input for 'freq'.")
 
         if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
-            plot = EvolutionPlot(pol_plot=True)
+            plot = EvolutionPlot(pol_plot=True,fig=fig,ax=ax)
         else:
-            plot = EvolutionPlot(xlabel="MJD [days]")
+            plot = EvolutionPlot(xlabel="MJD [days]",fig=fig,ax=ax)
 
         for i,f in enumerate(freq):
             values = []
             mjds = []
+            evpas = []
             ind_f=closest_index(freq,f)
             for image in self.images[:,ind_f].flatten():
                 mjds.append(image.mjd)
@@ -487,7 +492,7 @@ class ImageCube(object):
                     values.append(image.integrated_pol_flux_clean)
                     ylabel = "Linear Polarized Flux [Jy/beam]"
                 elif value=="frac_pol" or value=="fracpol":
-                    values.append(image.frac_pol*100)
+                    values.append(image.integrated_pol_flux_clean/image.integrated_flux_clean*100)
                     ylabel = "Fractional Polarization [%]"
                 elif value=="evpa" or value=="evpa_average":
                     values.append(image.evpa_average/np.pi*180)
@@ -498,15 +503,34 @@ class ImageCube(object):
                 elif value=="pol_noise" or value=="polnoise":
                     values.append(image.pol_noise)
                     ylabel = "Polarization Noise [Jy/beam]"
+                elif value=="flux+evpa":
+                    values.append(image.integrated_flux_clean)
+                    evpas.append(image.evpa_average/np.pi*180)
+                    ylabel = "Flux Density [Jy/beam]"
+                elif value=="linpol+evpa" or "lin_pol+evpa":
+                    values.append(image.integrated_pol_flux_clean)
+                    evpas.append(image.evpa_average/np.pi*180)
+                    ylabel = "Linear Polarized Flux [Jy/beam]"
+                elif value=="fracpol+evpa" or "frac_pol+evpa":
+                    values.append(image.integrated_pol_flux_clean/image.integrated_flux_clean*100)
+                    evpas.append(image.evpa_average/np.pi*180)
+                    ylabel = "Fractional Polarization [%]"
                 else:
                     raise Exception("Please specify valid plot mode")
 
-
-            label="{:.1f}".format(f*1e-9)+" GHz"
+            if labels==[""]:
+                label="{:.1f}".format(f*1e-9)+" GHz"
+            else:
+                label=labels[i%len(labels)]
 
             if (value=="evpa" or value=="evpa_average") and evpa_pol_plot:
                 plot.plotEVPAevolution(np.array(mjds),np.array(values),c=colors[i%len(colors)],marker=markers[i%len(markers)],
                                        label=label,linestyle=linestyles[i%len(linestyles)])
+            elif (value=="flux+evpa" or value=="linpol+evpa" or value=="lin_pol+evpa" or value=="fracpol+evpa" or value=="frac_pol+evpa"):
+                plot.plotEvolutionWithEVPA(np.array(mjds),np.array(values),np.array(evpas),c=colors[i%len(colors)],marker=markers[i%len(markers)],
+                                           label=label,linestyle=linestyles[i%len(linestyles)],evpa_len=evpa_len[i%len(evpa_len)])
+
+                plt.ylabel(ylabel)
             else:
                 plot.plotEvolution(np.array(mjds),np.array(values),c=colors[i % len(colors)],marker=markers[i % len(markers)],
                                label=label,linestyle=linestyles[i % len(linestyles)])
@@ -581,6 +605,7 @@ class ImageCube(object):
             "figsize": "",
             "font_size_axis_title": 8,
             "font_size_axis_tick": 6,
+            "adjust_comp_size_to_res_lim": True,
             "rcparams": {}
         }
 
@@ -1617,7 +1642,7 @@ class ImageCube(object):
         return average_comps
 
     def fit_collimation_profile(self,freq="",epoch="",id="",method="model",jet="Jet",fit_type='brokenPowerlaw',x0=False,s=100,
-                                plot_data=True,plot_fit=True,fit_r0=True,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker="o",core_position=[0,0]):
+                                plot_data=True,plot_fit=True,fit_r0=True,shift_r=0,plot="",show=False,filter_unresolved=False,snr_cut=1,label="",color=plot_colors[0],marker="o",core_position=[0,0]):
         """
         Function to fit a collimation profile to the jet/counterjet
 
@@ -1630,6 +1655,7 @@ class ImageCube(object):
             plot_data (bool): Choose whether to plot the fitted data
             plot_fit (bool): Choose whether to plot the fit
             fit_r0 (bool): Choose whether to include (r+r0) in fit or just r
+            shift_r (float): Shift plot by given radius in mas.
             plot (JetProfilePlot): Pass JetProfilePlot to add plots, default will create a new one
             show (bool): Choose whether to show the plot
             filter_unresolved (bool): Choose whether to filter out unresolved components
@@ -1684,7 +1710,7 @@ class ImageCube(object):
                 fit_fail_counterjet=True
 
         if plot=="":
-            plot=JetProfilePlot(jet=jet,redshift=self.redshift)
+            plot=JetProfilePlot(jet=jet,redshift=self.redshift,shift_r=shift_r)
         else:
             try:
                 if plot.jet != jet:
@@ -1819,7 +1845,7 @@ class ImageCube(object):
         return delta_vars, delta_vars_err
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
-                                 evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True):
+                                 evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True,plot_evpa=False,evpa_len=200,fig="",ax=""):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1841,7 +1867,7 @@ class ImageCube(object):
         for fr in freq:
             # One plot per frequency with all components
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
-                plot=KinematicPlot(pol_plot=True)
+                plot=KinematicPlot(pol_plot=True,fig=fig,ax=ax)
             else:
                 plot = KinematicPlot()
             years = []
@@ -1863,31 +1889,47 @@ class ImageCube(object):
                     label=""
 
                 if value=="flux":
-                    x,y,yerr=plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,snr_cut=snr_cut)
+                    x,y,yerr=plot.plot_fluxs(cc, color=color,marker=marker,plot_errors=plot_errors,label=label,
+                                             snr_cut=snr_cut,plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="tb":
-                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                 elif value=="dist":
-                    x,y,yerr=plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
+                                                  label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="pos" or value=="PA":
-                    x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y=plot.plot_pas(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                 elif value=="lin_pol" or value=="linpol":
-                    x,y=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_linpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_errors=plot_errors,
+                                              plot_evpa=plot_evpa,evpa_len=evpa_len)
+                    yerrs.append(yerr)
                 elif value=="evpa" or value=="EVPA":
-                    x,y=plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_evpa(cc, color=color,marker=marker,snr_cut=snr_cut,plot_errors=plot_errors,label=label)
                     years=np.concatenate((years,cc.year.flatten()))
+                    yerrs.append(yerr)
                 elif value=="maj":
-                    x,y,yerr=plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_maj(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
+                                           label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="min":
-                    x,y,yerr=plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_min(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label,
+                                           plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="theta":
-                    x,y,yerr=plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_theta(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label,
+                                             plot_evpa=False,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="fracpol" or value=="frac_pol":
-                    x,y=plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label)
+                    x,y,yerr=plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=evpa_len)
+                elif value=="flux+evpa":
+                    x, y, yerr = plot.plot_fluxs(cc, color=color, marker=marker, plot_errors=plot_errors, label=label,
+                                                 snr_cut=snr_cut,plot_evpa=True,evpa_len=evpa_len)
+                    yerrs.append(yerr)
+                elif value=="linpol+evpa" or "lin_pol+evpa":
+                    x, y = plot.plot_linpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                elif value=="fracpol+evpa" or "frac_pol+evpa":
+                    x, y = plot.plot_fracpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
                 else:
                     raise Exception(f"Not possible to plot '{value}' for component!")
                 xvalues.append(x)
@@ -1910,7 +1952,7 @@ class ImageCube(object):
         return xs,ys,yer
 
     def plot_components(self,id="",freq="",epoch="",show=False,xlim=[10,-10],ylim=[-10,10],colors="",fmts=[""],markersize=4,labels=[""],
-                        filter_unresolved=False,snr_cut=1,capsize=None,plot_errorbar=True):
+                        filter_unresolved=False,snr_cut=1,capsize=None,plot_errorbar=True,fig="",ax=""):
         if id=="":
             #do it for all components
             ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
@@ -1924,7 +1966,7 @@ class ImageCube(object):
         if colors=="":
             colors=plot_colors
 
-        plot=ModelImagePlot(xlim=xlim,ylim=ylim)
+        plot=ModelImagePlot(xlim=xlim,ylim=ylim,fig=fig,ax=ax)
 
         for i,cc in enumerate(ccs):
             color=colors[i % len(colors)]
@@ -1961,7 +2003,7 @@ class ImageCube(object):
         if show:
             plot.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, colors=plot_colors,markers=plot_markers,snr_cut=1):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, plot_errors=False, plot_evpa=False, evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1995,7 +2037,8 @@ class ImageCube(object):
                     mark_ind = ind % len(markers)
                     marker=markers[mark_ind]
 
-                    plot.plot_kinematics(cc,color=color,label=cc.name,marker=marker,snr_cut=snr_cut)
+                    plot.plot_kinematics(cc,color=color,label=cc.name,marker=marker,plot_errors=plot_errors,plot_evpa=plot_evpa,
+                                         evpa_len=evpa_len,snr_cut=snr_cut)
                     plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
                                          f["linear_fit"],color=color,t_mid=f["t_mid"])
 
@@ -2007,7 +2050,8 @@ class ImageCube(object):
 
         return fits
 
-    def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,colors=plot_colors,markers=plot_markers,snr_cut=1):
+    def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,plot_errors=False,plot_evpa=False,
+                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1):
 
         if freq == "":
             freq = self.freqs
@@ -2049,7 +2093,8 @@ class ImageCube(object):
                                              fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
                                                color=color,label=cc.name,t_mid=fit_x[0]["t_mid"])
                 else:
-                    plot.plot_kinematics(cc,color=color,marker=marker,label=cc.name,snr_cut=snr_cut)
+                    plot.plot_kinematics(cc,color=color,marker=marker,label=cc.name,snr_cut=snr_cut,plot_errors=plot_errors,plot_evpa=plot_evpa,
+                                         evpa_len=evpa_len)
                     plot.plot_kinematic_2d_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
                                              fit_x[0]["linear_fit"],fit_y[0]["linear_fit"],
                                                color=color,t_mid=fit_x[0]["t_mid"])

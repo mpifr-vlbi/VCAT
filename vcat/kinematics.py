@@ -15,7 +15,8 @@ from vcat.config import logger, uvw, difmap_path, mfit_err_method, res_lim_metho
 class Component():
     def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
                  component_number=-1, is_core=False, redshift=0, scale=60 * 60 * 10 ** 3,freq=15e9,noise=0,
-                 beam_maj=0, beam_min=0, beam_pa=0, lin_pol=0, evpa=0, snr=1, error_method=mfit_err_method,res_lim_method=res_lim_method):
+                 beam_maj=0, beam_min=0, beam_pa=0, lin_pol=0, evpa=0, lin_pol_err=0, evpa_err=0,
+                 snr=1, gain_err=0.05, error_method=mfit_err_method,res_lim_method=res_lim_method):
         self.x = x
         self.y = y
         self.mjd = mjd
@@ -40,7 +41,10 @@ class Component():
         self.lin_pol=lin_pol
         self.evpa=evpa
         self.snr=snr
+        self.gain_err=gain_err
         self.scale = scale
+        self.lin_pol_err=lin_pol_err
+        self.evpa_err=evpa_err
 
         
         def calculate_theta():
@@ -107,7 +111,7 @@ class Component():
 
 
         # determine errors
-        self.get_errors(method=error_method)
+        self.get_errors(method=error_method,gain_err=self.gain_err)
 
     def __str__(self):
         line1 = f"Component with ID {self.component_number} at frequency {self.freq * 1e-9:.1f} GHz\n"
@@ -223,7 +227,7 @@ class Component():
             self.x_err = np.sqrt((1.3*1E4*Tb_obs**(-0.6))**2 + 0.005**2)/self.scale    # in deg
             self.y_err = 2*self.x_err    # in deg, taken from Weaver+'22.
                 # this assumes that the beam is ~ 2 times more elongated in North-South direction. TODO: generalize this.
-            self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (0.05*self.flux**2))    # in Jy, assumes 5 % gain error added in quadrature
+            self.flux_err = np.sqrt((0.09*Tb_obs**(-0.1))**2 + (self.gain_err*self.flux**2))    # in Jy, assumes gain error added in quadrature
 
             self.maj_err = 6.5*Tb_obs**(-0.25)/self.scale    # in deg
             self.min_err = 6.5*Tb_obs**(-0.25)/self.scale    # in deg
@@ -338,6 +342,8 @@ class ComponentCollection():
         self.lin_pols = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.evpas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.snrs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.lin_pols_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.evpas_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
 
         for i, year in enumerate(epochs):
             for j, freq in enumerate(freqs):
@@ -371,6 +377,8 @@ class ComponentCollection():
                         self.lin_pols[i,j]=comp.lin_pol
                         self.evpas[i,j]=comp.evpa
                         self.snrs[i,j]=comp.snr
+                        self.lin_pols_err[i,j]=comp.lin_pol_err
+                        self.evpas_err[i,j]=comp.evpa_err
 
         try:
             self.id=np.unique(self.ids.flatten())[0]
