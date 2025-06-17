@@ -1637,6 +1637,24 @@ class ImageCube(object):
                 plt.ylabel("Component Size [mas]")
             elif value == "flux":
                 plt.ylabel("Flux Density [Jy]")
+            elif value == "maj":
+                plt.ylabel("Major Axis [mas]")
+            elif value == "min":
+                plt.ylabel("Minor Axis [mas]")
+            elif value == "theta":
+                plt.ylabel("Position Angle [°]")
+            elif value == "PA":
+                plt.ylabel("Component Position Angle [°]")
+            elif value == "dist":
+                plt.ylabel("Distance from core [mas]")
+            elif value == "x":
+                plt.ylabel("x [mas]")
+            elif value == "y":
+                plt.ylabel("y [mas]")
+            elif value == "lin_pol":
+                plt.ylabel("Linear Polarization [Jy]")
+            elif value == "evpa":
+                plt.ylabel("EVPA [°]")
             else:
                 plt.ylabel("Brightness Temperature [K]")
         if show:

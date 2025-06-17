@@ -378,7 +378,7 @@ def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=
         logger.warning("No components provided will only write modfile")
         return None
 
-def modelfit_ehtim(uvf_file,components,niter,npix=1024,nwalker=200,fov=10,plot=False):
+def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,nwalker=200,minimizer="dynesty_dynamic",fov=10,plot=False,max_size=5,max_flux=1,max_dist=5):
     """
     code to modelfit gaussian components to polarization (no Stokes-I) using ehtim
     Args:
@@ -388,6 +388,9 @@ def modelfit_ehtim(uvf_file,components,niter,npix=1024,nwalker=200,fov=10,plot=F
         npix: number of  pixels for ehtim to consider
         nwalker: number of walkers in bayesian fitting
         fov: field of view for ehtim to consider in mas
+        max_size: Maximum component size in mas
+        max_flux: Maximum component flux in Jy
+        max_dist: Maximum distance from center in mas
         plot: decide whether to create model plot
 
     Returns:
@@ -441,21 +444,25 @@ def modelfit_ehtim(uvf_file,components,niter,npix=1024,nwalker=200,fov=10,plot=F
     mod_prior = mod.default_prior(fit_pol=True)
 
     for i,param in enumerate(params):
-        mod_prior[i]["F0"] = {'prior_type':'flat', 'min':0, 'max':1}
-        mod_prior[i]["FWHM_maj"] = {'prior_type':'flat', 'min':0.01*1e3*eh.RADPERUAS, 'max':3*1e3*eh.RADPERUAS}
+        mod_prior[i]["F0"] = {'prior_type':'flat', 'min':0, 'max':max_flux}
+        mod_prior[i]["FWHM_maj"] = {'prior_type':'flat', 'min':0.01*1e3*eh.RADPERUAS, 'max':max_size*1e3*eh.RADPERUAS}
         mod_prior[i]["FWHM_min"] = {'prior_type': 'flat', 'min': 0.01 * 1e3 * eh.RADPERUAS,
-                                    'max': 3 * 1e3 * eh.RADPERUAS}
+                                    'max': max_size * 1e3 * eh.RADPERUAS}
         mod_prior[i]["PA"] = {'prior_type':'flat','min':0, 'max': np.pi}
-        mod_prior[i]["x0"] = {'prior_type':'flat','min':-5*1e3*eh.RADPERUAS,'max':5*1e3*eh.RADPERUAS}
-        mod_prior[i]["y0"] = {'prior_type':'flat','min':-5*1e3*eh.RADPERUAS,'max':5*1e3*eh.RADPERUAS}
+        mod_prior[i]["x0"] = {'prior_type':'flat','min':-max_dist*1e3*eh.RADPERUAS,'max':max_dist*1e3*eh.RADPERUAS}
+        mod_prior[i]["y0"] = {'prior_type':'flat','min':-max_dist*1e3*eh.RADPERUAS,'max':max_dist*1e3*eh.RADPERUAS}
         mod_prior[i]["pol_frac"] = {'prior_type':'fixed'}
         mod_prior[i]["pol_evpa"] = {'prior_type':'flat', 'min':0, 'max':np.pi}
 
-    run_nested_kwargs = {'maxiter': niter}
-    kwargs = {'run_nested_kwargs': run_nested_kwargs}
+
+    if minimizer=="dynesty_dynamic":
+        run_nested_kwargs = {'maxiter': niter}
+        kwargs = {'run_nested_kwargs': run_nested_kwargs}
+    else:
+        kwargs = {'maxiter': niter}
 
     #do modelfit
-    mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func='dynesty_dynamic', fit_pol=True,
+    mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
                               alpha_d1=20, minimizer_kwargs={'nlive': nwalker, 'sample': 'rslice'}, pol1='I', pol2='Q',
                               pol3='U', processes=0, **kwargs)
 
