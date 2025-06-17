@@ -1622,7 +1622,7 @@ class ImageCube(object):
             dists=np.concatenate((dists,info["dist"]))
 
         if plot:
-            if len(value_errs)==len(values)
+            if len(value_errs)==len(values):
                 plt.errorbar(dists, values,yerr=value_errs,fmt=".")
             else:
                 plt.scatter(dists, values,fmt=".")
