@@ -162,6 +162,21 @@ class ImageCube(object):
         Returns:
             ImageCube object
         """
+
+        if len(fits_files)==0 and len(model_fits_files)>0:
+            fits_files=model_fits_files
+
+        n=len(fits_files)
+
+        if len(uvf_files)!=n and not uvf_files=="":
+            raise Exception("Number of uvf_files does not match fits_files!")
+        if len(stokes_q_files) != n and not stokes_q_files == "":
+            raise Exception("Number of stokes_q_files does not match fits_files!")
+        if len(stokes_u_files) != n and not stokes_u_files == "":
+            raise Exception("Number of stokes_u_files does not match fits_files!")
+        if len(model_fits_files) != n and not model_fits_files == "":
+            raise Exception("Number of model_fits_files does not match fits_files!")
+
         #sort input files
         fits_files=sort_fits_by_date_and_frequency(fits_files)
         uvf_files=sort_uvf_by_date_and_frequency(uvf_files)
@@ -1600,14 +1615,17 @@ class ImageCube(object):
             info=cc.get_model_profile(freq=freq,epochs=epoch,core_position=core_position, filter_unresolved=filter_unresolved,snr_cut=snr_cut)
             try:
                 values+=info[value]
-                if value=="maj" or value=="flux":
+                if value=="maj" or value=="flux" or value=="dist" or value=="min" or value=="theta" or value=="x" or value=="y" or value=="lin_pol" or value=="evpa":
                     value_errs+=info[value+"_err"]
             except:
-                raise Exception("Invalid 'value' parameter (use 'maj', 'flux' or 'tb').")
+                raise Exception("Invalid 'value' parameter.")
             dists=np.concatenate((dists,info["dist"]))
 
         if plot:
-            plt.errorbar(dists, values,yerr=value_errs,fmt=".")
+            if len(value_errs)==len()
+                plt.errorbar(dists, values,yerr=value_errs,fmt=".")
+            else:
+                plt.scatter(dists, values,fmt=".")
             plt.xlabel("Distance from Core [mas]")
             if value == "maj":
                 plt.ylabel("Component Size [mas]")
@@ -1927,9 +1945,11 @@ class ImageCube(object):
                                                  snr_cut=snr_cut,plot_evpa=True,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="linpol+evpa" or "lin_pol+evpa":
-                    x, y = plot.plot_linpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                    x, y, yerr = plot.plot_linpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                    yerrs.append(yerr)
                 elif value=="fracpol+evpa" or "frac_pol+evpa":
-                    x, y = plot.plot_fracpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                    x, y, yerr = plot.plot_fracpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                    yerrs.append(yerr)
                 else:
                     raise Exception(f"Not possible to plot '{value}' for component!")
                 xvalues.append(x)
@@ -2003,7 +2023,8 @@ class ImageCube(object):
         if show:
             plot.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, plot_errors=False, plot_evpa=False, evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, plot_errors=False, plot_evpa=False, evpa_len=200,
+                  colors=plot_colors,markers=plot_markers,snr_cut=1):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):

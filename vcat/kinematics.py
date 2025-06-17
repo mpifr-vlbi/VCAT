@@ -718,6 +718,8 @@ class ComponentCollection():
         mins = []
         mins_err = []
         fluxs = []
+        thetas = []
+        thetas_err = []
         tbs = []
         tbs_lower_limit = []
         dists = []
@@ -729,7 +731,9 @@ class ComponentCollection():
         y_errs = []
         pas = []
         lin_pols = []
+        lin_pols_err = []
         evpas = []
+        evpas_err = []
 
         for i, freq in enumerate(freq):
             for j, epoch in enumerate(epochs):
@@ -750,8 +754,12 @@ class ComponentCollection():
                         ys.append(self.ys[ind_e,ind_f]*self.scale)
                         y_errs.append(self.y_errs[ind_e,ind_f]*self.scale)
                         pas.append(self.posas[ind_e,ind_f])
+                        thetas.append(self.thetas[ind_e,ind_f])
+                        thetas_err.append(self.thetas_err[ind_e, ind_f])
                         lin_pols.append(self.lin_pols[ind_e,ind_f])
+                        lin_pols_err.append(self.lin_pols_err[ind_e,ind_f])
                         evpas.append(self.evpas[ind_e,ind_f])
+                        evpas_err.append(self.evpas_err[ind_e,ind_f])
                         dist,dist_err=calculate_dist_with_err(self.xs[ind_e,ind_f]*self.scale,self.ys[ind_e,ind_f]*self.scale,
                                                               core_position[0],core_position[1],self.x_errs[ind_e,ind_f]*self.scale,
                                                               self.y_errs[ind_e,ind_f]*self.scale,0,0)
@@ -760,7 +768,8 @@ class ComponentCollection():
 
         return {"maj": majs,"maj_err": majs_err, "min": mins, "min_err": mins_err, "flux": fluxs, "flux_err": fluxs_err,
                 "tb": tbs, "tb_lower_limit":tbs_lower_limit,"dist":dists,"dist_err":dist_errs,
-                "x": xs, "x_err":x_errs,"y":ys,"y_err":y_errs,"PA": pas,"lin_pol": lin_pols,"evpa": evpas}
+                "x": xs, "x_err":x_errs,"theta":thetas, "theta_err": thetas_err,"y":ys,"y_err":y_errs,"PA": pas,
+                "lin_pol": lin_pols,"lin_pol_err": lin_pols_err, "evpa": evpas,"evpa_err": evpas_err}
 
     def interpolate(self, mjd, freq):
         freq_ind=closest_index(self.freqs_distinct,freq*1e9)
