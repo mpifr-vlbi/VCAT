@@ -1363,6 +1363,12 @@ class ImageCube(object):
 
         self.update_comp_collections()
 
+    def change_component_ids(self,old_comp_ids,new_comp_ids):
+        for i in range(len(self.images)):
+            for j in range(len(self.images[0])):
+                if isinstance(self.images[i,j],ImageData):
+                    self.images[i,j].change_component_ids(old_comp_ids,new_comp_ids)
+
     def update_comp_collections(self):
         self.comp_collections=self.get_comp_collections()
 
