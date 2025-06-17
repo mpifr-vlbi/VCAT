@@ -1625,7 +1625,7 @@ class ImageCube(object):
             if len(value_errs)==len(values):
                 plt.errorbar(dists, values,yerr=value_errs,fmt=".")
             else:
-                plt.scatter(dists, values,fmt=".")
+                plt.scatter(dists, values,marker=".")
             plt.xlabel("Distance from Core [mas]")
             if value == "maj":
                 plt.ylabel("Component Size [mas]")
