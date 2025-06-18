@@ -378,7 +378,10 @@ def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=
         logger.warning("No components provided will only write modfile")
         return None
 
-def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,nwalker=200,minimizer="dynesty_dynamic",fov=10,plot=False,max_size=5,max_flux=1,max_dist=5):
+def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,
+                       nwalker=200,minimizer="dynesty_dynamic",fov=10,plot=False,
+                       max_size=5,max_flux=1,max_dist=5,
+                       circ_gauss=False):
     """
     code to modelfit gaussian components to polarization (no Stokes-I) using ehtim
     Args:
@@ -391,6 +394,7 @@ def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,nwalker=200,minimizer
         max_size: Maximum component size in mas
         max_flux: Maximum component flux in Jy
         max_dist: Maximum distance from center in mas
+        circ_gauss (bool): If True, will only fit circular gaussians (Radius = maj!)
         plot: decide whether to create model plot
 
     Returns:
@@ -428,14 +432,25 @@ def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,nwalker=200,minimizer
 
     for param in params:
         # actually add it
-        mod = mod.add_gauss(F0=param[0],
-                            FWHM_maj=param[1] *eh.RADPERUAS*1e3,
-                            FWHM_min=param[2] *eh.RADPERUAS*1e3,
-                            PA=param[3] / 180 * np.pi,
-                            x0=param[4] / scale / 180 * np.pi,
-                            y0=param[5] / scale / 180 * np.pi,
-                            pol_frac=1,
-                            pol_evpa=param[6] / 180 * np.pi)
+        if circ_gauss:
+            mod = mod.add_circ_gauss(
+                F0=param[0],
+                FWHM=param[1]*eh.RADPERUAS,
+                x0=param[4] / scale / 180 * np.pi,
+                y0=param[5] / scale / 180 * np.pi,
+                pol_frac=1,
+                pol_evpa=param[6] / 180 * np.pi
+            )
+        else:
+            mod = mod.add_gauss(
+                F0=param[0],
+                FWHM_maj=param[1] *eh.RADPERUAS*1e3,
+                FWHM_min=param[2] *eh.RADPERUAS*1e3,
+                PA=param[3] / 180 * np.pi,
+                x0=param[4] / scale / 180 * np.pi,
+                y0=param[5] / scale / 180 * np.pi,
+                pol_frac=1,
+                pol_evpa=param[6] / 180 * np.pi)
 
     # make image from model
     im = mod.make_image(fov*1e3*eh.RADPERUAS, npix)
@@ -444,44 +459,61 @@ def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,nwalker=200,minimizer
     mod_prior = mod.default_prior(fit_pol=True)
 
     for i,param in enumerate(params):
-        mod_prior[i]["F0"] = {'prior_type':'flat', 'min':0, 'max':max_flux}
-        mod_prior[i]["FWHM_maj"] = {'prior_type':'flat', 'min':0.01*1e3*eh.RADPERUAS, 'max':max_size*1e3*eh.RADPERUAS}
-        mod_prior[i]["FWHM_min"] = {'prior_type': 'flat', 'min': 0.01 * 1e3 * eh.RADPERUAS,
-                                    'max': max_size * 1e3 * eh.RADPERUAS}
-        mod_prior[i]["PA"] = {'prior_type':'flat','min':0, 'max': np.pi}
-        mod_prior[i]["x0"] = {'prior_type':'flat','min':-max_dist*1e3*eh.RADPERUAS,'max':max_dist*1e3*eh.RADPERUAS}
-        mod_prior[i]["y0"] = {'prior_type':'flat','min':-max_dist*1e3*eh.RADPERUAS,'max':max_dist*1e3*eh.RADPERUAS}
-        mod_prior[i]["pol_frac"] = {'prior_type':'fixed'}
-        mod_prior[i]["pol_evpa"] = {'prior_type':'flat', 'min':0, 'max':np.pi}
+        mod_prior[i]["F0"] = {'prior_type': 'flat', 'min': 0, 'max': max_flux}
+        mod_prior[i]["x0"] = {'prior_type': 'flat', 'min': -max_dist * 1e3 * eh.RADPERUAS,
+                              'max': max_dist * 1e3 * eh.RADPERUAS}
+        mod_prior[i]["y0"] = {'prior_type': 'flat', 'min': -max_dist * 1e3 * eh.RADPERUAS,
+                              'max': max_dist * 1e3 * eh.RADPERUAS}
+        mod_prior[i]["pol_frac"] = {'prior_type': 'fixed'}
+        mod_prior[i]["pol_evpa"] = {'prior_type': 'flat', 'min': 0, 'max': np.pi}
 
+        if circ_gauss:
+            mod_prior[i]["FWHM"] = {'prior_type': 'flat', 'min': 0.01 * 1e3 * eh.RADPERUAS,
+                                        'max': max_size * 1e3 * eh.RADPERUAS}
+        else:
+            mod_prior[i]["FWHM_maj"] = {'prior_type':'flat', 'min':0.01*1e3*eh.RADPERUAS, 'max':max_size*1e3*eh.RADPERUAS}
+            mod_prior[i]["FWHM_min"] = {'prior_type': 'flat', 'min': 0.01 * 1e3 * eh.RADPERUAS,
+                                        'max': max_size * 1e3 * eh.RADPERUAS}
+            mod_prior[i]["PA"] = {'prior_type':'flat','min':0, 'max': np.pi}
 
     if minimizer=="dynesty_dynamic":
         run_nested_kwargs = {'maxiter': niter}
         kwargs = {'run_nested_kwargs': run_nested_kwargs}
+        minimizer_kwargs = {"nlive": nwalker,'sample':'rslice'}
+        mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
+                                  alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
+                                  pol3='U', processes=0, **kwargs)
     else:
-        kwargs = {'maxiter': niter}
-
-    #do modelfit
-    mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
-                              alpha_d1=20, minimizer_kwargs={'nlive': nwalker, 'sample': 'rslice'}, pol1='I', pol2='Q',
-                              pol3='U', processes=0, **kwargs)
+        minimizer_kwargs = {'options':{'maxiter':niter}}
+        mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
+                                  alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
+                                  pol3='U', processes=0)
 
     if plot:
         im = im.blur_gauss(obs.fit_beam(weighting="natural"))
         im.display(plotp=True, show=True, export_pdf="fitted_model.pdf")
 
-    models = np.array(mod_fit["mean"]).reshape(-1, 7)
-
     #plot final model
 
-    for ind,model in enumerate(models):
-        components[ind].lin_pol=model[0]
-        components[ind].maj=model[1]/np.pi*180
-        components[ind].min=model[2]/np.pi*180
-        components[ind].pos=model[3]/np.pi*180
-        components[ind].x=model[4]/np.pi*180
-        components[ind].y=model[5]/np.pi*180
-        components[ind].evpa=model[6]/np.pi*180
+
+
+    for ind, params in enumerate(mod_fit["model"].params):
+        if circ_gauss:
+            components[ind].lin_pol = params["F0"]
+            components[ind].maj = params["FWHM"] / np.pi * 180
+            components[ind].min = params["FWHM"] / np.pi * 180
+            components[ind].pos = 0
+            components[ind].x = params["x0"] / np.pi * 180
+            components[ind].y = params["y0"] / np.pi * 180
+            components[ind].evpa = params["pol_evpa"] / np.pi * 180
+        else:
+            components[ind].lin_pol = params["F0"]
+            components[ind].maj= params["FWHM_maj"]/np.pi*180
+            components[ind].min= params["FWHM_min"]/np.pi*180
+            components[ind].pos= params["PA"]/np.pi*180
+            components[ind].x= params["x0"]/np.pi*180
+            components[ind].y= params["y0"]/np.pi*180
+            components[ind].evpa= params["pol_evpa"]/np.pi*180
 
     return components
 
