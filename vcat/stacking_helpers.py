@@ -265,6 +265,7 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
         clean_mod_files=[], #optional input array of file paths to the clean .mod files for aligning the uvf file first with selfcal
         uvf_files=[], #optional input array of file paths to .uvf files for fits_files
         weighting=[0,-1], #weighting option for uvw in DIFMAP, default is natural weighting
+        uvtaper=[1,0],
         do_selfcal=True,
         ):
 
@@ -311,6 +312,8 @@ def fold_with_beam(fits_files, #array of file paths to fits images input
             send_difmap_command("obs " + uvf_files[ind])
 
             send_difmap_command(f"uvw {weighting[0]},{weighting[1]}")  #use custom weighting
+            if uvtaper!=[1,0]:
+                send_difmap_command(f"uvtaper {uvtaper[0]},{uvtaper[1]}")
             if abs(shift_x)>0 or abs(shift_y)>0:
                 send_difmap_command(f"shift {shift_x},{shift_y}")
             if do_selfcal:

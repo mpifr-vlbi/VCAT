@@ -79,6 +79,7 @@ class ImageData(object):
             integrated_pol_flux_clean (float): Integrated linearly polarized flux density from Stokes Q and U clean models
             evpa_average (float): Average EVPA calculated from Stokes Q and U clean models (in rad!).
             frac_pol (float): Fractional polarization of the image (integrated_flux_pol_clean/integrated_flux_clean)
+            uvtaper (list[float]): Pass uvtaper parameter [fraction, uv-radius]
         Ridgelines:
             ridgeline (Ridgeline): Ridgeline of the image (can be created with self.get_ridgeline())
             counter_ridgeline (Ridgline): Counter-Ridgeline of the image (can be created with self.get_ridgeline())
@@ -126,6 +127,7 @@ class ImageData(object):
                  noise_method=noise_method, #choose noise method
                  mfit_err_method=mfit_err_method,
                  res_lim_method=res_lim_method,
+                 uvtaper=[1,0],
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities,
                  fit_comp_polarization=False,
@@ -191,6 +193,7 @@ class ImageData(object):
         self.fit_comp_pol_errors = fit_comp_pol_errors
         self.error=error
         self.gain_err=gain_err
+        self.uvtaper=uvtaper
         self.M=M
         if ridgeline=="":
             self.ridgeline=Ridgeline()
@@ -980,7 +983,8 @@ class ImageData(object):
                            bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                            channel="i", output_dir=self.model_save_dir + "mod_files_clean", outname=new_stokes_i_fits,
                            n_pixel=npix, pixel_size=pixel_size,
-                           mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                           mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                           weighting=weighting,uvtaper=self.uvtaper)
 
             new_stokes_i_fits += ".fits"
 
@@ -994,7 +998,8 @@ class ImageData(object):
                                    channel="i", output_dir=self.model_save_dir + "mod_files_model",
                                    outname=new_model_fits,
                                    n_pixel=npix, pixel_size=pixel_size,
-                                   mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                                   mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                                   weighting=weighting,uvtaper=self.uvtaper)
 
                     new_model_fits += ".fits"
                 else:
@@ -1011,7 +1016,8 @@ class ImageData(object):
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="q", output_dir=self.model_save_dir + "mod_files_q", outname=new_stokes_q_fits,
                                n_pixel=npix, pixel_size=pixel_size,
-                               mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                               mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                               weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_q_fits += ".fits"
 
@@ -1019,7 +1025,8 @@ class ImageData(object):
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="u", output_dir=self.model_save_dir + "mod_files_u", outname=new_stokes_u_fits,
                                n_pixel=npix, pixel_size=pixel_size,
-                               mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file], weighting=weighting)
+                               mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],
+                               weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_u_fits += ".fits"
 
@@ -1046,7 +1053,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
     def plot(self,show=True,savefig="",**kwargs):
         defaults = {
@@ -1482,7 +1490,7 @@ class ImageData(object):
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                    uvf_files=[self.uvf_file],weighting=weighting)
+                    uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
 
             new_stokes_i_fits+=".fits"
 
@@ -1495,7 +1503,8 @@ class ImageData(object):
                         bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
                         n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
-                        mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                        mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                        weighting=weighting,uvtaper=self.uvtaper)
 
                     new_model_fits+=".fits"
                 else:
@@ -1514,7 +1523,7 @@ class ImageData(object):
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=weighting)
+                               uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_q_fits+=".fits"
 
@@ -1523,7 +1532,7 @@ class ImageData(object):
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_u_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=weighting)
+                               uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_u_fits+=".fits"
 
@@ -1552,7 +1561,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
     def shift(self,shift_x,shift_y,weighting=uvw,useDIFMAP=True):
         """
@@ -1817,7 +1827,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
         else:
 
@@ -1840,7 +1851,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
             rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
             try:
