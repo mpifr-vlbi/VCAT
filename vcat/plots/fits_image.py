@@ -124,7 +124,7 @@ class FitsImage(object):
                  fig=None, #define custom figure
                  font_size_axis_title=font_size_axis_title, #set fontsize for axis title
                  font_size_axis_tick=font_size_axis_tick, #set fontsize for axis ticks
-                 adjust_comp_size_to_res_lim=True, #will adjust the component size to the minimum resolvable size in the plots
+                 adjust_comp_size_to_res_lim=False, #will adjust the component size to the minimum resolvable size in the plots
                  rcparams={} # option to modify matplotlib look
                  ):
 
@@ -447,7 +447,6 @@ class FitsImage(object):
                 g_pos = model_gauss_df["PA"]
                 g_flux = model_gauss_df["Flux"]
                 g_date = model_gauss_df["Date"]
-                g_mjd = model_gauss_df["mjd"]
                 g_mjd = model_gauss_df["mjd"]
                 g_year = model_gauss_df["Year"]
             except:

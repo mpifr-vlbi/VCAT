@@ -28,6 +28,7 @@ from astropy.cosmology import FlatLambdaCDM
 from vcat.fit_functions import broken_powerlaw,powerlaw,broken_powerlaw_withr0,powerlaw_withr0
 from scipy.optimize import curve_fit
 from functools import partial
+import ast
 
 
 #initialize logger
@@ -93,7 +94,7 @@ def get_sigma_levs(image,  # 2d array/list
     return levs, levs1
 
 #gets components from .fits or .mod file
-def getComponentInfo(filename,scale=60*60*1000):
+def getComponentInfo(filename,scale=60*60*1000,year=0,mjd=0,date=0):
     """Imports component info from a modelfit .fits or .mod file.
     Args:
         filename: Path to a modelfit (or clean) .fits or .mod file
@@ -190,6 +191,10 @@ def getComponentInfo(filename,scale=60*60*1000):
         #create data_df
         data_df = pd.DataFrame({'ratio': ratio, 'Minor_axis': min, 'Major_axis': maj, 'theta': theta, 'Delta_y': delta_y,
                                 'Delta_x': delta_x ,"Flux": flux, "PA": pa, "Typ_obj": typ_obj})
+
+        data_df["mjd"]=mjd
+        data_df["Year"]=year
+        data_df["Date"]=date
 
     return data_df
 
@@ -447,6 +452,82 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
               "{:.5E}".format(freq)+"   0")
 
     sys.stdout = original_stdout
+
+def write_mod_file_from_ehtim(image_data,channel="i",export="export.mod"):
+
+    file=image_data.model_file_path
+
+    print(file)
+
+    # read out clean components from pixel map
+    xs = []
+    ys = []
+    fluxs = []
+    pas = []
+    majs = []
+    mins = []
+    typ_objs = []
+
+    with open(file,"r") as f:
+        lines=f.readlines()
+
+        for i,line in enumerate(lines):
+            if not line.startswith("#"):
+                if ("circ_gauss" in line) or ("gauss" in line):
+                    dict=ast.literal_eval(lines[i+1])
+
+                    flux=dict["F0"]
+                    if "circ_gauss" in line:
+                        maj=dict["FWHM"]/np.pi*180
+                        min=maj
+                        PA=0
+                    else:
+                        maj=dict["FWHM_maj"]/np.pi*180
+                        min=dict["FWHM_min"]/np.pi*180
+                        PA=dict["PA"]/np.pi*180
+
+                    x=dict["x0"]/np.pi*180
+                    y=dict["y0"]/np.pi*180
+
+                    #check if we need to do polarization
+                    if channel=="q" or channel=="u":
+                        pol_frac = dict["pol_frac"]
+                        pol_evpa = dict["pol_evpa"]
+                        lin_pol=pol_frac*flux
+                        flux_u = np.tan(2 * pol_evpa) * lin_pol / np.sqrt(1 + np.tan(2 * pol_evpa) ** 2)
+                        flux_q = np.sqrt(lin_pol**2-flux_u**2)
+
+                    if channel=="q":
+                        if abs(pol_evpa/np.pi*180)<=45 or (abs(pol_evpa/np.pi*180)>=90 and abs(pol_evpa/np.pi*180)<=135):
+                            flux=abs(flux_q)
+                        else:
+                            flux=-abs(flux_q)
+                    elif channel=="u":
+                        if abs(pol_evpa/np.pi*180)<=90:
+                            flux=abs(flux_u)
+                        else:
+                            flux=-abs(flux_u)
+
+                    fluxs.append(flux)
+                    majs.append(maj)
+                    mins.append(min)
+                    xs.append(x)
+                    ys.append(y)
+                    pas.append(PA)
+                    typ_objs.append(1)
+
+    # create model_df
+    model_df = pd.DataFrame(
+        {'Flux': fluxs,
+         'Delta_x': xs,
+         'Delta_y': ys,
+         'Major_axis': majs,
+         'Minor_axis': mins,
+         'PA': pas,
+         'Typ_obj': typ_objs
+         })
+
+    write_mod_file(model_df,export,image_data.freq,image_data.scale)
 
 def write_mod_file_from_casa(image_data,channel="i",export="export.mod"):
     """Writes a .mod file from a CASA exported .fits model file.

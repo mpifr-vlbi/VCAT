@@ -79,6 +79,7 @@ class ImageData(object):
             integrated_pol_flux_clean (float): Integrated linearly polarized flux density from Stokes Q and U clean models
             evpa_average (float): Average EVPA calculated from Stokes Q and U clean models (in rad!).
             frac_pol (float): Fractional polarization of the image (integrated_flux_pol_clean/integrated_flux_clean)
+            uvtaper (list[float]): Pass uvtaper parameter [fraction, uv-radius]
         Ridgelines:
             ridgeline (Ridgeline): Ridgeline of the image (can be created with self.get_ridgeline())
             counter_ridgeline (Ridgline): Counter-Ridgeline of the image (can be created with self.get_ridgeline())
@@ -122,9 +123,11 @@ class ImageData(object):
                  M=0,
                  model_save_dir="tmp/",
                  is_casa_model=False,
+                 is_ehtim_model=False,
                  noise_method=noise_method, #choose noise method
                  mfit_err_method=mfit_err_method,
                  res_lim_method=res_lim_method,
+                 uvtaper=[1,0],
                  correct_rician_bias=False,
                  error=0.05, #relative error flux densities,
                  fit_comp_polarization=False,
@@ -156,6 +159,7 @@ class ImageData(object):
             M (float): Black hole mass
             model_save_dir (str): Directory where temporary data for VCAT operations will be stored
             is_casa_model (bool): If using a CASA .fits model for 'model', set to True
+            is_ehtim_model (bool): If using a ehtim .txt model file for 'model', set to True
             noise_method (str): Choose method to calculate image noise ('Histogram Fit', 'box', 'Image RMS', 'DIFMAP')
             mfit_err_method (str): Choose method to compute modelcomponent errors ('flat', 'Schinzel12', 'Weaver22')
             res_lim_method (str): Choose method to compute component resolution limit ('Kovalev05', 'Lobanov05','beam')
@@ -165,7 +169,6 @@ class ImageData(object):
             fit_comp_pol_errors (bool): Choose whether to determine lin_pol and evpa errors for components
             difmap_path (str): Path to the folder of your DIFMAP installation
         """
-
         if model=="":
             self.model_inp=False
         else:
@@ -183,12 +186,14 @@ class ImageData(object):
         self.residual_map = []
         self.noise_method=noise_method
         self.is_casa_model=is_casa_model
+        self.is_ehtim_model=is_ehtim_model
         self.model_save_dir=model_save_dir
         self.correct_rician_bias=correct_rician_bias
         self.fit_comp_pol = fit_comp_polarization
         self.fit_comp_pol_errors = fit_comp_pol_errors
         self.error=error
         self.gain_err=gain_err
+        self.uvtaper=uvtaper
         self.M=M
         if ridgeline=="":
             self.ridgeline=Ridgeline()
@@ -258,6 +263,7 @@ class ImageData(object):
         self.name = hdu_list[0].header["OBJECT"]
         self.date = get_date(fits_file)
         self.mjd = Time(self.date).mjd
+        self.year = Time(self.date).decimalyear
         try:
             self.freq = float(hdu_list[0].header["CRVAL3"])  # frequency in Hertz
         except:
@@ -349,7 +355,7 @@ class ImageData(object):
         self.model_file_path = model
         if self.model_file_path=="":
             self.model_file_path=self.fits_file
-        elif not isinstance(model, pd.DataFrame) and not is_fits_file(model): #Careful, this may not work for CASA style .fits files!
+        elif not isinstance(model, pd.DataFrame) and not is_fits_file(model) and not is_casa_model and not is_ehtim_model: #Careful, this may not work for CASA style .fits files!
             #this means it is a .mod file -> will create .fits file from it
             os.makedirs(model_save_dir + "mod_files_model/", exist_ok=True)
             new_model_fits=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz"
@@ -488,7 +494,7 @@ class ImageData(object):
         #calculate integrated pol flux in image
         self.integrated_pol_flux_image = JyPerBeam2Jy(np.sum(self.lin_pol),self.beam_maj,self.beam_min,self.degpp*self.scale)
 
-        if not is_casa_model:
+        if not is_casa_model and not self.is_ehtim_model:
             try:
                 #TODO basic checks if file is valid
                 self.model=getComponentInfo(self.model_file_path, scale=self.scale)
@@ -500,7 +506,24 @@ class ImageData(object):
                     write_mod_file(self.model, self.model_mod_file, freq=self.freq)
             except:
                 logger.warning("FITS file does not contain model extension!")
-        else:
+        if self.is_ehtim_model:
+            os.makedirs(model_save_dir, exist_ok=True)
+            os.makedirs(model_save_dir + "mod_files_clean", exist_ok=True)
+            os.makedirs(model_save_dir + "mod_files_q", exist_ok=True)
+            os.makedirs(model_save_dir + "mod_files_u", exist_ok=True)
+            self.stokes_i_mod_file = model_save_dir + "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                self.freq / 1e9).replace(".", "_") + "GHz.mod"
+            write_mod_file_from_ehtim(self,channel="i", export=self.stokes_i_mod_file)
+            self.stokes_q_mod_file = model_save_dir + "mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                self.freq / 1e9).replace(".", "_") + "GHz.mod"
+            write_mod_file_from_ehtim(self,channel="q", export=self.stokes_q_mod_file)
+            self.stokes_u_mod_file = model_save_dir + "mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
+                self.freq / 1e9).replace(".", "_") + "GHz.mod"
+            write_mod_file_from_ehtim(self,channel="u", export=self.stokes_u_mod_file)
+            self.model = getComponentInfo(self.stokes_i_mod_file, scale=self.scale,year=self.year,mjd=self.mjd,date=self.date)
+            self.model_mod_file=self.stokes_i_mod_file
+
+        elif is_casa_model:
             #TODO basic checks if file is valid
             os.makedirs(model_save_dir,exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
@@ -512,6 +535,8 @@ class ImageData(object):
             self.write_mod_file_from_casa(channel="q", export=self.stokes_q_mod_file)
             self.stokes_u_mod_file=model_save_dir+"mod_files_u/"+ self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
             self.write_mod_file_from_casa(channel="u", export=self.stokes_u_mod_file)
+            self.model = getComponentInfo(self.stokes_i_mod_file, scale=self.scale)
+            self.model_mod_file = self.stokes_i_mod_file
         try:
             os.makedirs(model_save_dir+"mod_files_clean", exist_ok=True)
             os.makedirs(model_save_dir+"mod_files_q", exist_ok=True)
@@ -596,7 +621,8 @@ class ImageData(object):
                     logger.warning("Trying to fit component polarization, but no uvf file loaded!")
                 else:
                     logger.debug("Not fitting component polarization")
-        
+
+
         hdu_list.close()
 
         #calculate cleaned flux density from mod files
@@ -635,7 +661,6 @@ class ImageData(object):
             self.mask[np.isnan(self.Z)]=True
         else:
             if np.shape(mask) != np.shape(self.Z):
-                print(np.shape(mask),np.shape(self.Z))
                 logger.warning("Mask input format invalid, Mask reset to no mask.")
                 self.mask = np.zeros_like(self.Z, dtype=bool)
             else:
@@ -958,7 +983,8 @@ class ImageData(object):
                            bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                            channel="i", output_dir=self.model_save_dir + "mod_files_clean", outname=new_stokes_i_fits,
                            n_pixel=npix, pixel_size=pixel_size,
-                           mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                           mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                           weighting=weighting,uvtaper=self.uvtaper)
 
             new_stokes_i_fits += ".fits"
 
@@ -972,7 +998,8 @@ class ImageData(object):
                                    channel="i", output_dir=self.model_save_dir + "mod_files_model",
                                    outname=new_model_fits,
                                    n_pixel=npix, pixel_size=pixel_size,
-                                   mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                                   mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                                   weighting=weighting,uvtaper=self.uvtaper)
 
                     new_model_fits += ".fits"
                 else:
@@ -989,7 +1016,8 @@ class ImageData(object):
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="q", output_dir=self.model_save_dir + "mod_files_q", outname=new_stokes_q_fits,
                                n_pixel=npix, pixel_size=pixel_size,
-                               mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                               mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                               weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_q_fits += ".fits"
 
@@ -997,7 +1025,8 @@ class ImageData(object):
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="u", output_dir=self.model_save_dir + "mod_files_u", outname=new_stokes_u_fits,
                                n_pixel=npix, pixel_size=pixel_size,
-                               mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file], weighting=weighting)
+                               mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],
+                               weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_u_fits += ".fits"
 
@@ -1024,7 +1053,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
     def plot(self,show=True,savefig="",**kwargs):
         defaults = {
@@ -1139,11 +1169,9 @@ class ImageData(object):
 
                 shift,error,diffphase = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp,self.unit))
-                #print('register images new shift (y,x): {} px +- {}'.format(-shift, error))
             else:
                 shift, _, _ = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
-                #print('register images new shift (y,x): {} px'.format(-shift))
 
         elif method=="brightest":
             #align images on brightest pixel
@@ -1462,7 +1490,7 @@ class ImageData(object):
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                    uvf_files=[self.uvf_file],weighting=weighting)
+                    uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
 
             new_stokes_i_fits+=".fits"
 
@@ -1475,7 +1503,8 @@ class ImageData(object):
                         bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
                         n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
-                        mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file], weighting=weighting)
+                        mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
+                        weighting=weighting,uvtaper=self.uvtaper)
 
                     new_model_fits+=".fits"
                 else:
@@ -1494,7 +1523,7 @@ class ImageData(object):
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=weighting)
+                               uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_q_fits+=".fits"
 
@@ -1503,7 +1532,7 @@ class ImageData(object):
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_u_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=weighting)
+                               uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
 
                 new_stokes_u_fits+=".fits"
 
@@ -1532,7 +1561,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
     def shift(self,shift_x,shift_y,weighting=uvw,useDIFMAP=True):
         """
@@ -1797,7 +1827,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
         else:
 
@@ -1820,7 +1851,8 @@ class ImageData(object):
                          core_comp_id=self.get_model_info()[1],
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors)
+                         fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvtaper=self.uvtaper)
 
             rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
             try:
