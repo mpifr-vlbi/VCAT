@@ -2153,7 +2153,7 @@ class ImageCube(object):
 
     def movie(self,plot_mode="stokes_i",freq="",noise="max",n_frames=500,interval=50,
               start_mjd="",end_mjd="",dpi=300,fps=20,save="",plot_components=False,fill_components=False,
-              plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
+              ref_image="", plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
         """
         Function to create movies from image cube
 
@@ -2250,7 +2250,8 @@ class ImageCube(object):
             if noise=="min":
                 im_ind=np.argmin(self.noises[:,ind].flatten())
 
-            ref_image=self.images[:,ind].flatten()[im_ind]
+            if ref_image="":
+                ref_image=self.images[:,ind].flatten()[im_ind]
 
             #get levs
             plot=ref_image.plot(plot_mode=plot_mode,show=False,**kwargs)

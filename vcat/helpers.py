@@ -1470,7 +1470,6 @@ def get_resolution_limit(beam_maj, beam_min, beam_pos, comp_pos, snr, method=res
         # rotate the beam to the x-axis
         new_pos = beam_pos - comp_pos
 
-        # TODO double check the angles and check that new_pos and pos are both in degree!
         # We use SymPy to intersect the beam with the component maj/min directions
         beam = Ellipse(Point(0, 0), hradius=beam_maj / 2, vradius=beam_min / 2)
         line_maj = Line(Point(0, 0), Point(np.cos(new_pos / 180 * np.pi), np.sin(new_pos / 180 * np.pi)))
