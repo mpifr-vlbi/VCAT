@@ -2249,7 +2249,7 @@ class ImageCube(object):
             if noise=="min":
                 im_ind=np.argmin(self.noises[:,ind].flatten())
 
-            if ref_image="":
+            if ref_image=="":
                 ref_image=self.images[:,ind].flatten()[im_ind]
 
             #get levs
