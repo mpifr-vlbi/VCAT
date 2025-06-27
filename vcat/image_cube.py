@@ -28,7 +28,6 @@ from vcat.stacking_helpers import stack_fits, stack_pol_fits
 from tqdm import tqdm
 from vcat.config import uvw, plot_colors, plot_markers, plot_linestyles, H0, Om0
 from vcat.plots.jet_profile_plot import JetProfilePlot
-from joblib import Parallel, delayed
 from astropy import units as u
 
 #initialize logger
