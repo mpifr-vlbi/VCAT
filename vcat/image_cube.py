@@ -1988,7 +1988,7 @@ class ImageCube(object):
                 plot.ax.set_rmax(max(years) + 0.05 * years_range)
 
 
-            plt.legend()
+            plot.ax.legend()
             if show:
                 plt.show()
 

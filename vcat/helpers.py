@@ -115,16 +115,31 @@ def getComponentInfo(filename,scale=60*60*1000,year=0,mjd=0,date=0):
         date = np.array([])
         year = np.array([])
         mjd = np.array([])
+        print(comp_data.shape)
+        date1 = get_date(filename)
+        t = Time(date1)
+        tjyear=t.jyear
+        tmjd=t.mjd
         for j in range(len(comp_data)):
+            print(j)
             comp_data1[j, :] = comp_data[j]
-            date1=get_date(filename)
             date = np.append(date, date1)
-            t = Time(date1)
-            year = np.append(year, t.jyear)
-            mjd = np.append(mjd, t.mjd)
-        comp_data1_df = pd.DataFrame(data=comp_data1,
-                                     columns=["Flux", "Delta_x", "Delta_y", "Major_axis", "Minor_axis", "PA",
-                                              "Typ_obj"])
+            year = np.append(year, tjyear)
+            mjd = np.append(mjd, tmjd)
+        try:
+            #DIFMAP STYLE
+            comp_data1_df = pd.DataFrame(data=comp_data1,
+                                         columns=["Flux", "Delta_x", "Delta_y", "Major_axis", "Minor_axis", "PA",
+                                                  "Typ_obj"])
+        except:
+            #AIPS STYLE
+            comp_data1_df = pd.DataFrame(data=comp_data1,
+                                         columns=["Flux","Delta_x","Delta_y"])
+            comp_data1_df["Major_axis"]=0
+            comp_data1_df["Minor_axis"]=0
+            comp_data1_df["PA"]=0
+            comp_data1_df["Typ_obj"]=0
+
         comp_data1_df["Date"] = date
         comp_data1_df["Year"] = year
         comp_data1_df["mjd"] = mjd
