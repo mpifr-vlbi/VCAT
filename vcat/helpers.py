@@ -115,13 +115,11 @@ def getComponentInfo(filename,scale=60*60*1000,year=0,mjd=0,date=0):
         date = np.array([])
         year = np.array([])
         mjd = np.array([])
-        print(comp_data.shape)
         date1 = get_date(filename)
         t = Time(date1)
         tjyear=t.jyear
         tmjd=t.mjd
         for j in range(len(comp_data)):
-            print(j)
             comp_data1[j, :] = comp_data[j]
             date = np.append(date, date1)
             year = np.append(year, tjyear)
@@ -471,8 +469,6 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
 def write_mod_file_from_ehtim(image_data,channel="i",export="export.mod"):
 
     file=image_data.model_file_path
-
-    print(file)
 
     # read out clean components from pixel map
     xs = []
