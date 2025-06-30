@@ -384,7 +384,7 @@ def modelfit_difmap(uvf_file,mod_file,niter,difmap_path,components="",weighting=
 def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,
                        nwalker=200,minimizer="dynesty_dynamic",fov=10,plot=False,
                        max_size=5,max_flux=1,max_dist=5,
-                       circ_gauss=False):
+                       circ_gauss=False,export_model="",skip_fit=False):
     """
     code to modelfit gaussian components to polarization (no Stokes-I) using ehtim
     Args:
@@ -479,46 +479,52 @@ def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,
                                         'max': max_size * 1e3 * eh.RADPERUAS}
             mod_prior[i]["PA"] = {'prior_type':'flat','min':0, 'max': np.pi}
 
-    if minimizer=="dynesty_dynamic":
-        run_nested_kwargs = {'maxiter': niter}
-        kwargs = {'run_nested_kwargs': run_nested_kwargs}
-        minimizer_kwargs = {"nlive": nwalker,'sample':'rslice'}
-        mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
-                                  alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
-                                  pol3='U', processes=0, **kwargs)
-    else:
-        minimizer_kwargs = {'options':{'maxiter':niter}}
-        mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
-                                  alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
-                                  pol3='U', processes=0)
-
-    if plot:
-        im = im.blur_gauss(obs.fit_beam(weighting="natural"))
-        im.display(plotp=True, show=True, export_pdf="fitted_model.pdf")
-
-    #plot final model
-
-
-
-    for ind, params in enumerate(mod_fit["model"].params):
-        if circ_gauss:
-            components[ind].lin_pol = params["F0"]
-            components[ind].maj = params["FWHM"] / np.pi * 180
-            components[ind].min = params["FWHM"] / np.pi * 180
-            components[ind].pos = 0
-            components[ind].x = params["x0"] / np.pi * 180
-            components[ind].y = params["y0"] / np.pi * 180
-            components[ind].evpa = params["pol_evpa"] / np.pi * 180
+    if not skip_fit:
+        if minimizer=="dynesty_dynamic":
+            run_nested_kwargs = {'maxiter': niter}
+            kwargs = {'run_nested_kwargs': run_nested_kwargs}
+            minimizer_kwargs = {"nlive": nwalker,'sample':'rslice'}
+            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
+                                      alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
+                                      pol3='U', processes=0, **kwargs)
         else:
-            components[ind].lin_pol = params["F0"]
-            components[ind].maj= params["FWHM_maj"]/np.pi*180
-            components[ind].min= params["FWHM_min"]/np.pi*180
-            components[ind].pos= params["PA"]/np.pi*180
-            components[ind].x= params["x0"]/np.pi*180
-            components[ind].y= params["y0"]/np.pi*180
-            components[ind].evpa= params["pol_evpa"]/np.pi*180
+            minimizer_kwargs = {'options':{'maxiter':niter}}
+            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
+                                      alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
+                                      pol3='U', processes=0)
+        # plot final model
+        if plot:
+            im = im.blur_gauss(obs.fit_beam(weighting="natural"))
+            im.display(plotp=True, show=True, export_pdf="fitted_model.pdf")
 
-    return components
+        if export_model != "":
+            mod_fit["model"].save_txt(export_model)
+
+        for ind, params in enumerate(mod_fit["model"].params):
+            if circ_gauss:
+                components[ind].lin_pol = params["F0"]
+                components[ind].maj = params["FWHM"] / np.pi * 180
+                components[ind].min = params["FWHM"] / np.pi * 180
+                components[ind].pos = 0
+                components[ind].x = params["x0"] / np.pi * 180
+                components[ind].y = params["y0"] / np.pi * 180
+                components[ind].evpa = params["pol_evpa"] / np.pi * 180
+            else:
+                components[ind].lin_pol = params["F0"]
+                components[ind].maj = params["FWHM_maj"] / np.pi * 180
+                components[ind].min = params["FWHM_min"] / np.pi * 180
+                components[ind].pos = params["PA"] / np.pi * 180
+                components[ind].x = params["x0"] / np.pi * 180
+                components[ind].y = params["y0"] / np.pi * 180
+                components[ind].evpa = params["pol_evpa"] / np.pi * 180
+
+        return components
+    else:
+        if export_model != "":
+            mod.save_txt(export_model)
+        return components
+
+
 
 def modelfit_ehtim_old(uvf_file,components,niter,npix=1024,fov=10):
     import ehtim as eh

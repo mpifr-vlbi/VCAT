@@ -28,7 +28,6 @@ from vcat.stacking_helpers import stack_fits, stack_pol_fits
 from tqdm import tqdm
 from vcat.config import uvw, plot_colors, plot_markers, plot_linestyles, H0, Om0
 from vcat.plots.jet_profile_plot import JetProfilePlot
-from joblib import Parallel, delayed
 from astropy import units as u
 
 #initialize logger
@@ -1911,7 +1910,7 @@ class ImageCube(object):
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
                 plot=KinematicPlot(pol_plot=True,fig=fig,ax=ax)
             else:
-                plot = KinematicPlot()
+                plot = KinematicPlot(fig=fig,ax=ax)
             years = []
             xvalues = []
             yvalues = []
@@ -1989,7 +1988,7 @@ class ImageCube(object):
                 plot.ax.set_rmax(max(years) + 0.05 * years_range)
 
 
-            plt.legend()
+            plot.ax.legend()
             if show:
                 plt.show()
 
@@ -2153,7 +2152,7 @@ class ImageCube(object):
 
     def movie(self,plot_mode="stokes_i",freq="",noise="max",n_frames=500,interval=50,
               start_mjd="",end_mjd="",dpi=300,fps=20,save="",plot_components=False,fill_components=False,
-              plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
+              ref_image="", plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
         """
         Function to create movies from image cube
 
@@ -2250,7 +2249,8 @@ class ImageCube(object):
             if noise=="min":
                 im_ind=np.argmin(self.noises[:,ind].flatten())
 
-            ref_image=self.images[:,ind].flatten()[im_ind]
+            if ref_image=="":
+                ref_image=self.images[:,ind].flatten()[im_ind]
 
             #get levs
             plot=ref_image.plot(plot_mode=plot_mode,show=False,**kwargs)
@@ -2261,6 +2261,7 @@ class ImageCube(object):
             levs1 = plot.levs1
             linpol_vmax = plot.linpol_vmax
             fracpol_vmax = plot.fracpol_vmax
+            stokes_i_vmax = plot.stokes_i_vmax
 
             if start_mjd=="":
                 start_mjd=np.min(self.images_mjd[:,ind].flatten())
@@ -2287,7 +2288,7 @@ class ImageCube(object):
                 year_title=Time(current_mjd,format="mjd").decimalyear
                 plot=ref_image.plot(plot_mode=plot_mode,fig=fig, ax=ax, show=False, title=f"Year: {year_title:.2f}",
                                levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,
-                                linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,**kwargs)
+                                linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,stokes_i_vmax=stokes_i_vmax,**kwargs)
 
                 #plot_components if necessary:
                 if plot_components:
@@ -2315,7 +2316,6 @@ class ImageCube(object):
 
             #create animation
             ani = animation.FuncAnimation(fig, update, frames=n_frames,interval=interval, blit=False)
-
 
             ani.save(save[index],writer="ffmpeg",dpi=dpi,fps=round(1/interval*1000))
             logger.info(f"Movie for {f:.0f}GHz exported as '{save[index]}'")
