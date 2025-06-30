@@ -1910,7 +1910,7 @@ class ImageCube(object):
             if (value=="evpa" or value=="EVPA") and evpa_pol_plot:
                 plot=KinematicPlot(pol_plot=True,fig=fig,ax=ax)
             else:
-                plot = KinematicPlot()
+                plot = KinematicPlot(fig=fig,ax=ax)
             years = []
             xvalues = []
             yvalues = []
