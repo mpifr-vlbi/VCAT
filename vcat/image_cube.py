@@ -1105,12 +1105,22 @@ class ImageCube(object):
             lam1=c.si.value/image1.freq
             lam2=c.si.value/image2.freq
 
-            # calculate rotation measure
-            rm=(evpa2-evpa1)/(lam2**2-lam1**2)
+            evpa_diff=evpa2-evpa1
 
+            #TODO validate the next two lines!!
+            evpa_diff[evpa_diff>np.pi/2]-=np.pi
+            evpa_diff[evpa_diff<-np.pi/2]+=np.pi
+
+            # calculate rotation measure
+            rm=evpa_diff/(lam2**2-lam1**2)
+
+            #calculate maximum rm
+            rm_max=(np.pi/2)/(lam2**2-lam1**2)
+            rm=np.ma.masked_where((abs(rm) > rm_max), rm)
 
             #calculate intrinsic EVPA
             evpa0=(evpa1*lam2**2-evpa2*lam1**2)/(lam2**2-lam1**2)
+            evpa0=np.ma.masked_where((abs(rm) > rm_max), evpa0)
 
             # TODO maybe it makes sense to introduce a new RMData Class here? The current solution is a bit hacky, but it works
             image_copy = image2.copy()
