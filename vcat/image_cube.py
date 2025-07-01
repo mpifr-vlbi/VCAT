@@ -2047,7 +2047,7 @@ class ImageCube(object):
             plot.show()
 
     def get_speed(self,id="",freq="",order=1,show_plot=False, plot_errors=False, plot_evpa=False, evpa_len=200,
-                  colors=plot_colors,markers=plot_markers,snr_cut=1):
+                  colors=plot_colors,markers=plot_markers,snr_cut=1,fig="",ax=""):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -2066,7 +2066,7 @@ class ImageCube(object):
         fits=[]
         for fr in freq:
             #One plot per frequency with all components
-            plot = KinematicPlot()
+            plot = KinematicPlot(fig=fig,ax=ax)
             for ind,cc in enumerate(ccs):
 
                 fit=cc.get_speed(freqs=fr,order=order,snr_cut=snr_cut)
