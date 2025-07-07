@@ -240,7 +240,7 @@ class Component():
         self.delta_x_est = self.x - core_x
         self.delta_y_est = self.y - core_y
         self.distance_to_core, self.distance_to_core_err = calculate_dist_with_err(self.x,self.y,core_x,core_y,
-                                                                                   self.x_err,self.y_err,core_x_err,core_y_err)
+                                                                                   self.x_err,self.y_err,0,0)
 
     def assign_component_number(self, number):
         self.component_number = number
@@ -588,9 +588,7 @@ class ComponentCollection():
 
         return results
 
-    def fit_comp_spectrum(self,epochs="",add_data=False,plot_areas=False,plot_all_components=False,comps=False,
-            exclude_comps=False,ccolor=False,out=True,fluxerr=False,fit_free_ssa=False,plot_fit_summary=False,
-            annotate_fit_results=True):
+    def fit_comp_spectrum(self,epochs="",fluxerr=False,fit_free_ssa=False):
         """
         This function only makes sense on a component collection with multiple components on the same date at different frequencies
 
@@ -637,8 +635,8 @@ class ComponentCollection():
             #fit Snu
             logger.info("Fit SSA to Comp " + str(cid[0]))
             if fit_free_ssa:
-                sn_x0 = np.array([120,np.max(cflux),2.5,-3])
-                beta,sd_beta,chi2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
+                sn_x0 = np.array([20,np.max(cflux),2.5,-1])
+                sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
             else:
                 sn_x0 = np.array([20,np.max(cflux),-1])
                 sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu_real,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)

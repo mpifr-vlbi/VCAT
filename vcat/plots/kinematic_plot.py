@@ -596,9 +596,7 @@ class KinematicPlot(object):
         ymin = float('1e{}'.format(exponent))
 
         if fit_result["fit"] == "PL":
-            textstr = '\n'.join((
-                r'$\alpha={:.2f}\pm{:.2f}$'.format(fit_result["alpha"], fit_result["alphaE"])
-            ))
+            textstr = r'$\alpha={:.2f}\pm{:.2f}$'.format(fit_result["alpha"], fit_result["alphaE"])
             if annotate_fit_results:
                 self.ax.annotate(textstr, xy=(0.05, 0.1), xycoords='axes fraction', fontsize=8, bbox=props)
             self.ax.plot(xr, ff.powerlaw(fit_result["pl_p"], xr), 'k', lw=0.5)
@@ -630,14 +628,14 @@ class KinematicPlot(object):
 
             for jj, SNL in enumerate(sn_low[:2]):
                 if SNL < 0:
-                    logging.warning("Uncertainties for SN fit large, limit peak flux and freq \n")
+                    logger.warning("Uncertainties for SN fit large, limit peak flux and freq \n")
                     if jj == 0:
                         sn_low[jj] = 0.1
                     if jj == 1:
                         sn_low[jj] = ymin
 
             if fit_result["fit_free_ssa"]:
-                self.ax.plot(xf, ff.Snu(fit_result["sn_p"], xr), 'k', lw=0.5)
+                self.ax.plot(xr, ff.Snu(fit_result["sn_p"], xr), 'k', lw=0.5)
                 y1 = ff.Snu(sn_low, xr)
                 y2 = ff.Snu(sn_up, xr)
             else:
