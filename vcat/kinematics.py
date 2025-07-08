@@ -412,7 +412,7 @@ class ComponentCollection():
 
         return x_fits, y_fits
 
-    def get_speed(self,freqs="",order=1,weighted_fit=False, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
+    def get_speed(self,freqs="",order=1,weighted_fit=True, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
 
 
         if freqs=="":
