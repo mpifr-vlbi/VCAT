@@ -240,7 +240,7 @@ class Component():
         self.delta_x_est = self.x - core_x
         self.delta_y_est = self.y - core_y
         self.distance_to_core, self.distance_to_core_err = calculate_dist_with_err(self.x,self.y,core_x,core_y,
-                                                                                   self.x_err,self.y_err,0,0)
+                                                                                   self.x_err,self.y_err,core_x_err,core_y_err)
 
     def assign_component_number(self, number):
         self.component_number = number
@@ -412,7 +412,8 @@ class ComponentCollection():
 
         return x_fits, y_fits
 
-    def get_speed(self,freqs="",order=1,weighted_fit=True, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
+    def get_speed(self,freqs="",order=1,weighted_fit=True, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1,
+                  t0_error_method="Gauss"):
 
 
         if freqs=="":
@@ -464,12 +465,17 @@ class ComponentCollection():
                 d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
                 dist_0_est = linear_fit[-1] - speed * t_mid
                 t_0 = - linear_fit[-1] / speed + t_mid
-                sum_x = time / np.array(dist_err) ** 2
-                sum_x2 = time ** 2 / np.array(dist_err) ** 2
-                sum_err = 1. / np.array(dist_err) ** 2
-                Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
-                t_0_err = np.sqrt((cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
-                                  2 * linear_fit[-1] / speed ** 3 * np.sum(sum_x) / Delta)
+                if t0_error_method=="Gauss":
+                    t_0_err = np.sqrt((cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4))
+                elif t0_error_method=="Rösch":
+                    #see Master Thesis F. Rösch 2019 https://www.physik.uni-wuerzburg.de/fileadmin/11030400/2019/Masterarbeit_Roesch.pdf
+                    sum_x = time / np.array(dist_err) ** 2
+                    sum_x2 = time ** 2 / np.array(dist_err) ** 2
+                    sum_err = 1. / np.array(dist_err) ** 2
+                    Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
+                    t_0_err = np.sqrt(
+                        (cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
+                        2 * linear_fit[-1] / speed ** 3 * np.sum(sum_x) / Delta)
                 red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[-1], time, dist, dist_err, len(time),
                                            len(linear_fit))
 
