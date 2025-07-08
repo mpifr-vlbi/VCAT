@@ -448,8 +448,12 @@ class ComponentCollection():
                 time = np.array(year) - t_mid
 
                 if weighted_fit:
-                    linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled', w=1./dist_err)
-                else:
+                    try:
+                        linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled', w=1./dist_err)
+                    except:
+                        logger.warning(f"Could not perform weighted fit for Component {self.name}, will do unweighted.")
+                        weighted_fit=False
+                if not weighted_fit:
                     linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled')
 
                 #TODO check and update those parameters for order>1!!!!
