@@ -599,6 +599,7 @@ class ImageCube(object):
             "stokes_i_vmax": "",
             "fracpol_vmax": "",
             "linpol_vmax": "",
+            "colorbar_loc": "right",
             "shared_colormap": "individual",  # options are 'freq', 'epoch', 'all','individual'
             "shared_colorbar": False,  # if true, will plot a shared colorbar according to share_colormap setting
             "shared_sigma": "max",  # select which common sigma to use options: 'max','min'

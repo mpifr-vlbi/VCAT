@@ -1092,6 +1092,7 @@ class ImageData(object):
             "evpa_distance": -1,
             "fractional_evpa_distance": 0.02,
             "rotate_evpa": 0,
+            "colorbar_loc": "right",
             "evpa_color": "white",
             "title": "",
             "background_color": "white",
