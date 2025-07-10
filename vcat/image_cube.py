@@ -2097,7 +2097,7 @@ class ImageCube(object):
         return fits
 
     def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,plot_errors=False,plot_evpa=False,
-                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1):
+                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1,fig="",ax=""):
 
         if freq == "":
             freq = self.freqs
@@ -2118,9 +2118,9 @@ class ImageCube(object):
         for fr in freq:
             # One plot per frequency with all components
             if plot_trajectory:
-                plot = ModelImagePlot()
+                plot = ModelImagePlot(fig=fig,ax=ax)
             else:
-                plot = KinematicPlot()
+                plot = KinematicPlot(fig=fig,ax=ax)
             for ind, cc in enumerate(ccs):
 
                 fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order,snr_cut=snr_cut)
