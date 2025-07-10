@@ -2097,7 +2097,7 @@ class ImageCube(object):
         return fits
 
     def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,plot_errors=False,plot_evpa=False,
-                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1,fig="",ax=""):
+                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1,weighted_fit=True,fig="",ax=""):
 
         if freq == "":
             freq = self.freqs
@@ -2123,7 +2123,7 @@ class ImageCube(object):
                 plot = KinematicPlot(fig=fig,ax=ax)
             for ind, cc in enumerate(ccs):
 
-                fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order,snr_cut=snr_cut)
+                fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order,snr_cut=snr_cut,weighted_fit=weighted_fit)
 
                 tmin = np.min(cc.year.flatten())
                 tmax = np.max(cc.year.flatten())
