@@ -394,18 +394,18 @@ class ComponentCollection():
     def length(self):
         return len(self.components)
 
-    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
+    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1,weighted_fit=True):
 
         #we use the one dimensional function for x and y separately
         dist=self.dist
 
         #do x_fit
         self.dist=self.delta_x_ests*self.scale
-        x_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut)
+        x_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut,weighted_fit=weighted_fit)
 
         #do y_fit
         self.dist=self.delta_y_ests*self.scale
-        y_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut)
+        y_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut,weighted_fit=weighted_fit)
 
         #reset dist
         self.dist=dist
