@@ -599,6 +599,7 @@ class ImageCube(object):
             "stokes_i_vmax": "",
             "fracpol_vmax": "",
             "linpol_vmax": "",
+            "colorbar_loc": "right",
             "shared_colormap": "individual",  # options are 'freq', 'epoch', 'all','individual'
             "shared_colorbar": False,  # if true, will plot a shared colorbar according to share_colormap setting
             "shared_sigma": "max",  # select which common sigma to use options: 'max','min'
@@ -1105,9 +1106,10 @@ class ImageCube(object):
             lam1=c.si.value/image1.freq
             lam2=c.si.value/image2.freq
 
-            # calculate rotation measure
-            rm=(evpa2-evpa1)/(lam2**2-lam1**2)
+            evpa_diff=evpa2-evpa1
 
+            # calculate rotation measure
+            rm=evpa_diff/(lam2**2-lam1**2)
 
             #calculate intrinsic EVPA
             evpa0=(evpa1*lam2**2-evpa2*lam1**2)/(lam2**2-lam1**2)
@@ -2046,8 +2048,8 @@ class ImageCube(object):
         if show:
             plot.show()
 
-    def get_speed(self,id="",freq="",order=1,show_plot=False, plot_errors=False, plot_evpa=False, evpa_len=200,
-                  colors=plot_colors,markers=plot_markers,snr_cut=1):
+    def get_speed(self,id="",freq="",order=1,show_plot=False, weighted_fit=True, plot_errors=False, plot_evpa=False, evpa_len=200,
+                  colors=plot_colors,markers=plot_markers,snr_cut=1,fig="",ax="",t0_error_method="Gauss"):
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -2066,10 +2068,10 @@ class ImageCube(object):
         fits=[]
         for fr in freq:
             #One plot per frequency with all components
-            plot = KinematicPlot()
+            plot = KinematicPlot(fig=fig,ax=ax)
             for ind,cc in enumerate(ccs):
 
-                fit=cc.get_speed(freqs=fr,order=order,snr_cut=snr_cut)
+                fit=cc.get_speed(freqs=fr,order=order, weighted_fit=weighted_fit, snr_cut=snr_cut,t0_error_method=t0_error_method)
 
                 for f in fit:
                     tmin=np.min(cc.year.flatten())
@@ -2095,7 +2097,7 @@ class ImageCube(object):
         return fits
 
     def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,plot_errors=False,plot_evpa=False,
-                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1):
+                    evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1,weighted_fit=True,fig="",ax=""):
 
         if freq == "":
             freq = self.freqs
@@ -2116,12 +2118,12 @@ class ImageCube(object):
         for fr in freq:
             # One plot per frequency with all components
             if plot_trajectory:
-                plot = ModelImagePlot()
+                plot = ModelImagePlot(fig=fig,ax=ax)
             else:
-                plot = KinematicPlot()
+                plot = KinematicPlot(fig=fig,ax=ax)
             for ind, cc in enumerate(ccs):
 
-                fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order,snr_cut=snr_cut)
+                fit_x,fit_y=cc.get_speed2d(freqs=fr,order=order,snr_cut=snr_cut,weighted_fit=weighted_fit)
 
                 tmin = np.min(cc.year.flatten())
                 tmax = np.max(cc.year.flatten())

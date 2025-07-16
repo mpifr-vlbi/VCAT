@@ -118,6 +118,7 @@ class FitsImage(object):
                  fractional_evpa_distance=0.02, #if evpa_distance==-1 and evpa_len==-1, this chooses the fractional evpa distance
                  rotate_evpa=0, # rotate EVPAs by a given angle in degrees (North through East)
                  evpa_color="white", # set EVPA color for plot
+                 colorbar_loc="right",
                  title="", # plot title (default is date)
                  background_color="white", #background color
                  ax=None, #define custom matplotlib axes to plot on
@@ -144,6 +145,7 @@ class FitsImage(object):
         X = self.clean_image.X
         Y = self.clean_image.Y
         Z = self.clean_image.Z
+        self.colorbar_loc=colorbar_loc
         self.Z=Z
         unit = self.clean_image.unit
         scale = self.clean_image.scale
@@ -307,7 +309,6 @@ class FitsImage(object):
             else:
                 Z=self.clean_image.rm
 
-            rm=np.ma.masked_where((abs(Z) > 20000),Z)
             self.plotColormap(rm, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
         elif plot_mode=="rm":
             logger.warning("Trying to plot rotation measure but no rotation measure available!")
@@ -566,8 +567,11 @@ class FitsImage(object):
 
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
-                    cax = divider.append_axes("right", size="5%", pad=0.05)
-                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax,ticks=ticks)
+                    cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                    if self.colorbar_loc in ["bottom","top"]:
+                        cbar = self.fig.colorbar(self.col, orientation="horizontal",use_gridspec=True, cax=cax, ticks=ticks)
+                    else:
+                        cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax,ticks=ticks)
                     cbar.set_label(label,fontsize=self.ax.xaxis.label.get_size())
             elif vmax <=0.2:
                 ticks = np.array([0.0, 0.025, 0.05, 0.75, 0.1, 0.125, 0.15, 0.175, 0.2])
@@ -580,14 +584,21 @@ class FitsImage(object):
                         final_labels.append(tickval)
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
-                    cax = divider.append_axes("right", size="5%", pad=0.05)
-                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax,ticks=final_ticks)
+                    cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                    if self.colorbar_loc in ["bottom", "top"]:
+                        cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax,
+                                                 ticks=final_ticks)
+                    else:
+                        cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax, ticks=final_ticks)
                     cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
             else:
                 if do_colorbar:
                     divider = make_axes_locatable(self.ax)
-                    cax = divider.append_axes("right", size="5%", pad=0.05)
-                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
+                    cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                    if self.colorbar_loc in ["bottom", "top"]:
+                        cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax)
+                    else:
+                        cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                     cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
             if do_colorbar:
                 cbar.ax.yaxis.set_minor_formatter(ticker.NullFormatter())
@@ -617,8 +628,11 @@ class FitsImage(object):
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
+                cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                if self.colorbar_loc in ["bottom", "top"]:
+                    cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax)
+                else:
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
         elif label=="Mask":
             if im_color=="":
@@ -632,8 +646,11 @@ class FitsImage(object):
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
+                cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                if self.colorbar_loc in ["bottom", "top"]:
+                    cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax)
+                else:
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         elif label=="Spectral Index":
@@ -644,8 +661,11 @@ class FitsImage(object):
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
+                cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                if self.colorbar_loc in ["bottom", "top"]:
+                    cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax)
+                else:
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         elif label=="Rotation Measure [rad/m^2]":
@@ -662,8 +682,11 @@ class FitsImage(object):
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
+                cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                if self.colorbar_loc in ["bottom", "top"]:
+                    cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax)
+                else:
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         elif label=="Turnover Frequency [GHz]" or label=="Turnover Flux [Jy/beam]" or label=="Turnover Error [GHz]" or label=="Turnover $\Chi^2$":
@@ -674,8 +697,11 @@ class FitsImage(object):
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
+                cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                if self.colorbar_loc in ["bottom", "top"]:
+                    cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax)
+                else:
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
         else:
@@ -694,8 +720,11 @@ class FitsImage(object):
 
             if do_colorbar:
                 divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
+                cax = divider.append_axes(self.colorbar_loc, size="5%", pad=0.05)
+                if self.colorbar_loc in ["bottom", "top"]:
+                    cbar = self.fig.colorbar(self.col, orientation="horizontal", use_gridspec=True, cax=cax)
+                else:
+                    cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
     def plotComponent(self,x,y,maj,min,pos,scale,fillcolor="",id="",evpa=""):

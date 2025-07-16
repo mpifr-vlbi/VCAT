@@ -1092,6 +1092,7 @@ class ImageData(object):
             "evpa_distance": -1,
             "fractional_evpa_distance": 0.02,
             "rotate_evpa": 0,
+            "colorbar_loc": "right",
             "evpa_color": "white",
             "title": "",
             "background_color": "white",
@@ -1955,6 +1956,10 @@ class ImageData(object):
             image_data=self.rm
         elif image=="frac_pol":
             image_data=self.lin_pol/self.Z
+        elif image=="stokes_q":
+            image_data=self.stokes_q
+        elif image=="stokes_u":
+            image_data=self.stokes_u
         else:
             raise Exception(f"Please specify valid 'image' parameter, image='{image}' not supported.")
 

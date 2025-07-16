@@ -1001,7 +1001,7 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
             Y = bmaj / 2 * np.cos(ellipse_angles)
 
             # rotate them according to position angle
-            X_rot = -X * np.cos(posa) - Y * np.sin(posa)
+            X_rot = X * np.cos(posa) - Y * np.sin(posa)
             Y_rot = X * np.sin(posa) + Y * np.cos(posa)
 
             for i in range(ppe):

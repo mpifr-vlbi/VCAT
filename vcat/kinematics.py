@@ -394,25 +394,26 @@ class ComponentCollection():
     def length(self):
         return len(self.components)
 
-    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
+    def get_speed2d(self,freqs="",order=1,cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1,weighted_fit=True):
 
         #we use the one dimensional function for x and y separately
         dist=self.dist
 
         #do x_fit
         self.dist=self.delta_x_ests*self.scale
-        x_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut)
+        x_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut,weighted_fit=weighted_fit)
 
         #do y_fit
         self.dist=self.delta_y_ests*self.scale
-        y_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut)
+        y_fits=self.get_speed(freqs=freqs,order=order,cosmo=cosmo,snr_cut=snr_cut,weighted_fit=weighted_fit)
 
         #reset dist
         self.dist=dist
 
         return x_fits, y_fits
 
-    def get_speed(self,freqs="",order=1,weighted_fit=False, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1):
+    def get_speed(self,freqs="",order=1,weighted_fit=True, cosmo=FlatLambdaCDM(H0=H0, Om0=Om0),snr_cut=1,
+                  t0_error_method="Gauss"):
 
 
         if freqs=="":
@@ -447,8 +448,12 @@ class ComponentCollection():
                 time = np.array(year) - t_mid
 
                 if weighted_fit:
-                    linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled', w=1./dist_err)
-                else:
+                    try:
+                        linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled', w=1./dist_err)
+                    except:
+                        logger.warning(f"Could not perform weighted fit for Component {self.name}, will do unweighted.")
+                        weighted_fit=False
+                if not weighted_fit:
                     linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled')
 
                 #TODO check and update those parameters for order>1!!!!
@@ -464,12 +469,17 @@ class ComponentCollection():
                 d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
                 dist_0_est = linear_fit[-1] - speed * t_mid
                 t_0 = - linear_fit[-1] / speed + t_mid
-                sum_x = time / np.array(dist_err) ** 2
-                sum_x2 = time ** 2 / np.array(dist_err) ** 2
-                sum_err = 1. / np.array(dist_err) ** 2
-                Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
-                t_0_err = np.sqrt((cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
-                                  2 * linear_fit[-1] / speed ** 3 * np.sum(sum_x) / Delta)
+                if t0_error_method=="Gauss":
+                    t_0_err = np.sqrt((cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4))
+                elif t0_error_method=="Rösch":
+                    #see Master Thesis F. Rösch 2019 https://www.physik.uni-wuerzburg.de/fileadmin/11030400/2019/Masterarbeit_Roesch.pdf
+                    sum_x = time / np.array(dist_err) ** 2
+                    sum_x2 = time ** 2 / np.array(dist_err) ** 2
+                    sum_err = 1. / np.array(dist_err) ** 2
+                    Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
+                    t_0_err = np.sqrt(
+                        (cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
+                        2 * linear_fit[-1] / speed ** 3 * np.sum(sum_x) / Delta)
                 red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[-1], time, dist, dist_err, len(time),
                                            len(linear_fit))
 
@@ -588,9 +598,7 @@ class ComponentCollection():
 
         return results
 
-    def fit_comp_spectrum(self,epochs="",add_data=False,plot_areas=False,plot_all_components=False,comps=False,
-            exclude_comps=False,ccolor=False,out=True,fluxerr=False,fit_free_ssa=False,plot_fit_summary=False,
-            annotate_fit_results=True):
+    def fit_comp_spectrum(self,epochs="",fluxerr=False,fit_free_ssa=False):
         """
         This function only makes sense on a component collection with multiple components on the same date at different frequencies
 
@@ -637,8 +645,8 @@ class ComponentCollection():
             #fit Snu
             logger.info("Fit SSA to Comp " + str(cid[0]))
             if fit_free_ssa:
-                sn_x0 = np.array([120,np.max(cflux),2.5,-3])
-                beta,sd_beta,chi2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
+                sn_x0 = np.array([20,np.max(cflux),2.5,-1])
+                sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
             else:
                 sn_x0 = np.array([20,np.max(cflux),-1])
                 sn_p,sn_sd,sn_ch2,sn_out = ff.odr_fit(ff.Snu_real,[cfreq,cflux,cfluxerr],sn_x0,verbose=1)
