@@ -765,13 +765,40 @@ class ImageData(object):
         # create mod file
         write_mod_file(model_df, export, self.freq, self.scale)
 
-    def get_pixel_value(self,x,y):
+    def get_pixel_value(self,x,y,image="stokes_i"):
+        """
+        Get value of a specific pixel from an image
+
+        Args:
+            x (float): X position in mas
+            y (float): Y position in mas
+            image (str): Select Image to get value from ('stokes_i','stokes_q',"stokes_u","lin_pol","evpa")
+
+        Returns:
+
+        """
         Xind=closest_index(self.X,x)
         Yind=closest_index(self.Y,y)
 
-        return self.Z[Yind,Xind]
+        if image=="stokes_i":
+            return self.Z[Yind,Xind]
+        elif image=="stokes_q":
+            return self.stokes_q[Yind,Xind]
+        elif image=="stokes_q":
+            return self.stokes_q[Yind,Xind]
+        elif image=="stokes_u":
+            return self.stokes_u[Yind,Xind]
+        elif image=="lin_pol":
+            return self.lin_pol[Yind,Xind]
+        elif image=="evpa":
+            return self.evpa[Yind,Xind]
 
     def copy(self):
+        """
+        Create copy of the current ImageData object
+        Returns:
+            ImageData object
+        """
         return copy.copy(self)
 
     def export(self,outputfile,polarization="I"):
@@ -2242,7 +2269,10 @@ class ImageData(object):
 
     def remove_component(self,id):
         """
-        Function to remove the core component from the Stokes I image
+        Function to remove a selected component from the Stokes I image
+
+        Args:
+            id (int): Component id to remove
         """
 
         if isinstance(id,int):
@@ -2366,6 +2396,12 @@ class ImageData(object):
         return angles
 
     def fit_comp_polarization(self):
+        """
+        Function to fit polarization to existing Stokes I model components. Will use DIFMAP to fit a Stokes Q and
+        Stokes Q amplitude to the Stokes I components.
+        """
+
+
         write_mod_file_from_components(self.components,channel="i",export="tmp/model_q.mod",adv=[True])
         os.system("cp tmp/model_q.mod tmp/model_u.mod")
         comps_q=copy.deepcopy(self.components)

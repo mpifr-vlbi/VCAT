@@ -1325,6 +1325,12 @@ class ImageCube(object):
         return component_collections
 
     def import_component_association(self,file):
+        """
+        Import component associations from a component_info.csv file
+
+        Args:
+            file (str): Filepath to the .csv file with component info
+        """
 
         logger.info(f"Importing component associations from {file}.")
 
@@ -1365,6 +1371,13 @@ class ImageCube(object):
         self.update_comp_collections()
 
     def change_component_ids(self,old_comp_ids,new_comp_ids):
+        """
+        Reassign component ids.
+
+        Args:
+            old_comp_ids (list[int]): List of old component numbers
+            new_comp_ids (list[int]): List of new component numbers
+        """
         for i in range(len(self.images)):
             for j in range(len(self.images[0])):
                 if isinstance(self.images[i,j],ImageData):
@@ -1664,6 +1677,21 @@ class ImageCube(object):
         return dists, values, value_errs
 
     def get_average_component(self,id="",freq="",epoch="",weighted=True,filter_unresolved=True,snr_cut=0):
+        """
+        Function to calculate the average components
+
+        Args:
+            id (list[int]): List of component numbers
+            freq (list[float]): Frequencies to consider
+            epoch (list[str]): Epochs to consider
+            weighted (bool): Choose whether to weight the average by the errors or not
+            filter_unresolved (bool): Choose whether to filter out unresolved sources
+            snr_cut (float): Flag all components with snr<snr_cut
+
+        Returns:
+            components (list[Component]): List of average components
+
+        """
 
         if id=="":
             #do it for all components
@@ -1889,6 +1917,30 @@ class ImageCube(object):
 
     def plot_component_evolution(self,value="flux",id="",freq="",show=True,colors=plot_colors,markers=plot_markers,
                                  evpa_pol_plot=True,plot_errors=False,snr_cut=1,labels=True,plot_evpa=False,evpa_len=200,fig="",ax=""):
+        """
+        Plot time evolution of different component properties
+
+        Args:
+            value (str): Choose which value to plot ("flux", "lin_pol", "dist", "evpa", ....)
+            id (list[int]): List of components to plot (default: all)
+            freq (list[float]): List of frequencies to plot (default: all)
+            show (bool):  Choose whether to show the plots
+            colors (list[str]): List of colors corresponding to id-array
+            markers (list[str]): List of markers corresponding to id-array
+            evpa_pol_plot (bool): If True will use a poincarre-sphere like plot for EVPA, if false, standard X-Y plot
+            plot_errors (bool): Choose whether to plot error bars
+            snr_cut (float): Choose snr_cut (will flag all components with snr<snr_cut)
+            labels (list[str]): List of labels corresponding to id-array
+            plot_evpa (bool): If True, will plot the component EVPA as a tilted bar on top of each datapoint
+            evpa_len (float): Length for EVPA bar if plot_evpa==True
+            fig (Figure): Optional input of a matplotlib Figure object to plot on
+            ax (Axis): Optional input of a matplotlib Axis object to plot on
+
+        Returns:
+            x,y,y_err -> values that are being plotted
+
+        """
+
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -1998,6 +2050,11 @@ class ImageCube(object):
 
     def plot_components(self,id="",freq="",epoch="",show=False,xlim=[10,-10],ylim=[-10,10],colors="",fmts=[""],markersize=4,labels=[""],
                         filter_unresolved=False,snr_cut=1,capsize=None,plot_errorbar=True,fig="",ax=""):
+        """
+        Plots component positions on top of a map.
+
+        """
+
         if id=="":
             #do it for all components
             ccs=self.get_comp_collections(date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance)
@@ -2050,6 +2107,31 @@ class ImageCube(object):
 
     def get_speed(self,id="",freq="",order=1,show_plot=False, weighted_fit=True, plot_errors=False, plot_evpa=False, evpa_len=200,
                   colors=plot_colors,markers=plot_markers,snr_cut=1,fig="",ax="",t0_error_method="Gauss"):
+        """
+        Perform kinematic fit of the distance to the core vs time.
+
+        Args:
+            id (list[int]): List of component ids to use
+            freq (list[float]): Choose which frequency to do the fit for
+            order (int): Choose polynomial fit order (default: 1 (linear fit))
+            show_plot (bool): Choose whether to show kinematic plot
+            weighted_fit (bool): Choose whether to weight the data by their errors for the fit
+            plot_errors (bool): Choose whether to plot data point errors
+            plot_evpa (bool): Choose whether to overplot the EVPA direction as a tilted bar on top of the data points
+            evpa_len (float): Length of the EVPA bar if plot_evpa==True
+            colors (list[str]): Colors corresponding to the selected id-array
+            markers (list[str]): Markers corresponding to the selected id-array
+            snr_cut (float): Option to filter out components with snr<snr_cut
+            fig (Figure): Optional matplotlib-Figure element to use for plot
+            ax (Axis): Optional matplotlib-Axis element to use for plot
+            t0_error_method (str): Choose method to calculate error of t0 from the fit errors (y0_err, mu_err), options
+            are "Gauss" (default) for standard Gauss error propagation or "Rösch"
+            (see Master Thesis F. Rösch 2019 https://www.physik.uni-wuerzburg.de/fileadmin/11030400/2019/Masterarbeit_Roesch.pdf"
+
+        Returns:
+            list([dictionary]): List of fit parameters (One dictionary per frequency and component)
+        """
+
         if freq=="":
             freq=self.freqs
         elif not isinstance(freq, list):
@@ -2098,6 +2180,29 @@ class ImageCube(object):
 
     def get_speed2d(self,id="",order=1,freq="",show_plot=False,plot_trajectory=False,plot_errors=False,plot_evpa=False,
                     evpa_len=200,colors=plot_colors,markers=plot_markers,snr_cut=1,weighted_fit=True,fig="",ax=""):
+
+        """
+        Perform kinematic fit of the X-distance and Y-distance versus time.
+
+        Args:
+            id (list[int]): List of component ids to use
+            freq (list[float]): Choose which frequency to do the fit for
+            order (int): Choose polynomial fit order (default: 1 (linear fit))
+            show_plot (bool): Choose whether to show kinematic plot
+            plot_trajectory (bool): Choose wheter to plot the fitted trajectory
+            plot_errors (bool): Choose whether to plot data point errors
+            plot_evpa (bool): Choose whether to overplot the EVPA direction as a tilted bar on top of the data points
+            evpa_len (float): Length of the EVPA bar if plot_evpa==True
+            colors (list[str]): Colors corresponding to the selected id-array
+            markers (list[str]): Markers corresponding to the selected id-array
+            snr_cut (float): Option to filter out components with snr<snr_cut
+            weighted_fit (bool): Choose whether to weight the data by their errors for the fit
+            fig (Figure): Optional matplotlib-Figure element to use for plot
+            ax (Axis): Optional matplotlib-Axis element to use for plot
+        Returns:
+            list([dictionary]): List of fit parameters (One dictionary per frequency and component)
+        """
+
 
         if freq == "":
             freq = self.freqs
