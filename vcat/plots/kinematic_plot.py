@@ -425,13 +425,15 @@ class KinematicPlot(object):
 
         return years,mins,mins_err
 
-    def plot_tbs(self, component_collection, color, label="",marker=".",snr_cut=1,plot_evpa=False,evpa_len=200):
+    def plot_tbs(self, component_collection, color, label="",marker=".",plot_errors=False,snr_cut=1,plot_evpa=False,evpa_len=200):
         years = []
         tbs = []
+        tbs_err = []
         if component_collection.length() > 0:
             years = component_collection.year.flatten()
             tbs_lower_limit = component_collection.tbs_lower_limit.flatten()
             tbs = component_collection.tbs.flatten()
+            tbs_err = component_collection.tbs_err.flatten()
             evpas = component_collection.evpas.flatten()
 
             snrs = component_collection.snrs.flatten()
@@ -439,14 +441,27 @@ class KinematicPlot(object):
             years = years[snrs >= snr_cut]
             tbs_lower_limit = tbs_lower_limit[snrs >= snr_cut]
             tbs = tbs[snrs >= snr_cut]
+            tbs_err = tbs[snrs >= snr_cut]
 
             lower_limit_inds = np.where(np.array(tbs_lower_limit))[0]
             tb_value_inds = np.where(np.array(tbs_lower_limit) == False)[0]
-            self.ax.plot(np.array(years)[tb_value_inds],
-                         np.array(tbs)[tb_value_inds], c=color,label=label,
-                         marker=marker)
-            self.ax.scatter(np.array(years)[lower_limit_inds],
-                            np.array(tbs)[lower_limit_inds], c=color, marker="^")
+
+            if plot_errors:
+                self.ax.errorbar(np.array(years)[tb_value_inds],
+                                 np.array(tbs)[tb_value_inds],yerr=np.array(tbs_err)[tb_value_inds],c=color,
+                                 label=label,marker=marker)
+                self.ax.errorbar(np.array(years)[lower_limit_inds],
+                                np.array(tbs)[lower_limit_inds],
+                                 yerr=np.array(tbs_err)[lower_limit_inds],
+                                 c=color, marker="^")
+            else:
+                self.ax.plot(np.array(years)[tb_value_inds],
+                             np.array(tbs)[tb_value_inds], c=color, label=label,
+                             marker=marker)
+                self.ax.scatter(np.array(years)[lower_limit_inds],
+                                np.array(tbs)[lower_limit_inds], c=color, marker="^")
+
+
 
             if plot_evpa:
                 for i in range(len(years)):
@@ -463,7 +478,7 @@ class KinematicPlot(object):
         self.ax.set_ylabel('Brightness Temperature [K]', fontsize=font_size_axis_title)
         self.ax.set_yscale("log")
 
-        return years, tbs
+        return years, tbs, tbs_err
 
     def plot_spectrum(self, component_collection, color, epochs="", marker="."):
 

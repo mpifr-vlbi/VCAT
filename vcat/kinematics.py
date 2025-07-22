@@ -236,6 +236,19 @@ class Component():
                                       +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*self.scale    # in mas
             self.theta_err = np.arctan(self.radius_err/self.radius)*180/np.pi    # in deg
 
+        #regardless of the error method, calculate error for tb
+        rel_flux_err=self.flux_err/self.flux
+
+        # check if component is resolved or not:
+        if (self.res_lim_min > self.min) or (self.res_lim_maj > self.maj):
+            rel_maj_err = 0
+            rel_min_err = 0
+        else:
+            rel_maj_err = self.maj_err/self.maj
+            rel_min_err = self.min_err/self.min
+
+        self.tb_err = self.tb * ((rel_flux_err) ** 2 + (rel_maj_err) ** 2 + (rel_min_err) ** 2) ** 0.5
+
     def set_distance_to_core(self, core_x, core_y,core_x_err=0,core_y_err=0):
         self.delta_x_est = self.x - core_x
         self.delta_y_est = self.y - core_y
