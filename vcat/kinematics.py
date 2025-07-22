@@ -340,6 +340,7 @@ class ComponentCollection():
         self.fluxs_err = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.tbs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.tbs_lower_limit= np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.tbs_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.resolved = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.freqs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.ids = np.empty((self.n_epochs,self.n_freqs),dtype=int)
@@ -374,6 +375,7 @@ class ComponentCollection():
                         self.fluxs[i,j]=comp.flux
                         self.fluxs_err[i,j]=comp.flux_err
                         self.tbs[i,j]=comp.tb
+                        self.tbs_err[i,j]=comp.tb_err
                         self.tbs_lower_limit[i,j]=comp.tb_lower_limit
                         self.resolved[i,j]=comp.resolved
                         self.freqs[i,j]=comp.freq
