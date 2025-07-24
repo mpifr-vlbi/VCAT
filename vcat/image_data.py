@@ -209,7 +209,7 @@ class ImageData(object):
             #if no fits file was loaded try to get the dirty image
             if uvf_file!="":
                 #get dirty map from uvf file
-                get_residual_map(uvf_file, "", difmap_path=difmap_path, channel="i",
+                get_residual_map(uvf_file, "","", difmap_path=difmap_path, channel="i",
                                  save_location="/tmp/dirty_image.fits", npix=2048, pxsize=0.05,
                                  do_selfcal=False)
                 fits_file="/tmp/dirty_image.fits"
@@ -561,7 +561,8 @@ class ImageData(object):
             os.makedirs(model_save_dir+"residual_maps", exist_ok=True)
             self.residual_map_path = model_save_dir + "residual_maps/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq / 1e9).replace(".",
                                                                                                                  "_") + "GHz_residual.fits"
-            get_residual_map(self.uvf_file,model_save_dir+ "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod",
+
+            get_residual_map(self.uvf_file,self.stokes_i_mod_file,self.stokes_i_mod_file,
                              difmap_path=self.difmap_path,
                              save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp*self.scale)
 

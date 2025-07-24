@@ -761,7 +761,7 @@ def JyPerBeam2Jy(jpb,b_maj,b_min,px_inc):
     return jpb/PXPERBEAM(b_maj,b_min,px_inc)
 
 # calculates the residual map given a uvf file and a mod file
-def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", save_location="residual.fits", weighting=uvw,
+def get_residual_map(uvf_file,mod_file, clean_mod_file, difmap_path=difmap_path, channel="i", save_location="residual.fits", weighting=uvw,
                      npix=2048,pxsize=0.05,do_selfcal=False):
     """ calculates residual map and stores it as .fits file.
     Args:
@@ -791,9 +791,11 @@ def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", sa
         child.expect_exact(prompt, None, 2)
 
     send_difmap_command("obs "+uvf_file)
-    send_difmap_command(f"select {channel}")
     if do_selfcal:
+        send_difmap_command("select i")
+        send_difmap_command("rmod " + clean_mod_file)
         send_difmap_command("selfcal")
+    send_difmap_command(f"select {channel}")
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))  # use natural weighting
     send_difmap_command("rmod "+mod_file)
     send_difmap_command("maps " + str(npix) + "," + str(pxsize))
