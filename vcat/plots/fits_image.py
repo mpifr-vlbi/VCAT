@@ -438,54 +438,57 @@ class FitsImage(object):
 
         # Read modelfit files in
         if plot_model:
-            model_gauss_df = self.clean_image.model
+            if len(self.clean_image.components)>0:
+                model_gauss_df = self.clean_image.model
 
-            try:
-                g_x = model_gauss_df["Delta_x"]
-                g_y = model_gauss_df["Delta_y"]
-                g_maj = model_gauss_df["Major_axis"]
-                g_min = model_gauss_df["Minor_axis"]
-                g_pos = model_gauss_df["PA"]
-                g_flux = model_gauss_df["Flux"]
-                g_date = model_gauss_df["Date"]
-                g_mjd = model_gauss_df["mjd"]
-                g_year = model_gauss_df["Year"]
-            except:
-                logger.warning("No model available!")
-                g_x = []
-
-            for j in range(len(g_x)):
-                # plot component
-                for i,comp in enumerate(self.clean_image.components):
-                    if comp.flux==g_flux[j]:
-                        comp_id=comp.component_number
-                        if comp.maj<comp.res_lim_maj and self.adjust_comp_size_to_res_lim:
-                            plot_maj=comp.res_lim_maj
-                        else:
-                            plot_maj=comp.maj
-                        if comp.min<comp.res_lim_min and self.adjust_comp_size_to_res_lim:
-                            plot_min=comp.res_lim_min
-                        else:
-                            plot_min=comp.min
-
-                if plot_comp_ids:
-                    component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale, id=comp_id)
-                else:
-                    component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale)
-
-
-                #calculate noise at the position of the component
                 try:
-                    component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
+                    g_x = model_gauss_df["Delta_x"]
+                    g_y = model_gauss_df["Delta_y"]
+                    g_maj = model_gauss_df["Major_axis"]
+                    g_min = model_gauss_df["Minor_axis"]
+                    g_pos = model_gauss_df["PA"]
+                    g_flux = model_gauss_df["Flux"]
+                    g_date = model_gauss_df["Date"]
+                    g_mjd = model_gauss_df["mjd"]
+                    g_year = model_gauss_df["Year"]
                 except:
-                    component_noise=self.clean_image.noise
+                    logger.warning("No model available!")
+                    g_x = []
 
-                #This is needed for the GUI
-                component = Component(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], g_flux[j], g_date[j],
-                                      g_mjd[j], g_year[j], scale=scale, freq=self.freq, noise=component_noise,
-                                      beam_maj=beam_maj, beam_min=beam_min, beam_pa=beam_pa)
+                for j in range(len(g_x)):
+                    # plot component
+                    for i,comp in enumerate(self.clean_image.components):
+                        if comp.flux==g_flux[j]:
+                            comp_id=comp.component_number
+                            if comp.maj<comp.res_lim_maj and self.adjust_comp_size_to_res_lim:
+                                plot_maj=comp.res_lim_maj
+                            else:
+                                plot_maj=comp.maj
+                            if comp.min<comp.res_lim_min and self.adjust_comp_size_to_res_lim:
+                                plot_min=comp.res_lim_min
+                            else:
+                                plot_min=comp.min
 
-                self.components.append([component_plot, component])
+                    if plot_comp_ids:
+                        component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale, id=comp_id)
+                    else:
+                        component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale)
+
+
+                    #calculate noise at the position of the component
+                    try:
+                        component_noise=get_noise_from_residual_map(self.clean_image.residual_map_path, g_x[j]*scale,g_y[j]*scale,np.max(X)/10,np.max(Y)/10,scale=scale)#TODO check if the /10 width works and make it changeable
+                    except:
+                        component_noise=self.clean_image.noise
+
+                    #This is needed for the GUI
+                    component = Component(g_x[j], g_y[j], g_maj[j], g_min[j], g_pos[j], g_flux[j], g_date[j],
+                                          g_mjd[j], g_year[j], scale=scale, freq=self.freq, noise=component_noise,
+                                          beam_maj=beam_maj, beam_min=beam_min, beam_pa=beam_pa)
+
+                    self.components.append([component_plot, component])
+            else:
+                logger.warning("No modelfit loaded!")
 
         if plot_ridgeline:
             #plot ridgeline in image

@@ -210,7 +210,7 @@ class ImageData(object):
             if uvf_file!="":
                 #get dirty map from uvf file
                 get_residual_map(uvf_file, "","", difmap_path=difmap_path, channel="i",
-                                 save_location="/tmp/dirty_image.fits", npix=2048, pxsize=0.05,
+                                 save_location="/tmp/dirty_image.fits", npix=len(self.X),pxsize=self.degpp*self.scale,
                                  do_selfcal=False)
                 fits_file="/tmp/dirty_image.fits"
                 self.fits_file=fits_file

@@ -796,6 +796,7 @@ def get_residual_map(uvf_file,mod_file, clean_mod_file, difmap_path=difmap_path,
         send_difmap_command("rmod " + clean_mod_file)
         send_difmap_command("selfcal")
     send_difmap_command(f"select {channel}")
+    send_difmap_command(f"rmod {mod_file}")
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))  # use natural weighting
     send_difmap_command("rmod "+mod_file)
     send_difmap_command("maps " + str(npix) + "," + str(pxsize))
