@@ -441,7 +441,7 @@ class KinematicPlot(object):
             years = years[snrs >= snr_cut]
             tbs_lower_limit = tbs_lower_limit[snrs >= snr_cut]
             tbs = tbs[snrs >= snr_cut]
-            tbs_err = tbs[snrs >= snr_cut]
+            tbs_err = tbs_err[snrs >= snr_cut]
 
             lower_limit_inds = np.where(np.array(tbs_lower_limit))[0]
             tb_value_inds = np.where(np.array(tbs_lower_limit) == False)[0]

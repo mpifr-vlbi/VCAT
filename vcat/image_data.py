@@ -370,7 +370,6 @@ class ImageData(object):
                 #copy the clean .fits file and write the model info to the header and store it as model_file_path
                 #get model first:
                 model_df = getComponentInfo(model,scale=self.scale)
-
                 #now modify fits file
                 f=fits.open(self.fits_file)
                 # FITS column names

@@ -116,7 +116,7 @@ class FitsImage(object):
                  lin_pol_sigma_cut=3,  # choose lowest sigma contour for Lin Pol plot
                  evpa_distance=-1,  # choose distance of EVPA vectors to draw in pixels
                  fractional_evpa_distance=0.02, #if evpa_distance==-1 and evpa_len==-1, this chooses the fractional evpa distance
-                 rotate_evpa=0, # rotate EVPAs by a given angle in degrees (North through East)
+                 rotate_evpa=0, #rotate EVPAs by a given angle in degrees (North through East)
                  evpa_color="white", # set EVPA color for plot
                  colorbar_loc="right",
                  title="", # plot title (default is date)
