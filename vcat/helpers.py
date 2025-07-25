@@ -307,7 +307,7 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, stokes_i_mod_file, c
         print(child.before)
         S_p = np.nan
 
-    rms = get_noise_from_residual_map("tmp/resmap_model.fits", ra, dec, rms_box,mode="aver")
+    rms = get_noise_from_residual_map("tmp/resmap_model.fits", ra, dec, rms_box)
     
     return S_p, rms
 
