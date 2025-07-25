@@ -307,7 +307,7 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, stokes_i_mod_file, c
         print(child.before)
         S_p = np.nan
 
-    rms = get_noise_from_residual_map("tmp/resmap_model.fits", ra, dec, rms_box)
+    rms = get_noise_from_residual_map("tmp/resmap_model.fits", ra, dec, rms_box,mode="aver")
     
     return S_p, rms
 
@@ -804,7 +804,7 @@ def get_residual_map(uvf_file,mod_file, clean_mod_file, difmap_path=difmap_path,
 
     os.system("rm -rf difmap.log*")
 
-def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100):
+def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100,mode="std"):
     """calculates the noise from the residual map in a given box
 
     Args:
@@ -821,11 +821,16 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100):
     resMAP_data = np.squeeze(resMAP_data)
     xdim = len(np.array(resMAP_data)[0])
     ydim = len(np.array(resMAP_data)[:, 0])
-    rms = np.std(resMAP_data[int(round(ydim / 2 + center_y / ps_y, 0)) - int(rms_box / 2)
-                             :int(round(ydim / 2 + center_y / ps_y, 0)) + int(rms_box / 2),
-                 int(round(xdim / 2 - center_x / ps_x, 0)) - 1 - int(rms_box / 2)
-                 :int(round(xdim / 2 - center_x / ps_x, 0)) - 1 + int(rms_box / 2)])
-
+    if mode=="std":
+        rms = np.std(resMAP_data[int(round(ydim / 2 + center_y / ps_y, 0)) - int(rms_box / 2)
+                                 :int(round(ydim / 2 + center_y / ps_y, 0)) + int(rms_box / 2),
+                     int(round(xdim / 2 - center_x / ps_x, 0)) - 1 - int(rms_box / 2)
+                     :int(round(xdim / 2 - center_x / ps_x, 0)) - 1 + int(rms_box / 2)])
+    elif mode=="aver":
+        rms = np.average(resMAP_data[int(round(ydim / 2 + center_y / ps_y, 0)) - int(rms_box / 2)
+                                 :int(round(ydim / 2 + center_y / ps_y, 0)) + int(rms_box / 2),
+                     int(round(xdim / 2 - center_x / ps_x, 0)) - 1 - int(rms_box / 2)
+                     :int(round(xdim / 2 - center_x / ps_x, 0)) - 1 + int(rms_box / 2)])
     return rms
 
 #returns the reduced chi-square of a modelfit
