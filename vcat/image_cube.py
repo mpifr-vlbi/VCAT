@@ -588,6 +588,7 @@ class ImageCube(object):
             "plot_model": False,
             "component_color": "black",
             "plot_comp_ids": False,
+            "plot_comp_evpas": False,
             "plot_clean": False,
             "plot_mask": False,
             "xlim": [],

@@ -95,6 +95,7 @@ class FitsImage(object):
                  plot_model=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
                  plot_comp_ids=False, #plot component ids
+                 plot_comp_evpas=False, #plot component EVPA
                  plot_clean=False, #choose whether to plot clean components
                  plot_mask=False, #choose whether to plot mask
                  xlim=[], #xplot limits, e.g. [5,-5]
@@ -470,9 +471,14 @@ class FitsImage(object):
                                 plot_min=comp.min
 
                     if plot_comp_ids:
-                        component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale, id=comp_id)
+                        plot_id=comp_id
                     else:
-                        component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale)
+                        plot_id=""
+                    if plot_comp_evpas:
+                        plot_evpa=comp.evpa
+                    else:
+                        plot_evpa=""
+                    component_plot = self.plotComponent(g_x[j], g_y[j], plot_maj, plot_min, g_pos[j], scale,id=plot_id,evpa=plot_evpa)
 
 
                     #calculate noise at the position of the component
