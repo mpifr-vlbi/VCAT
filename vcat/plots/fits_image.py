@@ -310,6 +310,7 @@ class FitsImage(object):
             else:
                 Z=self.clean_image.rm
 
+            rm=np.ma.masked_where(np.abs(Z)>1e5,Z)
             self.plotColormap(rm, im_color, levs, levs1, extent, label="Rotation Measure [rad/m^2]",do_colorbar=self.do_colorbar)
         elif plot_mode=="rm":
             logger.warning("Trying to plot rotation measure but no rotation measure available!")
