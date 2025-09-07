@@ -236,6 +236,19 @@ class Component():
                                       +(self.y_err*self.y/np.sqrt(self.x**2+self.y**2))**2)*self.scale    # in mas
             self.theta_err = np.arctan(self.radius_err/self.radius)*180/np.pi    # in deg
 
+        #regardless of the error method, calculate error for tb
+        rel_flux_err=self.flux_err/self.flux
+
+        # check if component is resolved or not:
+        if (self.res_lim_min > self.min) or (self.res_lim_maj > self.maj):
+            rel_maj_err = 0
+            rel_min_err = 0
+        else:
+            rel_maj_err = self.maj_err/self.maj
+            rel_min_err = self.min_err/self.min
+
+        self.tb_err = self.tb * ((rel_flux_err) ** 2 + (rel_maj_err) ** 2 + (rel_min_err) ** 2) ** 0.5
+
     def set_distance_to_core(self, core_x, core_y,core_x_err=0,core_y_err=0):
         self.delta_x_est = self.x - core_x
         self.delta_y_est = self.y - core_y
@@ -327,6 +340,7 @@ class ComponentCollection():
         self.fluxs_err = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.tbs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.tbs_lower_limit= np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.tbs_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.resolved = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.freqs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.ids = np.empty((self.n_epochs,self.n_freqs),dtype=int)
@@ -361,6 +375,7 @@ class ComponentCollection():
                         self.fluxs[i,j]=comp.flux
                         self.fluxs_err[i,j]=comp.flux_err
                         self.tbs[i,j]=comp.tb
+                        self.tbs_err[i,j]=comp.tb_err
                         self.tbs_lower_limit[i,j]=comp.tb_lower_limit
                         self.resolved[i,j]=comp.resolved
                         self.freqs[i,j]=comp.freq

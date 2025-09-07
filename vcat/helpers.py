@@ -761,7 +761,7 @@ def JyPerBeam2Jy(jpb,b_maj,b_min,px_inc):
     return jpb/PXPERBEAM(b_maj,b_min,px_inc)
 
 # calculates the residual map given a uvf file and a mod file
-def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", save_location="residual.fits", weighting=uvw,
+def get_residual_map(uvf_file,mod_file, clean_mod_file, difmap_path=difmap_path, channel="i", save_location="residual.fits", weighting=uvw,
                      npix=2048,pxsize=0.05,do_selfcal=False):
     """ calculates residual map and stores it as .fits file.
     Args:
@@ -791,17 +791,19 @@ def get_residual_map(uvf_file,mod_file, difmap_path=difmap_path, channel="i", sa
         child.expect_exact(prompt, None, 2)
 
     send_difmap_command("obs "+uvf_file)
-    send_difmap_command(f"select {channel}")
     if do_selfcal:
+        send_difmap_command("select i")
+        send_difmap_command("rmod " + clean_mod_file)
         send_difmap_command("selfcal")
+    send_difmap_command(f"select {channel}")
+    send_difmap_command(f"rmod {mod_file}")
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))  # use natural weighting
-    send_difmap_command("rmod "+mod_file)
     send_difmap_command("maps " + str(npix) + "," + str(pxsize))
     send_difmap_command("wdmap " + save_location) #save the residual map to a fits file
 
     os.system("rm -rf difmap.log*")
 
-def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100):
+def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100,mode="std"):
     """calculates the noise from the residual map in a given box
 
     Args:
@@ -818,11 +820,16 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100):
     resMAP_data = np.squeeze(resMAP_data)
     xdim = len(np.array(resMAP_data)[0])
     ydim = len(np.array(resMAP_data)[:, 0])
-    rms = np.std(resMAP_data[int(round(ydim / 2 + center_y / ps_y, 0)) - int(rms_box / 2)
-                             :int(round(ydim / 2 + center_y / ps_y, 0)) + int(rms_box / 2),
-                 int(round(xdim / 2 - center_x / ps_x, 0)) - 1 - int(rms_box / 2)
-                 :int(round(xdim / 2 - center_x / ps_x, 0)) - 1 + int(rms_box / 2)])
-
+    if mode=="std":
+        rms = np.std(resMAP_data[int(round(ydim / 2 + center_y / ps_y, 0)) - int(rms_box / 2)
+                                 :int(round(ydim / 2 + center_y / ps_y, 0)) + int(rms_box / 2),
+                     int(round(xdim / 2 - center_x / ps_x, 0)) - 1 - int(rms_box / 2)
+                     :int(round(xdim / 2 - center_x / ps_x, 0)) - 1 + int(rms_box / 2)])
+    elif mode=="aver":
+        rms = np.average(resMAP_data[int(round(ydim / 2 + center_y / ps_y, 0)) - int(rms_box / 2)
+                                 :int(round(ydim / 2 + center_y / ps_y, 0)) + int(rms_box / 2),
+                     int(round(xdim / 2 - center_x / ps_x, 0)) - 1 - int(rms_box / 2)
+                     :int(round(xdim / 2 - center_x / ps_x, 0)) - 1 + int(rms_box / 2)])
     return rms
 
 #returns the reduced chi-square of a modelfit

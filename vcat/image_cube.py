@@ -588,6 +588,7 @@ class ImageCube(object):
             "plot_model": False,
             "component_color": "black",
             "plot_comp_ids": False,
+            "plot_comp_evpas": False,
             "plot_clean": False,
             "plot_mask": False,
             "xlim": [],
@@ -1988,7 +1989,9 @@ class ImageCube(object):
                                              snr_cut=snr_cut,plot_evpa=plot_evpa,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="tb":
-                    x,y=plot.plot_tbs(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
+                    x,y,yerr=plot.plot_tbs(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
+                                           label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)
+                    yerrs.append(yerr)
                 elif value=="dist":
                     x,y,yerr=plot.plot_kinematics(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,
                                                   label=label,plot_evpa=plot_evpa,evpa_len=evpa_len)

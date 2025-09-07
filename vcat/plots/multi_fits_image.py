@@ -251,6 +251,7 @@ class MultiFitsImage(object):
                                         plot_model=kwargs["plot_model"][image_i,image_j],
                                         component_color=kwargs["component_color"][image_i,image_j],
                                         plot_comp_ids=kwargs["plot_comp_ids"][image_i,image_j],
+                                        plot_comp_evpas=kwargs["plot_comp_evpas"][image_i,image_j],
                                         plot_clean=kwargs["plot_clean"][image_i,image_j],
                                         plot_mask=kwargs["plot_mask"][image_i,image_j],
                                         xlim=kwargs["xlim"][image_i,image_j],
