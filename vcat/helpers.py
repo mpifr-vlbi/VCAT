@@ -798,7 +798,6 @@ def get_residual_map(uvf_file,mod_file, clean_mod_file, difmap_path=difmap_path,
     send_difmap_command(f"select {channel}")
     send_difmap_command(f"rmod {mod_file}")
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))  # use natural weighting
-    send_difmap_command("rmod "+mod_file)
     send_difmap_command("maps " + str(npix) + "," + str(pxsize))
     send_difmap_command("wdmap " + save_location) #save the residual map to a fits file
 
