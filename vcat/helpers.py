@@ -40,6 +40,7 @@ def get_sigma_levs(image,  # 2d array/list
                    sigma_contour_limit=3, # choose the lowest sigma contour to plot
                    noise_method="Image RMS",
                    noise=0,
+                   plot_histogram=False,
                    ):
     if noise_method=="Histogram Fit":
 
@@ -64,7 +65,6 @@ def get_sigma_levs(image,  # 2d array/list
             logger.warning(f"Histogram fit failed: {res.message}")
             levs1 = [0]
         else:
-
             noise = np.abs(res.x[2])
             mean = res.x[1]
 
@@ -77,6 +77,31 @@ def get_sigma_levs(image,  # 2d array/list
                                                                                               base=2)
             levs = np.flip(levs)
             levs = np.concatenate((levs, levs1))
+
+            if plot_histogram:
+                # Plot histogram and fitted Gaussian
+                plt.figure(figsize=(8, 5))
+
+                # Plot the histogram (normalized to counts, not density)
+                plt.bar(bin_centers, bin_heights, width=bin_widths, alpha=0.6, label='Histogram', color='skyblue',
+                        edgecolor='k')
+
+                # Plot the Gaussian model
+                x_fit = np.linspace(mean-noise*10, mean+noise*10, 5000)
+                y_fit = gaussian(x_fit, *res.x)
+                plt.plot(x_fit, y_fit, color='red', lw=2, label='Gaussian fit')
+
+                # Add error bars if you want
+                # plt.errorbar(bin_centers, bin_heights, yerr=bin_heights_err, fmt='none', ecolor='gray', alpha=0.5)
+
+                plt.xlabel("Pixel Value")
+                plt.ylabel("Counts")
+                plt.xlim([mean-noise*10,mean+noise*10])
+                plt.title("Histogram and Gaussian Fit")
+                plt.legend()
+                plt.grid(True)
+                plt.tight_layout()
+                plt.show()
 
     elif noise_method=="Image RMS":
         Z1 = image.flatten()
