@@ -52,6 +52,7 @@ class ImageData(object):
             scale (float): Conversion from degrees to the intrinsic image scale (for 'mas': 3.6e6)
             degpp (float): Degrees per pixel
             unit (str): Intrinsic Scale Unit of the image ('mas', 'arcsec', 'arcsec', 'deg')
+            uvw (list[int]): uv-weighting to use for DIFMAP
 
         Maps:
             stokes_i (list[list[float]]): 2d-array of the Stokes I image
@@ -133,6 +134,7 @@ class ImageData(object):
                  fit_comp_polarization=False,
                  fit_comp_pol_errors=False,
                  gain_err=0.05,
+                 uvw=uvw,
                  difmap_path=difmap_path):
 
         """
@@ -194,6 +196,7 @@ class ImageData(object):
         self.error=error
         self.gain_err=gain_err
         self.uvtaper=uvtaper
+        self.uvw=uvw
         self.M=M
         if ridgeline=="":
             self.ridgeline=Ridgeline()
@@ -593,7 +596,7 @@ class ImageData(object):
                 if self.uvf_file!="" and self.difmap_path!="":
                     S_p, rms = get_comp_peak_rms(comp["Delta_x"]*self.scale,comp["Delta_y"]*self.scale,
                                                  self.fits_file,self.uvf_file,self.model_mod_file,self.stokes_i_mod_file,
-                                                 weighting=uvw, difmap_path=self.difmap_path)
+                                                 weighting=self.uvw, difmap_path=self.difmap_path)
                     comp_snr = S_p/rms
                 else:
                     if ind == 0:
@@ -825,7 +828,7 @@ class ImageData(object):
                 os.system(f"cp {self.stokes_u_path} {outputfile}")
                 logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
 
-    def regrid(self,npix="",pixel_size="",weighting=uvw,useDIFMAP=True,mask_outside=False):
+    def regrid(self,npix="",pixel_size="",weighting=self.uvw,useDIFMAP=True,mask_outside=False):
         """
         This method regrids the image in full polarization
 
@@ -1081,6 +1084,7 @@ class ImageData(object):
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
                          fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvw=self.uvw,
                          uvtaper=self.uvtaper)
 
     def plot(self,show=True,savefig="",**kwargs):
@@ -1295,7 +1299,7 @@ class ImageData(object):
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
-    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=uvw,useDIFMAP=True,mask_outside=False):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=self.uvw,useDIFMAP=True,mask_outside=False):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
@@ -1591,9 +1595,10 @@ class ImageData(object):
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
                          fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvw=self.uvw,
                          uvtaper=self.uvtaper)
 
-    def shift(self,shift_x,shift_y,weighting=uvw,useDIFMAP=True):
+    def shift(self,shift_x,shift_y,weighting=self.uvw,useDIFMAP=True):
         """
         Function to shift the image in RA and Dec.
 
@@ -1857,6 +1862,7 @@ class ImageData(object):
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
                          fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvw=self.uvw,
                          uvtaper=self.uvtaper)
 
         else:
@@ -1881,6 +1887,7 @@ class ImageData(object):
                          difmap_path=self.difmap_path,
                          fit_comp_polarization=self.fit_comp_pol,
                          fit_comp_pol_errors=self.fit_comp_pol_errors,
+                         uvw=self.uvw,
                          uvtaper=self.uvtaper)
 
             rotate_mod_file(self.stokes_i_mod_file,angle,self.stokes_i_mod_file)
@@ -2408,9 +2415,9 @@ class ImageData(object):
         comps_q=copy.deepcopy(self.components)
         comps_u=copy.deepcopy(self.components)
         comps_q=modelfit_difmap(self.uvf_file,"tmp/model_q.mod",50,difmap_path,components=comps_q,
-                                weighting=uvw,channel="q",do_selfcal=True,selfcal_model=self.stokes_i_mod_file)
+                                weighting=self.uvw,channel="q",do_selfcal=True,selfcal_model=self.stokes_i_mod_file)
         comps_u=modelfit_difmap(self.uvf_file,"tmp/model_u.mod",50,difmap_path,components=comps_u,
-                                weighting=uvw,channel="u",do_selfcal=True,selfcal_model=self.stokes_i_mod_file)
+                                weighting=self.uvw,channel="u",do_selfcal=True,selfcal_model=self.stokes_i_mod_file)
 
         for j,comp in enumerate(self.components):
             for i in range(len(comps_q)):
@@ -2429,7 +2436,7 @@ class ImageData(object):
                         S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
                                                     self.fits_file, self.uvf_file, "tmp/model_q.mod",
                                                     self.stokes_i_mod_file,channel="q",
-                                                    weighting=uvw, difmap_path=self.difmap_path)
+                                                    weighting=self.uvw, difmap_path=self.difmap_path)
 
                         comp_snr_q = S_p / rms
 
@@ -2445,7 +2452,7 @@ class ImageData(object):
                         S_p, rms = get_comp_peak_rms(comp.x * comp.scale, comp.y * comp.scale,
                                                      self.fits_file, self.uvf_file, "tmp/model_u.mod",
                                                      self.stokes_i_mod_file, channel="u",
-                                                     weighting=uvw, difmap_path=self.difmap_path)
+                                                     weighting=self.uvw, difmap_path=self.difmap_path)
                         comp_snr_u = S_p / rms
 
                         if S_p == 0:
