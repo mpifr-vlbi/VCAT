@@ -21,6 +21,7 @@ from numpy import linalg
 import scipy.ndimage
 import scipy.signal
 from scipy.interpolate import RegularGridInterpolator,griddata
+from scipy.optimize import minimize
 from vcat.config import difmap_path, H0, Om0, res_lim_method
 import astropy.units as u
 import astropy.constants as const
@@ -41,29 +42,41 @@ def get_sigma_levs(image,  # 2d array/list
                    noise=0,
                    ):
     if noise_method=="Histogram Fit":
-        try:
-            Z1 = image.flatten()
-            bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins="auto")
-            bin_widths = np.diff(bin_borders)
-            bin_centers = bin_borders[:-1] + bin_widths / 2.
-            bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
 
-            t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), 0.001)
-            fit_t = fitting.LevMarLSQFitter()
-            t = fit_t(t_init, bin_centers, bin_heights, weights=1. / bin_heights_err)
-            noise = t.stddev.value
+        Z1 = image.flatten()
+        bin_heights, bin_borders = np.histogram(Z1 - np.min(Z1) + 10 ** (-5), bins="auto")
+        bin_widths = np.diff(bin_borders)
+        bin_centers = bin_borders[:-1] + bin_widths / 2.
+        bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
+
+        def gaussian(x, amp, mean, stddev):
+            return amp * np.exp(-0.5 * ((x - mean) / stddev) ** 2)
+
+        def cost(params):
+            amp, mean, stddev = params
+            model = gaussian(bin_centers, amp, mean, stddev)
+            return np.sum(((bin_heights - model) / bin_heights_err) ** 2)
+
+        init = [np.max(bin_heights), np.median(Z1), np.std(Z1)]
+        res = minimize(cost, init,method="Powell")
+
+        if not res.success:
+            logger.warning(f"Histogram fit failed: {res.message}")
+            levs1 = [0]
+        else:
+
+            noise = np.abs(res.x[2])
+            mean = res.x[1]
 
             # Set contourlevels to mean value + 3 * rms_noise * 2 ** x
-            levs1 = t.mean.value + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * noise * np.logspace(0, 100, 100,
-                                                                                                            endpoint=False,
-                                                                                                            base=2)
-            levs = t.mean.value + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * noise * np.logspace(0, 100, 100,
-                                                                                                           endpoint=False,
-                                                                                                           base=2)
+            levs1 = mean + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * noise * np.logspace(0, 100, 100,
+                                                                                               endpoint=False,
+                                                                                               base=2)
+            levs = mean + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * noise * np.logspace(0, 100, 100,
+                                                                                              endpoint=False,
+                                                                                              base=2)
             levs = np.flip(levs)
             levs = np.concatenate((levs, levs1))
-        except:
-            levs1=[0]
 
     elif noise_method=="Image RMS":
         Z1 = image.flatten()
