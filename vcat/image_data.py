@@ -1611,7 +1611,7 @@ class ImageData(object):
         """
         try:
             #We can just call the restore() function without doing the restore steps
-            return self.restore(-1,-1,-1,shift_x,shift_y,weighting=self.uvw,useDIFMAP=useDIFMAP)
+            return self.restore(-1,-1,-1,shift_x,shift_y,useDIFMAP=useDIFMAP)
         except:
             raise Exception("No shift possible, something went wrong!")
 
