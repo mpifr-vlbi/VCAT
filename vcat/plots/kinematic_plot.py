@@ -278,7 +278,7 @@ class KinematicPlot(object):
 
             years = years[snrs >= snr_cut]
             lin_pols = lin_pols[snrs>=snr_cut]
-            lin_pols_err = lin_pols[snrs>=snr_cut]
+            lin_pols_err = lin_pols_err[snrs>=snr_cut]
             fluxs_err = fluxs_err[snrs>=snr_cut]
             fluxs = fluxs[snrs >= snr_cut]
             frac_pols = np.array(lin_pols) / np.array(fluxs) * 100
