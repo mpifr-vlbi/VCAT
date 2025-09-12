@@ -305,7 +305,7 @@ class KinematicPlot(object):
         self.ax.set_xlabel('Time [year]', fontsize=font_size_axis_title)
         self.ax.set_ylabel('Fractional Polarized Flux Density [%]', fontsize=font_size_axis_title)
 
-        return years, frac_pols, frac_pol_errs
+        return years, frac_pols, frac_pols_err
 
     def plot_evpa(self, component_collection, color, label="",marker=".",snr_cut=1,plot_errors=False):
         evpas = component_collection.evpas.flatten()
