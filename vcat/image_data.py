@@ -828,14 +828,13 @@ class ImageData(object):
                 os.system(f"cp {self.stokes_u_path} {outputfile}")
                 logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
 
-    def regrid(self,npix="",pixel_size="",weighting=self.uvw,useDIFMAP=True,mask_outside=False):
+    def regrid(self,npix="",pixel_size="",useDIFMAP=True,mask_outside=False):
         """
         This method regrids the image in full polarization
 
         Args:
             npix (int): Number of pixels in ONE direction
             pixel_size (float): Size of pixel in image scale units (usually mas)
-            weighting (list[int]): DIFMAP style weighting
             useDIFMAP (bool): Choose whether to regrid using DIFMAP or not
             mask_outside (bool): Choose whether new image ares created through regridding will be masked automatically (bool)
         Returns:
@@ -1014,7 +1013,7 @@ class ImageData(object):
                            channel="i", output_dir=self.model_save_dir + "mod_files_clean", outname=new_stokes_i_fits,
                            n_pixel=npix, pixel_size=pixel_size,
                            mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
-                           weighting=weighting,uvtaper=self.uvtaper)
+                           weighting=self.uvw,uvtaper=self.uvtaper)
 
             new_stokes_i_fits += ".fits"
 
@@ -1029,7 +1028,7 @@ class ImageData(object):
                                    outname=new_model_fits,
                                    n_pixel=npix, pixel_size=pixel_size,
                                    mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
-                                   weighting=weighting,uvtaper=self.uvtaper)
+                                   weighting=self.uvw,uvtaper=self.uvtaper)
 
                     new_model_fits += ".fits"
                 else:
@@ -1047,7 +1046,7 @@ class ImageData(object):
                                channel="q", output_dir=self.model_save_dir + "mod_files_q", outname=new_stokes_q_fits,
                                n_pixel=npix, pixel_size=pixel_size,
                                mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
-                               weighting=weighting,uvtaper=self.uvtaper)
+                               weighting=self.uvw,uvtaper=self.uvtaper)
 
                 new_stokes_q_fits += ".fits"
 
@@ -1056,7 +1055,7 @@ class ImageData(object):
                                channel="u", output_dir=self.model_save_dir + "mod_files_u", outname=new_stokes_u_fits,
                                n_pixel=npix, pixel_size=pixel_size,
                                mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],
-                               weighting=weighting,uvtaper=self.uvtaper)
+                               weighting=self.uvw,uvtaper=self.uvtaper)
 
                 new_stokes_u_fits += ".fits"
 
@@ -1299,7 +1298,7 @@ class ImageData(object):
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
-    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=self.uvw,useDIFMAP=True,mask_outside=False):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",useDIFMAP=True,mask_outside=False):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
@@ -1310,7 +1309,6 @@ class ImageData(object):
             shift_y (float): Shift in mas in y-direction
             npix (int): Number of pixels in one image direction
             pixel_size (float): pixel size in mas
-            weighting (list[int]): DIFMAP weighting option
             useDIFMAP (bool): Choose whether to use DIFMAP for the restoring or not
         Returns:
             New ImageData object
@@ -1523,7 +1521,7 @@ class ImageData(object):
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                    uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
+                    uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
 
             new_stokes_i_fits+=".fits"
 
@@ -1537,7 +1535,7 @@ class ImageData(object):
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
                         n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                         mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
-                        weighting=weighting,uvtaper=self.uvtaper)
+                        weighting=self.uvw,uvtaper=self.uvtaper)
 
                     new_model_fits+=".fits"
                 else:
@@ -1556,7 +1554,7 @@ class ImageData(object):
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
+                               uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
 
                 new_stokes_q_fits+=".fits"
 
@@ -1565,7 +1563,7 @@ class ImageData(object):
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_u_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=weighting,uvtaper=self.uvtaper)
+                               uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
 
                 new_stokes_u_fits+=".fits"
 
@@ -1598,7 +1596,7 @@ class ImageData(object):
                          uvw=self.uvw,
                          uvtaper=self.uvtaper)
 
-    def shift(self,shift_x,shift_y,weighting=self.uvw,useDIFMAP=True):
+    def shift(self,shift_x,shift_y,useDIFMAP=True):
         """
         Function to shift the image in RA and Dec.
 
@@ -1607,14 +1605,13 @@ class ImageData(object):
             shift_y (float): Shift in Declination (in mas)
             npix (int): Option to change the number of pixels in ONE direction.
             pixel_size (float): Option to change the pixel size (in mas)
-            weighting (list[int]): DIFMAP weighting option
             useDIFMAP (bool): Choose whether to use DIFMAP for shifting or not.
         Returns:
             shifted ImageData object
         """
         try:
             #We can just call the restore() function without doing the restore steps
-            return self.restore(-1,-1,-1,shift_x,shift_y,weighting=weighting,useDIFMAP=useDIFMAP)
+            return self.restore(-1,-1,-1,shift_x,shift_y,weighting=self.uvw,useDIFMAP=useDIFMAP)
         except:
             raise Exception("No shift possible, something went wrong!")
 
@@ -2370,7 +2367,7 @@ class ImageData(object):
         
                     # check core resolution limit
                     theta_maj, theta_min = get_resolution_limit(self.beam_maj, self.beam_min, self.beam_pa, theta, core.snr,
-                                                                method=res_lim_method, weighting=uvw)
+                                                                method=res_lim_method, weighting=self.uvw)
         
                     new_pos=theta-comp.pos+90
                     new_pos_core=theta-core.pos+90
