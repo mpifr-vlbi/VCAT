@@ -2169,9 +2169,13 @@ class ImageCube(object):
 
                     plot.plot_kinematics(cc,color=color,label=cc.name,marker=marker,plot_errors=plot_errors,plot_evpa=plot_evpa,
                                          evpa_len=evpa_len,snr_cut=snr_cut)
-                    plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
-                                         f["linear_fit"],color=color,t_mid=f["t_mid"])
 
+                    if order>1:
+                        plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
+                                             f["linear_fit"],color=color,t_mid=f["t_mid"])
+                    else:
+                        plot.plot_kinematic_fit_t0(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
+                                             f["linear_fit"],color=color)
                     fits.append(f)
 
             if show_plot:

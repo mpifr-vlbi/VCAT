@@ -556,6 +556,12 @@ class KinematicPlot(object):
         self.ax.set_xscale(x)
         self.ax.set_yscale(y)
 
+    def plot_kinematic_fit_t0(self,x_min,x_max,fit_params,color,label=""):
+        def fit(x):
+            return fit_params[0]*(x-fit_params[1])
+        x_values = np.linspace(x_min, x_max, 1000)
+        self.ax.plot(x_values, fit(x_values), color, label=label)
+
     def plot_kinematic_fit(self, x_min, x_max, fit_params, color, t_mid=0, label=""):
         fit = np.poly1d(fit_params)
         x_values = np.linspace(x_min, x_max, 1000)

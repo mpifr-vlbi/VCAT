@@ -5,6 +5,7 @@ from astropy import units as u
 import pandas as pd
 from sympy import Ellipse, Point, Line
 import vcat.fit_functions as ff
+from scipy.optimize import curve_fit
 import sys
 from vcat.helpers import closest_index, get_comp_peak_rms, calculate_dist_with_err, coreshift_fit, get_resolution_limit
 from scipy.interpolate import interp1d
@@ -459,44 +460,83 @@ class ComponentCollection():
                 def reduced_chi2(fit, x, y, yerr, N, n):
                     return 1. / (N - n) * np.sum(((y - fit) / yerr) ** 2.)
 
-                t_mid = (np.min(year) + np.max(year)) / 2.
-                time = np.array(year) - t_mid
+                def kinematic_fit(x,m,t0):
+                    return m*(x-t0)
 
-                if weighted_fit:
-                    try:
-                        linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled', w=1./dist_err)
-                    except:
-                        logger.warning(f"Could not perform weighted fit for Component {self.name}, will do unweighted.")
-                        weighted_fit=False
-                if not weighted_fit:
-                    linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled')
+                if order>1:
 
-                #TODO check and update those parameters for order>1!!!!
-                speed = linear_fit[0]
-                speed_err = np.sqrt(cov_matrix[0, 0])
-                y0 = linear_fit[-1] - t_mid*speed
-                y0_err = np.sqrt(cov_matrix[-1, -1])
-                beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
-                        cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
-                beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
-                        cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
-                d_crit = np.sqrt(1 + beta_app ** 2)
-                d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
-                dist_0_est = linear_fit[-1] - speed * t_mid
-                t_0 = - linear_fit[-1] / speed + t_mid
-                if t0_error_method=="Gauss":
-                    t_0_err = np.sqrt((cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4))
-                elif t0_error_method=="Rösch":
-                    #see Master Thesis F. Rösch 2019 https://www.physik.uni-wuerzburg.de/fileadmin/11030400/2019/Masterarbeit_Roesch.pdf
-                    sum_x = time / np.array(dist_err) ** 2
-                    sum_x2 = time ** 2 / np.array(dist_err) ** 2
-                    sum_err = 1. / np.array(dist_err) ** 2
-                    Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
-                    t_0_err = np.sqrt(
-                        (cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
-                        2 * linear_fit[-1] / speed ** 3 * np.sum(sum_x) / Delta)
-                red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[-1], time, dist, dist_err, len(time),
-                                           len(linear_fit))
+                    t_mid = (np.min(year) + np.max(year)) / 2.
+                    time = np.array(year) - t_mid
+
+                    if weighted_fit:
+                        try:
+                            linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled', w=1./dist_err)
+                        except:
+                            logger.warning(f"Could not perform weighted fit for Component {self.name}, will do unweighted.")
+                            weighted_fit=False
+                    if not weighted_fit:
+                        linear_fit, cov_matrix = np.polyfit(time, dist, order, cov='scaled')
+
+                    #TODO check and update those parameters for order>1!!!!
+                    speed = linear_fit[0]
+                    speed_err = np.sqrt(cov_matrix[0, 0])
+                    y0 = linear_fit[-1] - t_mid*speed
+                    y0_err = np.sqrt(cov_matrix[-1, -1])
+                    beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
+                            cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                    beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
+                            cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                    d_crit = np.sqrt(1 + beta_app ** 2)
+                    d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
+                    dist_0_est = y0
+                    t_0 = - linear_fit[-1] / speed + t_mid
+                    if t0_error_method=="Gauss":
+                        t_0_err = np.sqrt((cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4))
+                    elif t0_error_method=="Rösch":
+                        #see Master Thesis F. Rösch 2019 https://www.physik.uni-wuerzburg.de/fileadmin/11030400/2019/Masterarbeit_Roesch.pdf
+                        sum_x = time / np.array(dist_err) ** 2
+                        sum_x2 = time ** 2 / np.array(dist_err) ** 2
+                        sum_err = 1. / np.array(dist_err) ** 2
+                        Delta = np.sum(sum_err) * np.sum(sum_x2) - (np.sum(sum_x)) ** 2
+                        t_0_err = np.sqrt(
+                            (cov_matrix[-1, -1] / speed ** 2) + (linear_fit[-1] ** 2 * cov_matrix[0, 0] / speed ** 4) +
+                            2 * linear_fit[-1] / speed ** 3 * np.sum(sum_x) / Delta)
+                    red_chi_sqr = reduced_chi2(linear_fit[0] * time + linear_fit[-1], time, dist, dist_err, len(time),
+                                               len(linear_fit))
+
+                else:
+                    t_mid = (np.min(year) + np.max(year)) / 2.
+                    time = np.array(year)
+
+                    p0=[0,np.min(year)]
+
+                    # Fit with weights
+                    if weighted_fit:
+                        popt, pcov = curve_fit(kinematic_fit, time, dist, sigma=dist_err, absolute_sigma=True,p0=p0,maxfev=10000)
+                    else:
+                        popt, pcov = curve_fit(kinematic_fit, time, dist,p0=p0,maxfev=10000)
+
+                    linear_fit=popt
+                    cov_matrix=pcov
+
+                    speed, t_0 = popt
+                    speed_err, t_0_err = np.sqrt(np.diag(pcov))
+
+                    y0 = -speed*t_0
+                    y0_err = y0*(speed/speed_err+t_0/t_0_err)
+                    beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
+                            cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                    beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
+                            cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                    d_crit = np.sqrt(1 + beta_app ** 2)
+                    d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
+                    dist_0_est = y0
+
+                    # Compute chi-squared
+                    y_model = kinematic_fit(time, speed, t_0)
+                    chi2 = np.sum(((dist - y_model) / dist_err) ** 2)
+                    dof = len(time) - len(popt)  # degrees of freedom
+                    red_chi_sqr = chi2 / dof
 
             else:
                 speed = 0
