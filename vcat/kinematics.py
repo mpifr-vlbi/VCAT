@@ -512,7 +512,11 @@ class ComponentCollection():
 
                     # Fit with weights
                     if weighted_fit:
-                        popt, pcov = curve_fit(kinematic_fit, time, dist, sigma=dist_err, absolute_sigma=True,p0=p0,maxfev=10000)
+                        try:
+                            popt, pcov = curve_fit(kinematic_fit, time, dist, sigma=dist_err, absolute_sigma=True,p0=p0,maxfev=10000)
+                        except:
+                            logger.warning(f"Could not perform weighted fit for Component {self.name}, will do unweighted.")
+                            weighted_fit=False
                     else:
                         popt, pcov = curve_fit(kinematic_fit, time, dist,p0=p0,maxfev=10000)
 

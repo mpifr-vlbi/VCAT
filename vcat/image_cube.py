@@ -2174,8 +2174,9 @@ class ImageCube(object):
                         plot.plot_kinematic_fit(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
                                              f["linear_fit"],color=color,t_mid=f["t_mid"])
                     else:
-                        plot.plot_kinematic_fit_t0(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
-                                             f["linear_fit"],color=color)
+                        if not isinstance(f["linear_fit"],int):
+                            plot.plot_kinematic_fit_t0(tmin-0.1*(tmax-tmin),tmax+0.1*(tmax-tmin),
+                                                 f["linear_fit"],color=color)
                     fits.append(f)
 
             if show_plot:
