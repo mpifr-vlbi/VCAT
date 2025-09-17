@@ -76,11 +76,10 @@ def stack_images(image_array, #input images to be stacked
 
 def stack_fits(fits_files, #a list of filepaths to fits files (either full polarization or just stokes I)
         stokes_q_fits=[], #a list of filepaths to fits files containing stokes Q
-        stokes_u_fits=[], #a list of filepaths to fits files conataining stokes U
+        stokes_u_fits=[], #a list of filepaths to fits files containing stokes U
         export_fits=True, #choose whether to write an output fits file (stacked)
         output_file="stacked.fits", #choose file name for output file
-        overwrite=True, #choose whether to overwrite an already existing image or not
-        align=False #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightest pixel in Stokes I)
+        overwrite=True #choose whether to overwrite an already existing image or not
         ):
     
     #check if there is more than one fits file
@@ -142,13 +141,9 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
                 if pol==0:
                     i_data_to_stack=data_to_stack
 
-                #align polarizations according to stokes i peak
-                if align:
-                    logger.info(f"Stacking Polarization {pol}.")
-                    output_stacked[pol][spw]=stack_images(align_images(data_to_stack,align_by=i_data_to_stack))
-                else:
-                    logger.info(f"Stacking Polarization {pol}.")
-                    output_stacked[pol][spw]=stack_images(data_to_stack)
+
+                logger.info(f"Stacking Polarization {pol}.")
+                output_stacked[pol][spw]=stack_images(data_to_stack)
 
         if export_fits:
             file=fits.open(fits_files[0])
@@ -166,8 +161,7 @@ def stack_fits(fits_files, #a list of filepaths to fits files (either full polar
 def stack_pol_fits(fits_files, #list of file paths to fits files with full polarization or Stokes I only data
         stokes_q_fits=[], #list of file paths to fits files with Stokes Q data
         stokes_u_fits=[], #list of file paths to fits files with Stokes U data
-        weighted=False, #choose whether to weight the EVPA stacking by the level of linear polarization
-        align=False #choose whether to align the images on the brightest pixel in Stokes I before stacking (all pols will be aligned according to the brightes pixel in Stokes I)
+        weighted=False #choose whether to weight the EVPA stacking by the level of linear polarization
         ):
 
     #check if there is more than one fits file
@@ -226,22 +220,13 @@ def stack_pol_fits(fits_files, #list of file paths to fits files with full polar
     
         #do the actual stacking
         for spw in range(dim[1]):
-            
-            if align:
-                output_stacked[0][spw]=stack_images(align_images(pol_images[spw][0])) #stack stokes_i
-                output_stacked[1][spw]=stack_images(align_images(pol_images[spw][1],align_by=pol_images[spw][0])) #stack lin.pol.
-                if weighted:
-                    output_stacked[2][spw]=stack_images(align_images(pol_images[spw][2],align_by=pol_images[spw][0]),weighted=True,weights_array=pol_images[spw][1])    
-                else:
-                    output_stacked[2][spw]=stack_images(align_images(pol_images[spw][2],align_by=pol_images[spw][0])) #stack EVPA without weights
 
+            output_stacked[0][spw]=stack_images(pol_images[spw][0]) #stack stokes_i
+            output_stacked[1][spw]=stack_images(pol_images[spw][1]) #stack lin.pol.
+            if weighted:
+                output_stacked[2][spw]=stack_images(pol_images[spw][2],weighted=True,weights_array=pol_images[spw][1])
             else:
-                output_stacked[0][spw]=stack_images(pol_images[spw][0]) #stack stokes_i
-                output_stacked[1][spw]=stack_images(pol_images[spw][1]) #stack lin.pol.
-                if weighted:
-                    output_stacked[2][spw]=stack_images(pol_images[spw][2],weighted=True,weights_array=pol_images[spw][1])    
-                else:
-                    output_stacked[2][spw]=stack_images(pol_images[spw][2]) #stack EVPA without weights
+                output_stacked[2][spw]=stack_images(pol_images[spw][2]) #stack EVPA without weights
 
         return output_stacked
 

@@ -1928,7 +1928,7 @@ class ImageData(object):
         Function to center the brightest pixel of the image.
 
         Args:
-            mode: Choose which map to use ('stokes_i', 'lin_pol')
+            mode: Choose which map to use ('stokes_i', 'lin_pol','core')
             useDIFMAP: Choose whether to use DIFMAP or not.
         Returns:
             Shifted ImageData object
