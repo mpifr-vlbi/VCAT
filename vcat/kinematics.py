@@ -511,6 +511,7 @@ class ComponentCollection():
                     p0=[0,np.min(year)]
 
                     # Fit with weights
+                    skip=False
                     if weighted_fit:
                         try:
                             popt, pcov = curve_fit(kinematic_fit, time, dist, sigma=dist_err, absolute_sigma=True,p0=p0,maxfev=10000)
@@ -518,29 +519,50 @@ class ComponentCollection():
                             logger.warning(f"Could not perform weighted fit for Component {self.name}, will do unweighted.")
                             weighted_fit=False
                     else:
-                        popt, pcov = curve_fit(kinematic_fit, time, dist,p0=p0,maxfev=10000)
+                        try:
+                            popt, pcov = curve_fit(kinematic_fit, time, dist,p0=p0,maxfev=10000)
+                        except:
+                            logger.warning(f"Fit for component {self.name} failed.")
+                            skip=True
 
-                    linear_fit=popt
-                    cov_matrix=pcov
+                    if not skip:
+                        linear_fit=popt
+                        cov_matrix=pcov
 
-                    speed, t_0 = popt
-                    speed_err, t_0_err = np.sqrt(np.diag(pcov))
+                        speed, t_0 = popt
+                        speed_err, t_0_err = np.sqrt(np.diag(pcov))
 
-                    y0 = -speed*t_0
-                    y0_err = y0*(speed/speed_err+t_0/t_0_err)
-                    beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
-                            cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
-                    beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
-                            cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
-                    d_crit = np.sqrt(1 + beta_app ** 2)
-                    d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
-                    dist_0_est = y0
+                        y0 = -speed*t_0
+                        y0_err = y0*(speed/speed_err+t_0/t_0_err)
+                        beta_app = speed * (np.pi / (180 * self.scale * u.yr)) * (
+                                cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                        beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
+                                cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
+                        d_crit = np.sqrt(1 + beta_app ** 2)
+                        d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
+                        dist_0_est = y0
 
-                    # Compute chi-squared
-                    y_model = kinematic_fit(time, speed, t_0)
-                    chi2 = np.sum(((dist - y_model) / dist_err) ** 2)
-                    dof = len(time) - len(popt)  # degrees of freedom
-                    red_chi_sqr = chi2 / dof
+                        # Compute chi-squared
+                        y_model = kinematic_fit(time, speed, t_0)
+                        chi2 = np.sum(((dist - y_model) / dist_err) ** 2)
+                        dof = len(time) - len(popt)  # degrees of freedom
+                        red_chi_sqr = chi2 / dof
+                    else:
+                        speed = 0
+                        speed_err = 0
+                        y0 = 0
+                        y0_err = 0
+                        beta_app = 0
+                        beta_app_err = 0
+                        d_crit = 0
+                        d_crit_err = 0
+                        dist_0_est = 0
+                        t_0 = 0
+                        t_0_err = 0
+                        red_chi_sqr = 0
+                        linear_fit = 0
+                        cov_matrix = 0
+                        t_mid = 0
 
             else:
                 speed = 0
