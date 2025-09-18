@@ -2018,16 +2018,16 @@ class ImageCube(object):
                                              plot_evpa=False,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="fracpol" or value=="frac_pol":
-                    x,y,yerr=plot.plot_fracpol(cc, color=color,marker=marker,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=evpa_len)
+                    x,y,yerr=plot.plot_fracpol(cc, color=color,marker=marker,plot_errors=plot_errors,snr_cut=snr_cut,label=label,plot_evpa=False,evpa_len=evpa_len)
                 elif value=="flux+evpa":
                     x, y, yerr = plot.plot_fluxs(cc, color=color, marker=marker, plot_errors=plot_errors, label=label,
                                                  snr_cut=snr_cut,plot_evpa=True,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="linpol+evpa" or "lin_pol+evpa":
-                    x, y, yerr = plot.plot_linpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                    x, y, yerr = plot.plot_linpol(cc, color=color, marker=marker,plot_errors=plot_errors,snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 elif value=="fracpol+evpa" or "frac_pol+evpa":
-                    x, y, yerr = plot.plot_fracpol(cc, color=color, marker=marker, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
+                    x, y, yerr = plot.plot_fracpol(cc, color=color, marker=marker,plot_errors=plot_errors, snr_cut=snr_cut, label=label,plot_evpa=True,evpa_len=evpa_len)
                     yerrs.append(yerr)
                 else:
                     raise Exception(f"Not possible to plot '{value}' for component!")

@@ -37,7 +37,8 @@ warnings.simplefilter('ignore', ErfaWarning)
 
 class ImageData(object):
 
-    """ Class to handle VLBI Image data (single image with or without polarization at one frequency)
+    """
+    Class to handle VLBI Image data (single image with or without polarization at one frequency)
 
     Attributes:
         General:
