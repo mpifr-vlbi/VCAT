@@ -828,7 +828,7 @@ class ImageData(object):
                 os.system(f"cp {self.stokes_u_path} {outputfile}")
                 logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
 
-    def regrid(self,npix="",pixel_size="",weighting=self.uvw,useDIFMAP=True,mask_outside=False):
+    def regrid(self,npix="",pixel_size="",weighting=None,useDIFMAP=True,mask_outside=False):
         """
         This method regrids the image in full polarization
 
@@ -841,6 +841,14 @@ class ImageData(object):
         Returns:
             regridded ImageData object
         """
+        
+        # FMP: arguments can not be passed to function based on attributed of self,
+        #      need to set to None and then manually set it based on self.
+        if weighting == None:
+            weighting = self.uvw
+        print('self.uvw')
+        print(self.uvw)
+        
         logger.debug("Regridding Image")
 
         if len(self.X)==npix and len(self.Y)==npix and pixel_size==self.degpp*self.scale:
@@ -1299,7 +1307,7 @@ class ImageData(object):
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
-    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=self.uvw,useDIFMAP=True,mask_outside=False):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",weighting=None,useDIFMAP=True,mask_outside=False):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
         Inputs:
@@ -1321,7 +1329,13 @@ class ImageData(object):
             bmin=self.beam_min
         if posa==-1:
             posa=self.beam_pa
-
+        
+        # FMP: arguments can not be passed to function based on attributed of self,
+        #      need to set to None and then manually set it based on self.
+        if weighting == None:
+            weighting = self.uvw
+        print('self.uvw')
+        print(self.uvw)
 
         #TODO basic sanity check if uvf file is present and if polarization is there
         if self.uvf_file=="" or useDIFMAP==False:
@@ -1598,7 +1612,7 @@ class ImageData(object):
                          uvw=self.uvw,
                          uvtaper=self.uvtaper)
 
-    def shift(self,shift_x,shift_y,weighting=self.uvw,useDIFMAP=True):
+    def shift(self,shift_x,shift_y,weighting=None,useDIFMAP=True):
         """
         Function to shift the image in RA and Dec.
 
@@ -1612,6 +1626,14 @@ class ImageData(object):
         Returns:
             shifted ImageData object
         """
+        
+        # FMP: arguments can not be passed to function based on attributed of self,
+        #      need to set to None and then manually set it based on self.
+        if weighting == None:
+            weighting = self.uvw
+        print('self.uvw')
+        print(self.uvw)
+        
         try:
             #We can just call the restore() function without doing the restore steps
             return self.restore(-1,-1,-1,shift_x,shift_y,weighting=weighting,useDIFMAP=useDIFMAP)
