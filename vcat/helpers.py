@@ -42,6 +42,7 @@ def get_sigma_levs(image,  # 2d array/list
                    noise=0,
                    plot_histogram=False,
                    ):
+
     if noise_method=="Histogram Fit":
         try:
             Z1 = image.flatten()

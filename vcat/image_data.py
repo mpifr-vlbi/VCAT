@@ -70,6 +70,7 @@ class ImageData(object):
             model_q (DataFrame): DataFrame with all Stokes Q clean components
             model_u (DataFrame): DataFrame with all Stokes U clean components
             components (list[Component]): List of Modelfit-Components
+
         Image Parameters:
             noise (float): Image noise in Jy, calculated using the specified 'noise_method'
             pol_noise (float): Image noise of the linear polarization image in Jy
@@ -151,7 +152,7 @@ class ImageData(object):
             pol_from_stokes (bool): Choose whether to import data from fits-files or from lin_pol/evpa
             mask (list[list[bool]]): 2d-array of an image mask
             ridgeline (Ridgeline): Ridgeline of the image
-            counter_ridgeline (Ridgeline: Counter ridgeline of the image.
+            counter_ridgeline (Ridgeline): Counter ridgeline of the image.
             stokes_q (str or list[list[float]]): Input Stokes-Q .fits file or 2d array of Stokes-Q image
             stokes_u (str or list[list[float]]): Input Stokes-U .fits file or 2d array of Stokes-U image
             comp_ids (list[int]): list of integers to assign as component number (from top to bottom .mod file or .fits header)
@@ -172,6 +173,7 @@ class ImageData(object):
             fit_comp_pol_errors (bool): Choose whether to determine lin_pol and evpa errors for components
             difmap_path (str): Path to the folder of your DIFMAP installation
         """
+
         if model=="":
             self.model_inp=False
         else:
@@ -371,14 +373,25 @@ class ImageData(object):
                                mod_files=[model],clean_mod_files=[model], uvf_files=[uvf_file], do_selfcal=True)
 
             else:
+                #TODO does not work for AIPS .fits!!!
                 #copy the clean .fits file and write the model info to the header and store it as model_file_path
                 #get model first:
                 model_df = getComponentInfo(model,scale=self.scale)
                 #now modify fits file
                 f=fits.open(self.fits_file)
                 # FITS column names
-                fits_columns = f[1].data.names
+                fits_columns = ["FLUX","DELTAX","DELTAY","MAJOR AX","MINOR AX","POSANGLE","TYPE OBJ"]
+                dtype=np.dtype([
+                    ('FLUX', '>f4'),
+                    ('DELTAX', '>f4'),
+                    ('DELTAY', '>f4'),
+                    ('MAJOR AX', '>f4'),
+                    ('MINOR AX', '>f4'),
+                    ('POSANGLE', '>f4'),
+                    ('TYPE OBJ', '>f4')
+                    ])
 
+                
                 # Manually map DataFrame columns to FITS structure
                 column_mapping = {
                     "FLUX": "Flux",
@@ -393,7 +406,7 @@ class ImageData(object):
                 # Ensure correct order and match dtype
                 new_data_array = np.array(
                     [tuple(df[column_mapping[col]] for col in fits_columns) for _, df in model_df.iterrows()],
-                    dtype=f[1].data.dtype  # Ensure the same dtype as the original FITS table
+                    dtype=dtype  # Ensure the same dtype as the original FITS table
                 )
 
                 # Overwrite the FITS table with the new structured array
