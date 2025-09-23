@@ -216,8 +216,8 @@ class ImageData(object):
             if uvf_file!="":
                 #get dirty map from uvf file
                 get_residual_map(uvf_file, "","", difmap_path=difmap_path, channel="i",
-                                 save_location="/tmp/dirty_image.fits", npix=len(self.X),pxsize=self.degpp*self.scale,
-                                 do_selfcal=False)
+                                 save_location="/tmp/dirty_image.fits", weighting=self.uvw,
+                                 npix=len(self.X),pxsize=self.degpp*self.scale, do_selfcal=False)
                 fits_file="/tmp/dirty_image.fits"
                 self.fits_file=fits_file
                 self.file_path=fits_file
@@ -580,7 +580,8 @@ class ImageData(object):
 
             get_residual_map(self.uvf_file,self.stokes_i_mod_file,self.stokes_i_mod_file,
                              difmap_path=self.difmap_path,
-                             save_location=self.residual_map_path,npix=len(self.X),pxsize=self.degpp*self.scale)
+                             save_location=self.residual_map_path,weighting=self.uvw,
+                             npix=len(self.X),pxsize=self.degpp*self.scale)
 
             self.residual_map=fits.open(self.residual_map_path)[0].data[0,0,:,:]
         
