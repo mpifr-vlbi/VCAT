@@ -1369,8 +1369,6 @@ class ImageCube(object):
                                 self.images[i,j].set_core_component(new_comp_id)
                             assigned_ids.append(new_comp_id)
                         else:
-                            print(comp)
-                            print(df_filtered)
                             logger.warning(f"Problem with identifying component {new_comp_id} at freq={freq*1e-9:.1f}GHz at mjd={mjd} please double check!")
 
         self.update_comp_collections()
