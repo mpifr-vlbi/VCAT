@@ -1340,6 +1340,7 @@ class ImageCube(object):
             for j in range(len(self.images[0])):
                 image = self.images[i, j]
                 if isinstance(image,ImageData):
+                    assigned_ids=[]
                     for k, comp in enumerate(image.components):
                         x = comp.x
                         y = comp.y
@@ -1356,17 +1357,21 @@ class ImageCube(object):
                             (df_filtered['x'] - x) ** 2 +
                             (df_filtered['y'] - y) ** 2
                         )
+
                         closest_row = df_filtered.loc[df_filtered['distance'].idxmin()]
 
                         # Assign new component number and is_core with type casting
-                        old_comp_id=self.images[i,j].components[k].component_number
                         new_comp_id=int(closest_row["component_number"])
 
-                        self.images[i,j].change_component_ids([old_comp_id],[new_comp_id])
-
-                        if bool(closest_row["is_core"]):
-                            self.images[i,j].set_core_component(new_comp_id)
-
+                        if new_comp_id not in assigned_ids:
+                            self.images[i,j].components[k].component_number=new_comp_id
+                            if bool(closest_row["is_core"]):
+                                self.images[i,j].set_core_component(new_comp_id)
+                            assigned_ids.append(new_comp_id)
+                        else:
+                            print(comp)
+                            print(df_filtered)
+                            logger.warning(f"Problem with identifying component {new_comp_id} at freq={freq*1e-9:.1f}GHz at mjd={mjd} please double check!")
 
         self.update_comp_collections()
 

@@ -514,7 +514,7 @@ class ComponentCollection():
                     skip=False
                     if weighted_fit:
                         try:
-                            popt, pcov = curve_fit(kinematic_fit, time, dist, sigma=dist_err, absolute_sigma=True,p0=p0,maxfev=10000)
+                            popt, pcov = curve_fit(kinematic_fit, time, dist, sigma=dist_err, absolute_sigma=True,p0=p0,maxfev=100000)
                         except:
                             logger.warning(f"Could not perform weighted fit for Component {self.name}, will do unweighted.")
                             weighted_fit=False

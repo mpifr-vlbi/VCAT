@@ -391,7 +391,7 @@ class ImageData(object):
                     ('TYPE OBJ', '>f4')
                     ])
 
-                
+
                 # Manually map DataFrame columns to FITS structure
                 column_mapping = {
                     "FLUX": "Flux",
