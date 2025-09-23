@@ -281,7 +281,7 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, stokes_i_mod_file, c
         rms (list): List with residual image root-mean square for each
           component in mJy/beam.
     '''
-
+    
     env = os.environ.copy()
 
     # add difmap to PATH
@@ -808,7 +808,7 @@ def get_residual_map(uvf_file,mod_file, clean_mod_file, difmap_path=difmap_path,
         Nothing, but writes a .fits file including the residual map
     """
     env = os.environ.copy()
-
+    
     # add difmap to PATH
     if difmap_path != None and not difmap_path in os.environ['PATH']:
         env['PATH'] = env['PATH'] + ':{0}'.format(difmap_path)
