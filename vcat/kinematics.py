@@ -487,7 +487,7 @@ class ComponentCollection():
                     beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
                             cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
                     d_crit = np.sqrt(1 + beta_app ** 2)
-                    d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
+                    d_crit_err = (1 + beta_app**2) ** (-0.5) * beta_app * beta_app_err
                     dist_0_est = y0
                     t_0 = - linear_fit[-1] / speed + t_mid
                     if t0_error_method=="Gauss":
@@ -539,7 +539,7 @@ class ComponentCollection():
                         beta_app_err = speed_err * (np.pi / (180 * self.scale * u.yr)) * (
                                 cosmo.luminosity_distance(self.redshift) / (const.c.to('pc/yr') * (1 + self.redshift)))
                         d_crit = np.sqrt(1 + beta_app ** 2)
-                        d_crit_err = (1 + beta_app) ** (-0.5) * beta_app * beta_app_err
+                        d_crit_err = (1 + beta_app**2) ** (-0.5) * beta_app * beta_app_err
                         dist_0_est = y0
 
                         # Compute chi-squared
