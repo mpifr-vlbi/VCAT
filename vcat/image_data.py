@@ -174,7 +174,7 @@ class ImageData(object):
             difmap_path (str): Path to the folder of your DIFMAP installation
         """
 
-        if model=="":
+        if model=="" or not os.path.exists(model):
             self.model_inp=False
         else:
             if fits_file=="":
