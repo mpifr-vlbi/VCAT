@@ -50,7 +50,11 @@ def get_sigma_levs(image,  # 2d array/list
             bin_widths = np.diff(bin_borders)
             bin_centers = bin_borders[:-1] + bin_widths / 2.
             bin_heights_err = np.where(bin_heights != 0, np.sqrt(bin_heights), 1)
-            t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), np.std(Z1))
+
+            noise_start=0.001
+            if np.std(Z1)<noise_start:
+                noise_start=np.std(Z1)
+            t_init = models.Gaussian1D(np.max(bin_heights), np.median(Z1 - np.min(Z1) + 10 ** (-5)), noise_start)
             fit_t = fitting.LevMarLSQFitter()
 
             t = fit_t(t_init, bin_centers, bin_heights, weights=1. / bin_heights_err)
