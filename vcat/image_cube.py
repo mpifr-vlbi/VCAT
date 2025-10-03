@@ -672,8 +672,6 @@ class ImageCube(object):
             for image in tqdm(self.images.flatten(),desc="Processing"):
                 if isinstance(image, ImageData):
                     new_image=image.regrid(npix=npix,pixel_size=pixel_size,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
-                    print('Npix after regridding in image_cube')
-                    print(len(new_image.X))
                     images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
