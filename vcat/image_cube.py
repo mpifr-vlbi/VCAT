@@ -637,13 +637,43 @@ class ImageCube(object):
     def regrid(self,npix="", pixel_size="",mode="all",useDIFMAP=True,mask_outside=False):
         # initialize empty array
         images = []
-
+        
         logger.info("Regridding images")
-
+        
+        if npix == "" or pixel_size == "":
+            logger.info("Determining smallest pixel size and largest FoV from images for regridding")
+            FoVs = []
+            npixs = []
+            pixel_sizes = []
+            for ind, image in enumerate(tqdm(self.images.flatten(),desc="Processing")):
+                npix = len(image.X)
+                npixs.append(npix)
+                pixel_size = image.degpp*image.scale
+                pixel_sizes.append(pixel_size)
+                FoVs.append(npix*pixel_size)
+            
+            # choose the largest FoV and smallest pixel size
+            FoV_choose = np.nanmax(FoVs)
+            pixel_size_choose = np.nanmin(pixel_sizes)
+            npix_choose = FoV_choose/pixel_size_choose
+            
+            # determine next-largest n_pix that is a power of 2
+            npixs_ok = [2**x for x in range(14)]    # maximum 16k pixels
+            diff = 1E6
+            for i, npix in enumerate(npixs_ok):
+                if npix > npix_choose:
+                    npix_choose = npix
+                    break
+            FoV_choose = npix_choose*pixel_size_choose
+            npix = npix_choose
+            pixel_size = pixel_size_choose
+        
         if mode=="all":
             for image in tqdm(self.images.flatten(),desc="Processing"):
                 if isinstance(image, ImageData):
                     new_image=image.regrid(npix=npix,pixel_size=pixel_size,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
+                    print('Npix after regridding in image_cube')
+                    print(len(new_image.X))
                     images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
