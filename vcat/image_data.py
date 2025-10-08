@@ -1182,6 +1182,8 @@ class ImageData(object):
 
                 #determin common image parameters
                 pixel_size=np.min([self.degpp*self.scale,image_data2.degpp*image_data2.scale])
+                #TODO: change this to maximum FoV? (to make sure no information is lost in any map)
+                # aligning this also with the edit by FMP in image_cube.py regrid function
                 min_fov=np.min([self.degpp*len(self.X)*self.scale,image_data2.degpp*len(image_data2.X)*self.scale])
                 npix=int(min_fov/pixel_size)
 
@@ -1210,14 +1212,15 @@ class ImageData(object):
                     image_self=self.copy()
         else:
             image_self=self.copy()
-
+        
         if method=="cross_correlation" or method=="crosscorrelation":
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
 
                 shift,error,diffphase = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100)
-                logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0] *image_self.scale*image_self.degpp,self.unit))
+                logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
             else:
-                shift, _, _ = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
+                # contrary to the skikit-image documentation, only the shift is returned for masked cross-correlation
+                shift = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
 
         elif method=="brightest":
@@ -1308,8 +1311,7 @@ class ImageData(object):
 
         else:
             warning.warn("Please use valid align method ('cross_correlation','brightest').")
-
-
+        
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
 
@@ -1630,7 +1632,7 @@ class ImageData(object):
         except:
             raise Exception("No shift possible, something went wrong!")
 
-    def masking(self, mask_type='ellipse', args=False):
+    def masking(self, mask_type='ellipse', args=False, invert_mask=False):
         '''
         Function to mask ImageData object.
 
@@ -1643,8 +1645,8 @@ class ImageData(object):
                 'radius': args = radius
                 'ellipse': args = {'e_args': [e_maj,e_min,e_pa], 'e_xoffset': xoff, 'e_yoffset': yoff} all in the image intrinsic unit
                 'flux_cut: args = flux cut
+                    Flags everything above flux_cut times peak brightness
         '''
-
         # cut out inner, optically thick part of the image
         if mask_type == 'npix_x':
             npix_x = args[0]
@@ -1683,11 +1685,12 @@ class ImageData(object):
             e_pa = args['e_args'][2]
             e_xoffset = -int(args['e_xoffset']/self.scale/self.degpp)
             e_yoffset = int(args['e_yoffset']/self.scale/self.degpp)
+            
             try:
-                x, y = int(len(self.X) / 2) + e_xoffset, int(len(self.Y) / 2) +e_yoffset
+                x, y = int(len(self.X) / 2) + e_xoffset, int(len(self.Y) / 2) + e_yoffset
             except:
                 try:
-                    x, y = int(len(self.X) / 2)+e_xoffset, int(len(self.Y) / 2)
+                    x, y = int(len(self.X) / 2) + e_xoffset, int(len(self.Y) / 2)
                 except:
                     try:
                         x, y = int(len(self.X) / 2) , int(len(self.Y) / 2) + e_yoffset
@@ -1703,10 +1706,14 @@ class ImageData(object):
 
         if mask_type == 'flux_cut':
             flux_cut = args
+            # mask everything above flux_cut times the peak brightness
             self.mask[self.Z>flux_cut*np.max(self.Z)] = True
 
         if mask_type == 'reset':
             self.mask=np.zeros_like(self.Z)
+            
+        if invert_mask==True:
+            self.mask=np.invert(self.mask)
 
     def rotate(self,angle,useDIFMAP=True,reshape=False,order=1):
         """

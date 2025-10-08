@@ -386,16 +386,15 @@ class ImageCube(object):
         else:
             raise Exception("Please specify valid mode ('all','freq','epoch')")
 
-
-    def restore(self,beam_maj=-1,beam_min=-1,beam_posa=-1,arg="common",mode="all", useDIFMAP=True,
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,arg="common",mode="all", useDIFMAP=True,
                 shift_x=0,shift_y=0,ppe=100,tolerance=0.0001,plot_beams=False):
         """
         This function allows to restore the ImageCube with a custom beam
 
         Args:
-            beam_maj: Beam major axis to use
-            beam_min: Beam minor axis to use
-            beam_posa: Beam position angle to use (in degrees)
+            bmaj: Beam major axis to use
+            bmin: Beam minor axis to use
+            posa: Beam position angle to use (in degrees)
             arg: Type of algorithm to use for common beam calculation ("mean", "max", "median", "circ", "common")
             mode: Select restore mode ("all" -> applies beam to all, "freq" -> restores common beam per frequency,
             "epoch" -> restores common beam per epoch)
@@ -410,16 +409,16 @@ class ImageCube(object):
         """
 
         # get beam(s)
-        if beam_maj==-1 and beam_min==-1 and beam_posa==-1:
+        if bmaj==-1 and bmin==-1 and posa==-1:
             logger.info("Determining common beam...")
             beams=self.get_common_beam(mode=mode, arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
         else:
-            if isinstance(beam_maj,list) and isinstance(beam_min,list) and isinstance(beam_posa,list):
+            if isinstance(bmaj,list) and isinstance(bmin,list) and isinstance(posa,list):
                 beams=[]
-                for i in range(len(beam_maj)):
-                    beams.append([beam_maj[i],beam_min[i],beam_posa[i]])
+                for i in range(len(bmaj)):
+                    beams.append([bmaj[i],bmin[i],posa[i]])
             else:
-                beams=[beam_maj,beam_min,beam_posa]
+                beams=[bmaj,bmin,posa]
                 mode="all"
 
         #initialize empty array
