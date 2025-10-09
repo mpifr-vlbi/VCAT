@@ -1385,10 +1385,13 @@ class ImageCube(object):
                             (df_filtered['y'] - y) ** 2
                         )
 
-                        closest_row = df_filtered.loc[df_filtered['distance'].idxmin()]
-
-                        # Assign new component number and is_core with type casting
-                        new_comp_id=int(closest_row["component_number"])
+                        if len(df_filtered['distance'])>0:
+                            closest_row = df_filtered.loc[df_filtered['distance'].idxmin()]
+                            # Assign new component number and is_core with type casting
+                            new_comp_id = int(closest_row["component_number"])
+                        else:
+                            logger.warning(f"Could not find component with flux {flux*1e3:.2f} mJy, Frequency {freq*1e-9:.1f} GHz, and MJD {mjd} in {file}, will assign id -1 to it.")
+                            new_comp_id = -1
 
                         if new_comp_id not in assigned_ids:
                             self.images[i,j].components[k].component_number=new_comp_id
@@ -1396,7 +1399,7 @@ class ImageCube(object):
                                 self.images[i,j].set_core_component(new_comp_id)
                             assigned_ids.append(new_comp_id)
                         else:
-                            logger.warning(f"Problem with identifying component {new_comp_id} at freq={freq*1e-9:.1f}GHz at mjd={mjd} please double check!")
+                            logger.warning(f"Component {new_comp_id} at freq={freq*1e-9:.1f}GHz at mjd={mjd} identified multiple times, please double check!")
 
         self.update_comp_collections()
 
@@ -2061,6 +2064,7 @@ class ImageCube(object):
                     yerrs.append(yerr)
                 else:
                     raise Exception(f"Not possible to plot '{value}' for component!")
+                
                 xvalues.append(x)
                 yvalues.append(y)
 
