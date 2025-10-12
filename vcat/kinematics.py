@@ -112,6 +112,7 @@ class Component():
 
 
         # determine errors
+        # logger.info("Will use '" + error_method + "' method for determining component errors.")
         self.get_errors(method=error_method,gain_err=self.gain_err)
 
     def __str__(self):
@@ -253,6 +254,8 @@ class Component():
     def set_distance_to_core(self, core_x, core_y,core_x_err=0,core_y_err=0):
         self.delta_x_est = self.x - core_x
         self.delta_y_est = self.y - core_y
+        self.delta_x_est_err = np.sqrt(self.x_err**2+core_x_err**2)
+        self.delta_y_est_err = np.sqrt(self.y_err**2+core_y_err**2)
         self.distance_to_core, self.distance_to_core_err = calculate_dist_with_err(self.x,self.y,core_x,core_y,
                                                                                    self.x_err,self.y_err,core_x_err,core_y_err)
 
@@ -354,6 +357,8 @@ class ComponentCollection():
         self.thetas_err = np.empty((self.n_epochs, self.n_freqs), dtype=float)
         self.delta_x_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.delta_y_ests = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.delta_x_est_errs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.delta_y_est_errs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.lin_pols = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.evpas = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.snrs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
@@ -390,6 +395,8 @@ class ComponentCollection():
                         self.thetas_err[i,j]=comp.theta_err
                         self.delta_x_ests[i,j]=comp.delta_x_est
                         self.delta_y_ests[i,j]=comp.delta_y_est
+                        self.delta_x_est_errs[i,j]=comp.delta_x_est_err
+                        self.delta_y_est_errs[i,j]=comp.delta_y_est_err
                         self.lin_pols[i,j]=comp.lin_pol
                         self.evpas[i,j]=comp.evpa
                         self.snrs[i,j]=comp.snr
@@ -638,9 +645,9 @@ class ComponentCollection():
 
         return newComp
 
-    def get_coreshift(self, epochs="",k_r=""):
+    def get_coreshift(self, epochs="",k_r="",r0=""):
 
-        if epochs=="":
+        if isinstance(epochs, str) and epochs=="":
             epochs=self.epochs_distinct
         elif isinstance(epochs,(float,int)):
             epochs=[epochs]
@@ -658,6 +665,10 @@ class ComponentCollection():
             components=self.components[epoch_ind,:].flatten()
             dist=self.dist[epoch_ind,:].flatten()
             dist_err=self.dist_err[epoch_ind,:].flatten()
+            delta_x_core = self.scale*self.delta_x_ests[epoch_ind,:].flatten()
+            delta_y_core = self.scale*self.delta_y_ests[epoch_ind,:].flatten()
+            delta_x_core_err = self.scale*self.delta_x_est_errs[epoch_ind,:].flatten()
+            delta_y_core_err = self.scale*self.delta_y_est_errs[epoch_ind,:].flatten()
 
             max_i=0
             max_freq=0
@@ -672,9 +683,33 @@ class ComponentCollection():
             coreshifts=[]
             coreshift_err=[]
             for i,comp in enumerate(components):
-                coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
-                coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
-            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r)
+                # This new code calculates the core shift without assuming anything about relative component positions
+                dx1 = delta_x_core[i]
+                dx2 = delta_x_core[max_i]
+                dy1 = delta_y_core[i]
+                dy2 = delta_y_core[max_i]
+                dx1_err = delta_x_core_err[i]
+                dx2_err = delta_x_core_err[max_i]
+                dy1_err = delta_y_core_err[i]
+                dy2_err = delta_y_core_err[max_i]
+                
+                dx = dx2 - dx1
+                dy = dy2 - dy1
+                dx_err = np.sqrt(dx2_err**2 + dx1_err**2)
+                dy_err = np.sqrt(dy2_err**2 + dy1_err**2)
+
+                dr = np.sqrt(dx**2 + dy**2)*1e3 # in uas
+                if dx != 0 and dy != 0:
+                    dr_err = np.sqrt((dx**2*dx_err**2 + dy**2*dy_err**2)/(dx**2 + dy**2))*1e3 # in uas
+                else:
+                    dr_err = np.sqrt(dx2_err**2 + dy2_err**2)*1e3 # in uas
+                coreshifts.append(dr)
+                coreshift_err.append(dr_err)
+                # Previously, this code assumed that all distances are along the same line
+                # coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
+                # coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
+            
+            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0)
             results.append(result)
 
         return results
@@ -686,8 +721,12 @@ class ComponentCollection():
         Inputs:
             fluxerr: Fractional Errors (dictionary with {'error': [], 'freq':[]})
         """
+        
+        #TODO: this function does not work properly when inserting an image cube with two epochs
+        #      and different frequencies in each of them. Maybe this corner case is not necessary,
+        #      but I (Felix) have encountered it during testing.
 
-        if not isinstance(epochs, list) and epochs=="":
+        if isinstance(epochs, str) and epochs=="":
             epochs=self.epochs_distinct
         elif isinstance(epochs,(float,int)):
             epochs=[epochs]
@@ -701,10 +740,14 @@ class ComponentCollection():
         for epoch in epochs:
             logger.info(epoch)
             epoch_ind=closest_index(self.epochs_distinct,epoch)
-
             fluxs=self.fluxs[epoch_ind,:].flatten()
+            fluxs_err=self.fluxs_err[epoch_ind,:].flatten()
             freqs=self.freqs[epoch_ind,:].flatten()
             ids=self.ids[epoch_ind,:].flatten()
+            #TODO: concerning the point above, these arrays start including zero
+            # or wild values for frequencies that are not really covered in one
+            # epoch of an image cube object. Find out why this happens and how
+            # to improve that.
 
             logger.info("Fit component spectrum\n")
 
@@ -714,7 +757,8 @@ class ComponentCollection():
                 cfreq = fluxerr['freq']
                 cfluxerr = fluxerr['error']
             else:
-                cfluxerr = 0.15*cflux.copy() #default of 15% error
+                cfluxerr = np.array(fluxs_err) # FMP: use errors formally calculated instead (10 % by default)
+                # cfluxerr = 0.15*cflux.copy() #default of 15% error
                 cfreq = np.array(freqs)*1e-9 #convert to GHz
 
             cid = ids
