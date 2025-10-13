@@ -214,10 +214,11 @@ class ImageData(object):
         if fits_file=="":
             #if no fits file was loaded try to get the dirty image
             if uvf_file!="":
+                logger.warning("Only .uvf file given, will create dirty image with npix=1024 and pxsize=0.05!")
                 #get dirty map from uvf file
                 get_residual_map(uvf_file, "","", difmap_path=difmap_path, channel="i",
                                  save_location="/tmp/dirty_image.fits", weighting=self.uvw,
-                                 npix=len(self.X),pxsize=self.degpp*self.scale, do_selfcal=False)
+                                 npix=1024,pxsize=0.05, do_selfcal=False)
                 fits_file="/tmp/dirty_image.fits"
                 self.fits_file=fits_file
                 self.file_path=fits_file
@@ -225,8 +226,8 @@ class ImageData(object):
                 self.no_fits=True
 
         # Read clean files in
-        if fits_file!="":
-            hdu_list=fits.open(fits_file)
+        if self.fits_file!="":
+            hdu_list=fits.open(self.fits_file)
             self.hdu_list = hdu_list
             self.no_fits=False
 
@@ -2599,3 +2600,54 @@ class ImageData(object):
             plt.show()
 
         return plot
+
+    def plot_uv(self,fig="",ax="",savefig="",show=True):
+        """
+        Function to plot the uv-coverage, if a .uvf-file is provided.
+
+        Args:
+            fig (Matplotlib Figure): Optional input of matplotlib fig
+            ax (Matplotlib Ax): Optional input of matplotlib ax
+            savefig (string): Path to export the plot
+            show (bool): Choose whether to show the plot or not
+
+        Returns:
+            fig, ax
+        """
+
+        if fig=="" or ax=="":
+            fig, ax = plt.subplots(1,1,figsize=(6,6))
+
+        if self.uvf_file!="":
+            hdu = fits.open(self.uvf_file)
+            u_array = []
+            v_array = []
+
+            for scan in hdu[0].data:
+                u_array.append(scan[0])
+                v_array.append(scan[1])
+
+            for i in range(10):
+                try:
+                    if "FREQ" in hdu[0].header["CTYPE" + str(i)]:
+                        freq_ghz = float(hdu[0].header["CRVAL" + str(i)]) / 1e9  # Frequency in GHz
+                except:
+                    pass
+            # plot it
+            ax.scatter(freq_ghz * 10 ** 3 * np.array(u_array), freq_ghz * 10 ** 3 * np.array(v_array), s=0.5,
+                        color="tab:blue")
+            ax.scatter(-freq_ghz * 10 ** 3 * np.array(u_array), -freq_ghz * 10 ** 3 * np.array(v_array), s=0.5,
+                        color="tab:blue")
+            ax.invert_xaxis()
+            ax.set_xlabel("U (10⁶ $\lambda$)")
+            ax.set_ylabel("V (10⁶ $\lambda$)")
+
+            ax.set_aspect("equal")
+
+            if savefig!="":
+                fig.savefig(savefig,bbox_inches="tight")
+
+            if show:
+                plt.show()
+
+        return fig, ax
