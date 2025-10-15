@@ -218,8 +218,6 @@ class MultiFitsImage(object):
 
         #create FitsImage for every image
         self.plots=np.empty((self.nrows,self.ncols),dtype=object)
-        # if swap_axis and self.axes != self.axes.T:
-            # self.axes = self.axes.T
 
         for i in range(self.nrows):
             for j in range(self.ncols):
