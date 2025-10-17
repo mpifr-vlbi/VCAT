@@ -1,5 +1,11 @@
-docs/* linguist-vendored
-site/* linguist-vendored
+# Ignore generated documentation
+docs/** linguist-vendored
+site/** linguist-vendored
+**/*.html linguist-vendored
+
+# Treat these as text or Python as appropriate
 **/*.mod linguist-language=Text
 **/*.ipynb linguist-language=Python
 
+# Optional: treat example data or notebooks as not affecting language stats
+examples/** linguist-vendored
