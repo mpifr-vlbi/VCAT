@@ -1,9 +1,9 @@
 # VCAT — VLBI Comprehensive Analysis Toolkit
 
-**VCAT (VLBI Comprehensive Analysis Toolkit)** is a Python package that provides a unified framework for the analysis of Very Long Baseline Interferometry (VLBI) data. It was developed in collaboration with several colleagues from the VLBI community (A. Baczko, F. Pötzl, J. Röder, F. Rösch, V. Bartolini, L. Ricci) to combine existing analysis scripts into a single, coherent package that supports a wide range of VLBI analysis methods.
+**VCAT (VLBI Comprehensive Analysis Toolkit)** is a Python package that provides a unified framework for the analysis of Very Long Baseline Interferometry (VLBI) data. It was developed in collaboration with several colleagues from the VLBI community (A. Baczko, V. Bartolini, F. Eppel, F. Pötzl, L. Ricci, J. Röder, F. Rösch) to combine existing analysis scripts into a single, coherent package that supports a wide range of VLBI analysis methods.
 
-Many of the implemented analysis techniques—such as kinematic analysis and stacking—have been used for a long time, while others, like spine–sheath fitting and model component polarization analysis, were developed specifically for recent scientific projects.  
-All included methods are applicable to any source with standard VLBI data available.
+Many of the implemented analysis techniques have been used for a long time, while others were specifically developed for recent scientific projects. VCAT is still evolving — we’d love your help! Contributions, feedback, and ideas are always welcome.
+All included methods are applicable to any source with standard VLBI data available in .fits, .uvf format.
 
 ---
 
@@ -19,7 +19,7 @@ pip install vcat-vlbi
 
 ## Overview
 
-VCAT consists of two main classes: **`ImageData`** and **`ImageCube`**.
+VCAT consists of the two core classes: **`ImageData`** and **`ImageCube`**.
 
 ### `ImageData`
 
@@ -30,12 +30,19 @@ It accepts as input:
 - **UVFITS** (`.uvf`) visibility data  
 - **Modelfit** files (`.mod` or `.fits`)
 
+For example, loading and plotting an image can quickly be done with
+
+```python
+image=ImageData("image.fits", uvf_file="data.uvf", model="model.mod")
+image.plot()
+```
+
 Upon loading, key parameters such as image noise, integrated flux density, and fractional polarization are automatically calculated and stored as attributes.  
-If a modelfit file is provided, VCAT also calculates the signal-to-noise ratio (SNR), brightness temperature, and polarization errors following *Schinzel et al. (2012)*.
+If a modelfit file is provided, VCAT also calculates the signal-to-noise ratio (SNR), brightness temperature, and component errors automatically.
 
 `ImageData` objects can be modified or analyzed using various tasks:
 
-- `restore()`, `regrid()`, `shift()`, `center()` – run DIFMAP in the background to modify full-polarization images  
+- `restore()`, `regrid()`, `shift()`, `center()` – runs DIFMAP in the background to modify full-polarization images  
 - `get_ridgeline()` – perform a ridgeline fit  
 - `align()` – align one image to another  
 - `plot()` – generate customizable plots of total intensity or polarization
@@ -52,7 +59,7 @@ It manages a collection of `ImageData` objects representing different observatio
   - `fit_comp_spectrum()` — component-based spectral fitting  
 
 - **Kinematic analysis**  
-  - `get_speed()` and `get_speed2d()` — estimate apparent jet speeds  
+  - `get_speed()` and `get_speed2d()` — estimate apparent jet speeds and perform kinematic analysis
 
 - **Structural analysis**  
   - `stack()` — stack multiple images  
