@@ -25,12 +25,18 @@ class Ridgeline(object):
         self.intensity=[]
         self.intensity_err=[]
 
-    def get_ridgeline_polar(self,r,theta,polar_image,image,beam,error,slice_width=100,chi_sq_val=100,start_radius=0,maxfev=10000):
-
+    def get_ridgeline_polar(self,r,theta,polar_image,image,beam,error,slice_width=100,chi_sq_val=100,start_radius=0,end_radius=0,maxfev=10000):
+        
+        # determine start and end point of fit
         start_i=closest_index(r[0],start_radius)
+        if end_radius != 0:
+            end_i=closest_index(r[0],end_radius)
+        else:
+            end_i=len(r[0])
+        
         # get slice
         slice_width = slice_width * image.degpp * image.scale
-        for i in range(start_i,len(r[0])):
+        for i in range(start_i,end_i):
             theta_slice=theta[:,i]
             slice_to_fit=np.array(polar_image[:,i])
             length=len(slice_to_fit)
