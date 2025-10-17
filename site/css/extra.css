@@ -1,0 +1,29 @@
+/* Increase main content width */
+.wy-nav-content {
+    max-width: 1200px; /* default is ~960px */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* Ensure each function block is block-level and separated */
+.md-typeset .doc-object.doc-function {
+    display: block !important;
+    margin-bottom: 3em !important;  /* space after the function block */
+}
+
+/* Ensure the source code <details> is block-level */
+.md-typeset .doc-contents details {
+    display: block !important;
+    margin-top: 0.5em !important;
+    margin-bottom: 5em !important;
+}
+
+/* Optional: style the source code box */
+.md-typeset .doc-contents details > .highlight {
+    background-color: #f9f9f9;
+    padding: 1em;
+    border-radius: 6px;
+}
+
+
