@@ -69,8 +69,9 @@ class FitsImage(object):
         rotate_evpa: rotate EVPAs by a given angle in degrees (North through East)
         evpa_color: Choose EVPA color
         title: Choose plot title
-        rcParams: Put in matplotlib rcParams for more modification to the plots        
+        rcParams: Put in matplotlib rcParams for more modification to the plots
     """
+
     def __init__(self,
                  image_data, #ImageData object
                  stokes_i_sigma_cut=3, #sigma_cut for stokes_i_contours
@@ -220,8 +221,6 @@ class FitsImage(object):
             except:
                 pass
 
-
-
         #plot limits
         ra_max,ra_min,dec_min,dec_max=extent
 
@@ -238,7 +237,6 @@ class FitsImage(object):
             else:
                 self.fig = fig
             self.ax = ax
-
 
         #set background color
         self.ax.set_facecolor(self.background_color)

@@ -1,3 +1,5 @@
-*.html linguist-generated=true
 docs/* linguist-vendored
 site/* linguist-vendored
+**/*.mod linguist-language=Text
+**/*.ipynb linguist-language=Python
+
