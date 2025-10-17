@@ -15,6 +15,14 @@ The package can be installed directly from PyPI:
 pip install vcat-vlbi
 ```
 
+### Important Note
+
+Many tasks run **DIFMAP** in the background.  
+If DIFMAP is already in your `PATH`, VCAT will automatically find it.  
+It is also possible to use many functions without DIFMAP by specifying `use_difmap=False`, but this mode is **not yet fully supported** and may have limited functionality.
+
+
+
 ---
 
 ## Overview
@@ -84,12 +92,6 @@ To use a custom configuration file, define the environment variable `VCAT_CONFIG
 ```bash
 export VCAT_CONFIG=/path/to/config.yml
 ```
-
-### Important Note
-
-Many tasks run **DIFMAP** in the background.  
-If DIFMAP is already in your `PATH`, VCAT will automatically find it.  
-It is also possible to use many functions without DIFMAP by specifying `use_difmap=False`, but this mode is **not yet fully supported** and may have limited functionality.
 
 ---
 
