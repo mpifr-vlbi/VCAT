@@ -6,10 +6,10 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[],  # Add dependencies here
-    description='A brief description of your package',
+    description='VLBI Comprehensive Analysis Toolkit',
     author='Your Name',
     author_email='your.email@example.com',
-    url='https://your-repository-link',
+    url='https://github.com/mpifr-vlbi/VCAT',
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',

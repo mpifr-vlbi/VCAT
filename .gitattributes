@@ -1,0 +1,3 @@
+*.html linguist-generated=true
+docs/* linguist-vendored
+site/* linguist-vendored
