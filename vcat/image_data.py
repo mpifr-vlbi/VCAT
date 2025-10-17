@@ -40,68 +40,58 @@ class ImageData(object):
     Class to handle VLBI Image data (single image with or without polarization at one frequency)
 
     Attributes:
-        General:
+        name (str): Source name of the observation
+        date (str): Date of the observation
+        mjd (float): MJD of the observation
+        freq (float): Frequency of the observation in Hz
+        beam_maj (float): Beam Major Axis in the intrinsic image scale (usually 'mas')
+        beam_min (float): Beam Minor Axis in the intrinsic image scale (usually 'mas')
+        beam_pa (float): Beam position angle in degrees (North through East)
+        scale (float): Conversion from degrees to the intrinsic image scale (for 'mas': 3.6e6)
+        degpp (float): Degrees per pixel
+        unit (str): Intrinsic Scale Unit of the image ('mas', 'arcsec', 'arcsec', 'deg')
+        uvw (list[int]): uv-weighting to use for DIFMAP
+        stokes_i (list[list[float]]): 2d-array of the Stokes I image
+        stokes_q (list[list[float]]): 2d-array of the Stokes Q image (if polarization loaded)
+        stokes_u (list[list[float]]): 2d-array of the Stokes U image (if polarization loaded)
+        residual_map (list[list[float]]): 2d-array of the residual map (if .uvf file provided)
+        lin_pol (list[list[float]]): 2d-array of the linear polarization
+        evpa (list[list[float]]): 2d-array of the EVPA
+        mask (list[list[bool]]): Image mask
+        model (DataFrame): DataFrame with all components of the loaded model
+        model_i (DataFrame): DataFrame with all Stokes I clean components
+        model_q (DataFrame): DataFrame with all Stokes Q clean components
+        model_u (DataFrame): DataFrame with all Stokes U clean components
+        components (list[Component]): List of Modelfit-Components
+        noise (float): Image noise in Jy, calculated using the specified 'noise_method'
+        pol_noise (float): Image noise of the linear polarization image in Jy
+        noise_3sigma (float): 3-sigma Image noise level in Jy
+        pol_noise_3sigma (float): 3-sigma Polarization noise level in Jy
+        integrated_flux_image (float): Integrated flux density of the entire image (pixel sum)
+        integrated_flux_clean (float): Integrated flux density from the Stokes I clean model
+        integrated_pol_flux_image (float): Integrated linearly polarized flux density of the entire image (pixel sum)
+        integrated_pol_flux_clean (float): Integrated linearly polarized flux density from Stokes Q and U clean models
+        evpa_average (float): Average EVPA calculated from Stokes Q and U clean models (in rad!).
+        frac_pol (float): Fractional polarization of the image (integrated_flux_pol_clean/integrated_flux_clean)
+        uvtaper (list[float]): Pass uvtaper parameter [fraction, uv-radius]
+        ridgeline (Ridgeline): Ridgeline of the image (can be created with self.get_ridgeline())
+        counter_ridgeline (Ridgline): Counter-Ridgeline of the image (can be created with self.get_ridgeline())
+        file_path (str): File path to Stokes I .fits file
+        model_file_path (str): File path to modelfit .fits file
+        stokes_q_path (str): File path to Stokes Q .fits file
+        stokes_u_path (str): File path to Stokes U .fits file
+        stokes_i_mod_file (str): File path to Stokes I clean model .mod file
+        stokes_q_mod_file (str): File path to Stokes Q clean model .mod file
+        stokes_u_mod_file (str): File path to Stokes U clean model .mod file
+        model_mod_file (str): File path to the modelfit .mod file
+        residual_map_path (str): Path to the .fits file of the residual map (if .uvf file provided)
+        spix (list[list[float]]): 2d-array of spectral index data (if loaded)
+        rm (list[list[float]]): 2d-array of rotation measure data (if loaded)
+        turnover (list[list[float]]): 2d-array of turnover frequency data (if loaded)
+        turnover_flux (list[list[float]]): 2d-array of turnover flux density data (if loaded)
+        turnover_error (list[list[float]]): 2d-array of turnover frequency error data (if loaded)
+        turnover_chi_sq (list[list[float]]): 2d-array of turnover-fit chi-squared values
 
-            name (str): Source name of the observation
-            date (str): Date of the observation
-            mjd (float): MJD of the observation
-            freq (float): Frequency of the observation in Hz
-            beam_maj (float): Beam Major Axis in the intrinsic image scale (usually 'mas')
-            beam_min (float): Beam Minor Axis in the intrinsic image scale (usually 'mas')
-            beam_pa (float): Beam position angle in degrees (North through East)
-            scale (float): Conversion from degrees to the intrinsic image scale (for 'mas': 3.6e6)
-            degpp (float): Degrees per pixel
-            unit (str): Intrinsic Scale Unit of the image ('mas', 'arcsec', 'arcsec', 'deg')
-            uvw (list[int]): uv-weighting to use for DIFMAP
-
-        Maps:
-            stokes_i (list[list[float]]): 2d-array of the Stokes I image
-            stokes_q (list[list[float]]): 2d-array of the Stokes Q image (if polarization loaded)
-            stokes_u (list[list[float]]): 2d-array of the Stokes U image (if polarization loaded)
-            residual_map (list[list[float]]): 2d-array of the residual map (if .uvf file provided)
-            lin_pol (list[list[float]]): 2d-array of the linear polarization
-            evpa (list[list[float]]): 2d-array of the EVPA
-            mask (list[list[bool]]): Image mask
-
-        Model:
-            model (DataFrame): DataFrame with all components of the loaded model
-            model_i (DataFrame): DataFrame with all Stokes I clean components
-            model_q (DataFrame): DataFrame with all Stokes Q clean components
-            model_u (DataFrame): DataFrame with all Stokes U clean components
-            components (list[Component]): List of Modelfit-Components
-
-        Image Parameters:
-            noise (float): Image noise in Jy, calculated using the specified 'noise_method'
-            pol_noise (float): Image noise of the linear polarization image in Jy
-            noise_3sigma (float): 3-sigma Image noise level in Jy
-            pol_noise_3sigma (float): 3-sigma Polarization noise level in Jy
-            integrated_flux_image (float): Integrated flux density of the entire image (pixel sum)
-            integrated_flux_clean (float): Integrated flux density from the Stokes I clean model
-            integrated_pol_flux_image (float): Integrated linearly polarized flux density of the entire image (pixel sum)
-            integrated_pol_flux_clean (float): Integrated linearly polarized flux density from Stokes Q and U clean models
-            evpa_average (float): Average EVPA calculated from Stokes Q and U clean models (in rad!).
-            frac_pol (float): Fractional polarization of the image (integrated_flux_pol_clean/integrated_flux_clean)
-            uvtaper (list[float]): Pass uvtaper parameter [fraction, uv-radius]
-        Ridgelines:
-            ridgeline (Ridgeline): Ridgeline of the image (can be created with self.get_ridgeline())
-            counter_ridgeline (Ridgline): Counter-Ridgeline of the image (can be created with self.get_ridgeline())
-        Filepaths:
-            file_path (str): File path to Stokes I .fits file
-            model_file_path (str): File path to modelfit .fits file
-            stokes_q_path (str): File path to Stokes Q .fits file
-            stokes_u_path (str): File path to Stokes U .fits file
-            stokes_i_mod_file (str): File path to Stokes I clean model .mod file
-            stokes_q_mod_file (str): File path to Stokes Q clean model .mod file
-            stokes_u_mod_file (str): File path to Stokes U clean model .mod file
-            model_mod_file (str): File path to the modelfit .mod file
-            residual_map_path (str): Path to the .fits file of the residual map (if .uvf file provided)
-        Additional Maps:
-            spix (list[list[float]]): 2d-array of spectral index data (if loaded)
-            rm (list[list[float]]): 2d-array of rotation measure data (if loaded)
-            turnover (list[list[float]]): 2d-array of turnover frequency data (if loaded)
-            turnover_flux (list[list[float]]): 2d-array of turnover flux density data (if loaded)
-            turnover_error (list[list[float]]): 2d-array of turnover frequency error data (if loaded)
-            turnover_chi_sq (list[list[float]]): 2d-array of turnover-fit chi-squared values
     """
     def __init__(self,
                  fits_file="",
@@ -741,6 +731,7 @@ class ImageData(object):
                 file_path: File path to a .fits model file as exported from a CASA .model file (e.g. with exportfits() in CASA)
                 channel: Choose the Stokes channel to use (options: "i","q","u","v")
                 export: File path where to write the .mod file
+
             Returns:
                 Nothing, but writes a .mod file to export
             """
@@ -812,8 +803,9 @@ class ImageData(object):
     def copy(self):
         """
         Create copy of the current ImageData object
+
         Returns:
-            ImageData object
+            image (ImageData): Copied image
         """
         return copy.copy(self)
 
@@ -850,6 +842,7 @@ class ImageData(object):
             pixel_size (float): Size of pixel in image scale units (usually mas)
             useDIFMAP (bool): Choose whether to regrid using DIFMAP or not
             mask_outside (bool): Choose whether new image ares created through regridding will be masked automatically (bool)
+
         Returns:
             regridded ImageData object
         """
@@ -1167,8 +1160,9 @@ class ImageData(object):
             auto_regrid (bool): Choose whether to automatically regrid and restore both images to a common beam and image size.
             useDIFMAP (bool): Choose whether to use DIFMAP for image operations or not.
             comp_ids (int or list[int]): Component IDs to use for the alignment in 'modelcomp' mode.
+
         Returns:
-            new ImageData object aligned to image_data2 (possibly also regridded and restored if auto_regrid=True).
+            image (ImageData): aligned imaged (possibly also regridded and restored if auto_regrid=True).
         """
         if self==image_data2:
             return self
@@ -1316,7 +1310,8 @@ class ImageData(object):
     def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",useDIFMAP=True,mask_outside=False):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
-        Inputs:
+
+        Args:
             bmaj (float): Beam major axis (in mas)
             bmin (float): Beam minor axis (in mas)
             posa (float): Beam position angle (in deg)
@@ -1325,8 +1320,9 @@ class ImageData(object):
             npix (int): Number of pixels in one image direction
             pixel_size (float): pixel size in mas
             useDIFMAP (bool): Choose whether to use DIFMAP for the restoring or not
+
         Returns:
-            New ImageData object
+            image (ImageData): New ImageData object
         """
         if bmaj==-1:
             bmaj=self.beam_maj
@@ -1621,8 +1617,9 @@ class ImageData(object):
             npix (int): Option to change the number of pixels in ONE direction.
             pixel_size (float): Option to change the pixel size (in mas)
             useDIFMAP (bool): Choose whether to use DIFMAP for shifting or not.
+
         Returns:
-            shifted ImageData object
+            image (ImageData): shifted ImageData object
         """
         try:
             #We can just call the restore() function without doing the restore steps
@@ -1723,8 +1720,9 @@ class ImageData(object):
             useDIFMAP (bool): Choose whether to use DIFMAP or not
             reshape (bool): If useDIFMAP=False, choose whether to reshape the image size to avoid empty areas.
             order (int): Order parameter for scipy.ndimage.rotate function
+
         Returns:
-            rotated ImageData object
+            image (ImageData): rotated ImageData object
         """
 
         #rotate mask
@@ -1930,6 +1928,7 @@ class ImageData(object):
     def get_peak_distance(self):
         """
         Function to calculate the Distance between Stokes I and Linear Polarization Peak
+
         Returns:
             [x_dist,y_dist]: Vector difference between Stokes I and Lin-Pol peak (in mas)
         """
@@ -1951,6 +1950,7 @@ class ImageData(object):
         Args:
             mode: Choose which map to use ('stokes_i', 'lin_pol','core')
             useDIFMAP: Choose whether to use DIFMAP or not.
+
         Returns:
             Shifted ImageData object
         """
@@ -1986,6 +1986,7 @@ class ImageData(object):
             point2 (list[float]): End Point of the profile [x2,y2] (in mas)
             show (bool): Choose whether to display a plot of the profile
             image (bool): Choose map to use ('stokes_i','lin_pol','evpa','spix','rm')
+
         Returns:
             x_values, intensity_profile: Array of the Distance from point1 to point2 and the profile
         """
@@ -2051,8 +2052,9 @@ class ImageData(object):
             start_radius (float): Start radius for polar method (in mas)
             chi_sq_val (float): Chi-squared cut for fits.
             err_FWHM (float): Relative error of the FWHM to consider for fits
+
         Returns:
-            Ridgeline and Counter-Ridgeline objects
+            ridgelines (list): Ridgeline and Counter-Ridgeline objects
         """
 
         if method=="slices":
@@ -2168,8 +2170,9 @@ class ImageData(object):
 
         Args:
             shift_factor (float): Factor of how far times the image size to shift the phase center away.
+
         Returns:
-            Noise value in Jy
+            noise (float): Noise value in Jy
         """
 
         if self.uvf_file == "":
@@ -2199,8 +2202,9 @@ class ImageData(object):
     def get_model_info(self):
         """
         Helper method to get the current state of the model
+
         Returns:
-            List of Component IDs and the Core Component ID
+            comps (list): List of Component IDs and the Core Component ID
         """
         comp_ids=[]
         core_comp_id=0
@@ -2272,6 +2276,7 @@ class ImageData(object):
 
         Args:
             id (int): ID of the component
+
         Returns:
             Component
         """
@@ -2284,8 +2289,9 @@ class ImageData(object):
     def get_core_component(self):
         """
         Function to retrieve the core component.
+
         Returns:
-            Core Component
+            comp (Component): Core Component
         """
         for comp in self.components:
             if comp.is_core:
@@ -2505,8 +2511,9 @@ class ImageData(object):
             label (str): Label for the fitted data/fit
             color (str): Plot color
             marker (str): Plot marker
+
         Returns:
-            plot (JetProfilePlot)
+            plot (JetProfilePlot): Jet profile plot
 
         """
 

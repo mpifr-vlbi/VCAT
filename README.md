@@ -19,6 +19,7 @@ pip install vcat-vlbi
 
 Many tasks run **DIFMAP** in the background.  
 If DIFMAP is already in your `PATH`, VCAT will automatically find it.  
+If you don't have DIFMAP yet, see here for a quick installation instruction for Ubuntu-based systems.
 It is also possible to use many functions without DIFMAP by specifying `use_difmap=False`, but this mode is **not yet fully supported** and may have limited functionality.
 
 
@@ -41,6 +42,8 @@ It accepts as input:
 For example, loading and plotting an image can quickly be done with
 
 ```python
+from vcat import ImageData
+
 image=ImageData("image.fits", uvf_file="data.uvf", model="model.mod")
 image.plot()
 ```
@@ -148,3 +151,5 @@ For more details, see the [LICENSE](LICENSE) file included with this repository.
 
 **VCAT – VLBI Comprehensive Analysis Toolkit**  
 A unified framework for the analysis and visualization of VLBI data.
+
+

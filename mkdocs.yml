@@ -6,6 +6,9 @@ theme:
   name: readthedocs
   locale: en
 
+extra_css:
+  - css/extra.css
+
 use_directory_urls: false
 
 plugins:
@@ -16,22 +19,26 @@ markdown_extensions:
   - admonition
 
 nav:
-  - VCAT Docs: index.md
-  - Notebooks: 
-    - Notebook overview: tutorials.md
-    - ImageCube plots: examples/ImageCubePlots.ipynb
-    - ImageCube operations: examples/ImageCubeOperations.ipynb
-    - ImageData plots: examples/ImageDataPlots.ipynb
-    - ImageData operations: examples/ImageOperations.ipynb
+  - VCAT Documention: index.md
+
+  - Example Notebooks: 
+    - Tutorial Overview: tutorials.md
+    - Plotting Images: examples/ImageDataPlots.ipynb
+    - Modifying Images: examples/ImageOperations.ipynb
+    - Plotting ImageCubes: examples/ImageCubePlots.ipynb
+    - Modifying ImageCubes: examples/ImageCubeOperations.ipynb
     - Alignment: examples/Alignment.ipynb
-    - Model components: examples/ModelComponents.ipynb
-    - Ridgeline: examples/Ridgeline.ipynb
+    - Model Component Analysis: examples/ModelComponents.ipynb
+    - Ridgeline Fitting: examples/Ridgeline.ipynb
     - Stacking: examples/Stacking.ipynb
     - Turnover Frequency: examples/TurnoverFrequency.ipynb
-  - References: 
-    - References Overview: references.md
-    - imageData: imagedata.md
-    - imageCube: imagecube.md
+
+  - Code Documentation: 
+    - Code Overview: overview.md
+    - ImageData: imagedata.md
+    - ImageCube: imagecube.md
+    - vcat.helpers: helpers.md
+
   - About:
     - License: license.md
     - Release Notes: release-note.md

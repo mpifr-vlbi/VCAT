@@ -1,5 +1,5 @@
-# The imageCube class
+# The ImageCube class
 
-The imageCube class to handle data with multiple epochs or frequencies.
+The ImageCube class to handle data with multiple epochs or frequencies.
 
 ::: vcat.image_cube

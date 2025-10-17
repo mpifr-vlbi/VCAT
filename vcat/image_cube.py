@@ -158,8 +158,9 @@ class ImageCube(object):
             stokes_u_files (list[str]): List of Stokes U .fits files
             model_fits_files (list[str]): List of modelfit .fits files (.mod files work as well, but must be sorted)
             **kwargs: Additional options as in ImageData (will be applied to all Images, e.g. 'noise_method')
+
         Returns:
-            ImageCube object
+            image_cube(ImageCube): ImageCube object
         """
 
         if len(fits_files)==0 and len(model_fits_files)>0:
@@ -214,6 +215,7 @@ class ImageCube(object):
             mode (str): Choose apply mode ('all', 'freq', 'epoch'), will apply independent mask for 'all', per 'epoch' or per 'frequency'
             mask_type (str or list[str]): Mask type, if 'freq' or 'epoch' mode can be list
             args: Mask argument
+
         Returns:
             ImageCube with masked images
         """
@@ -256,11 +258,11 @@ class ImageCube(object):
         """
 
         Args:
-            mode: Select mode ("all" -> stack all images, "freq" -> stack all images from the same frequency across epochs,
-            "epoch" -> stack all images from the same epoch across all frequencies)
+            mode: Select mode ("all" -> stack all images, "freq" -> stack all images from the same frequency across epochs, "epoch" -> stack all images from the same epoch across all frequencies)
             stack_linpol: If true, polarization will be stacked in lin_pol and EVPA instead of Q and U (not implemented yet!)
+
         Returns:
-            new ImageCube with reduced dimension according to mode selection with stacked images
+            image_cube (ImageCube): new ImageCube with reduced dimension according to mode selection with stacked images
         """
         #TODO implement stack_linpol option -> how to handle new ImageData object without new fits file?
         new_fits_files=[]
@@ -364,8 +366,9 @@ class ImageCube(object):
             ppe: Points per Ellipse for "common" algorithm
             tolerance: Tolerance parameter for "common" algorithm
             plot_beams: Boolean to choose if a diagnostic plot of all beams and the common beam should be displayed
+
         Returns:
-            [maj, min, pos] List with new major and minor axis and position angle
+            [maj, min, pos]: List with new major and minor axis and position angle
         """
         if mode=="all":
             return get_common_beam(self.images_majs.flatten(), self.images_mins.flatten(), self.images_pas.flatten(), arg=arg, ppe=ppe, tolerance=tolerance, plot_beams=plot_beams)
@@ -404,8 +407,9 @@ class ImageCube(object):
             ppe: Points per Ellipse for "common" algorithm
             tolerance: Tolerance parameter for "common" algorithm
             plot_beams: Boolean to choose if a diagnostic plot of all beams and the common beam should be displayed
+
         Returns:
-            new ImageCube object with restored images
+            image_cube (ImageCube): new ImageCube object with restored images
         """
 
         # get beam(s)
@@ -902,8 +906,9 @@ class ImageCube(object):
         Args:
             epoch_lim: [start_epoch,end_epoch] Provide start and end epoch or MJD
             freq_lim: [start_freq, end_freq] Provide start and end frequency in GHz
+
         Returns:
-            new ImageCube with cut applied
+            image_cube (ImageCube): new ImageCube with cut applied
         """
 
         if epoch_lim!="":
@@ -963,8 +968,9 @@ class ImageCube(object):
         Args:
             freq: List of frequencies to remove
             window: Window in GHz to consider around center freq
+
         Returns:
-            new ImageCube
+            image_cube (ImageCube): new ImageCube
         """
         window = float(window)
         cubes=[]
@@ -996,8 +1002,9 @@ class ImageCube(object):
         Args:
             epoch: List of epochs to remove
             window: Days to consider around the epoch
+
         Returns:
-            new ImageCube
+            image_cube (ImageCube): new ImageCube
         """
         window=float(window)
 
@@ -1585,8 +1592,9 @@ class ImageCube(object):
             freq (float, list(float): Frequencies to use
             epoch: Epochs to use
             snr_cut: Mask component with signal-to-noise ratio less than this value
-        Returns:
 
+        Returns:
+            all_angles:
 
         """
 
@@ -1765,6 +1773,7 @@ class ImageCube(object):
             color (str): Plot color
             marker (str): Plot marker
             core_position (list[float]): Core position in image coordinates (mas) for distance calculation
+
         Returns:
             plot (JetProfilePlot)
 
@@ -2237,6 +2246,7 @@ class ImageCube(object):
             weighted_fit (bool): Choose whether to weight the data by their errors for the fit
             fig (Figure): Optional matplotlib-Figure element to use for plot
             ax (Axis): Optional matplotlib-Axis element to use for plot
+
         Returns:
             list([dictionary]): List of fit parameters (One dictionary per frequency and component)
         """
