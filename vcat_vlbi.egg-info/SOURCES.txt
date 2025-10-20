@@ -1,9 +1,0 @@
-LICENSE
-README.md
-pyproject.toml
-setup.py
-vcat_vlbi.egg-info/PKG-INFO
-vcat_vlbi.egg-info/SOURCES.txt
-vcat_vlbi.egg-info/dependency_links.txt
-vcat_vlbi.egg-info/requires.txt
-vcat_vlbi.egg-info/top_level.txt
