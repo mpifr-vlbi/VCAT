@@ -1,8 +1,12 @@
 from setuptools import setup, find_packages
 
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 setup(
     name='vcat-vlbi',
-    version='0.1',
+    version='0.0.1',
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.6",
@@ -33,7 +37,9 @@ setup(
     license='GPLv3',
     keywords='VLBI astronomy analysis radio-astronomy radio agn jets',
     project_urls={
-        "Documentation": "https://github.com/mpifr-vlbi/VCAT/wiki",
-        "Bug Tracker": "https://github.com/mpifr-vlbi/VCAT/issues",
+        "Documentation": "https://github.com/mpifr-vlbi/VCAT",
+        "Bug Tracker": "https://github.com/mpifr-vlbi/VCAT",
     },
+    long_description=long_description,
+    long_description_content_type="text/markdown",
 )
