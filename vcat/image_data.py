@@ -570,7 +570,7 @@ class ImageData(object):
                              save_location=self.residual_map_path,weighting=self.uvw,
                              npix=len(self.X),pxsize=self.degpp*self.scale)
 
-            self.residual_map=fits.open(self.residual_map_path)[0].data[0,0,:,:]
+            self.residual_map=np.array(fits.open(self.residual_map_path,memmap=False)[0].data[0,0,:,:],copy=True)
         
         #save modelfit (or clean) components as Component objects
         self.components=[]
