@@ -1468,7 +1468,7 @@ class ImageCube(object):
 
         fits=[]
         # Calculate core-shift based on optically thin components given by id
-        if ids != None:
+        if ids!=None:
             for i in ids:
                 cc=self.get_comp_collection(i)
                 fit=cc.get_coreshift(epochs=epochs,k_r=k_r)
@@ -1490,10 +1490,9 @@ class ImageCube(object):
                         if plot:
                             plot=KinematicPlot()
                             plot.plot_coreshift_fit(fit)
-                            if savefig == True:
+                            if savefig==True:
                                 plt.savefig('./coreshift_'+str(self.dates[j])+'_comp'+str(ids[i])+'.png')
                             plot.fig.show()
-                            plt.close(plot.fig)
 
                         freq_to_fit = []
                         coreshift_to_fit = []
@@ -1505,10 +1504,9 @@ class ImageCube(object):
                     if plot:
                         plot = KinematicPlot()
                         plot.plot_coreshift_fit(fit)
-                        if savefig == True:
+                        if savefig==True:
                             plt.savefig('./coreshift_'+str(self.dates[j])+'.png')
                         plot.fig.show()
-                        plt.close(plot.fig)
 
                     freq_to_fit = []
                     coreshift_to_fit = []
@@ -1521,14 +1519,13 @@ class ImageCube(object):
                     if plot:
                         plot = KinematicPlot()
                         plot.plot_coreshift_fit(fit)
-                        if savefig == True:
+                        if savefig==True:
                             plt.savefig('./coreshift_combined.png')
                         plot.fig.show()
-                        plt.close(plot.fig)
         
         # Calculate core-shift based only on core positions, assuming the maps in the image_cube are aligned
         else:
-            fits=self.get_coreshift_aligned(k_r=k_r)
+            fits=self.get_coreshift_aligned(k_r=k_r,r0=r0)
             freq_to_fit = []
             coreshift_to_fit = []
             coreshift_err_to_fit = []
@@ -1544,10 +1541,9 @@ class ImageCube(object):
                     if plot:
                         plot=KinematicPlot()
                         plot.plot_coreshift_fit(fit)
-                        if savefig == True:
+                        if savefig==True:
                             plt.savefig('./coreshift_'+str(self.dates[j])+'.png')
                         plot.fig.show()
-                        plt.close(plot.fig)
 
                     freq_to_fit = []
                     coreshift_to_fit = []
@@ -1560,10 +1556,9 @@ class ImageCube(object):
                 if plot:
                     plot = KinematicPlot()
                     plot.plot_coreshift_fit(fit)
-                    if savefig == True:
+                    if savefig==True:
                         plt.savefig('./coreshift_combined.png')
                     plot.fig.show()
-                    plt.close(plot.fig)
         
         return fit
     
@@ -1573,46 +1568,43 @@ class ImageCube(object):
         cores=[]
         
         for i, images_mjd in enumerate(self.images_mjd):
-            freqs = []
-            cores = []
-            scales = []
+            freqs=[]
+            cores=[]
+            scales=[]
             for j, image_mjd in enumerate(images_mjd):
                 if image_mjd > 1:
                     freqs.append(self.freqs[j])
                     cores.append(self.images[i,j].get_core_component())
                     scales.append(self.images[i,j].scale)
 
-            max_freq = np.nanmax(freqs)
-            max_ind = np.argmax(freqs)
+            max_freq=np.nanmax(freqs)
+            max_ind=np.argmax(freqs)
             
             for freq in freqs:
-            
                 # determine max freq. core in cores
-                core_max_freq = cores[max_ind]
-                coreshifts = []
-                coreshift_err = []
+                core_max_freq=cores[max_ind]
+                coreshifts=[]
+                coreshift_err=[]
                 # loop again over cores (freqs) to fill lists
                 for k, core in enumerate(cores):
-                    # dx = np.abs(scales[k]*core.x - scales[max_ind]*core_max_freq.x)
-                    dx = scales[max_ind]*core_max_freq.x - scales[k]*core.x
-                    dx_err = np.sqrt((scales[k]*core.x_err)**2 + (scales[max_ind]*core_max_freq.x_err)**2)
-                    # dy = np.abs(scales[k]*core.y - scales[max_ind]*core_max_freq.y)
-                    dy = scales[max_ind]*core_max_freq.y - scales[k]*core.y
-                    dy_err = np.sqrt((scales[k]*core.y_err)**2 + (scales[max_ind]*core_max_freq.y_err)**2)
+                    dx=scales[max_ind]*core_max_freq.x - scales[k]*core.x
+                    dx_err=np.sqrt((scales[k]*core.x_err)**2 + (scales[max_ind]*core_max_freq.x_err)**2)
+                    dy=scales[max_ind]*core_max_freq.y - scales[k]*core.y
+                    dy_err=np.sqrt((scales[k]*core.y_err)**2 + (scales[max_ind]*core_max_freq.y_err)**2)
                     # print('core shift x', dx, dx_err)
                     # print('core shift y', dy, dy_err)
                     
                     dr = np.sqrt(dx**2 + dy**2)*1e3 # in uas
-                    if dx != 0 and dy != 0:
-                        dr_err = np.sqrt((dx**2*dx_err**2 + dy**2*dy_err**2)/(dx**2 + dy**2))*1e3 # in uas
+                    if dx!=0 and dy!=0:
+                        dr_err=np.sqrt((dx**2*dx_err**2 + dy**2*dy_err**2)/(dx**2 + dy**2))*1e3 # in uas
                     else:
-                        dr_err = scales[max_ind]*np.sqrt(core_max_freq.x_err**2 + core_max_freq.y_err**2)*1e3 # in uas
+                        dr_err=scales[max_ind]*np.sqrt(core_max_freq.x_err**2 + core_max_freq.y_err**2)*1e3 # in uas
                     
                     coreshifts.append(dr)
                     coreshift_err.append(dr_err)
             
             max_freq=max_freq*1e-9 # GHz
-            freqs = np.array(freqs)*1e-9 # GHz
+            freqs=np.array(freqs)*1e-9 # GHz
                 
             result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0)
             results.append(result)
