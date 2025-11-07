@@ -243,6 +243,8 @@ class MultiFitsImage(object):
                                         contour_width=kwargs["contour_width"][image_i,image_j],
                                         im_color=kwargs["im_color"][image_i,image_j],
                                         do_colorbar=kwargs["do_colorbar"][image_i,image_j],
+                                        plot_info=kwargs["plot_info"][image_i,image_j],
+                                        info_color=kwargs["info_color"][image_i,image_j],
                                         plot_ridgeline=kwargs["plot_ridgeline"][image_i,image_j],
                                         ridgeline_color=kwargs["ridgeline_color"][image_i,image_j],
                                         plot_counter_ridgeline=kwargs["plot_counter_ridgeline"][image_i,image_j],

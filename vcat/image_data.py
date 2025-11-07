@@ -1108,6 +1108,8 @@ class ImageData(object):
             "plot_counter_ridgeline": False,
             "counter_ridgeline_color": "red",
             "plot_line" : "",
+            "plot_info" : False,
+            "info_color" : "black",
             "line_color" : "black",
             "line_width" : 2,
             "plot_polar": False,

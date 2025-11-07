@@ -91,6 +91,8 @@ class FitsImage(object):
                  plot_line="", #Provide two points for plotting a line
                  line_color="black",
                  line_width=2, #width of the line
+                 plot_info=False, #choose whether to plot basic info on top of image
+                 info_color="black",
                  plot_beam=True, #choose whether to plot beam or not
                  beam_color="grey", #choose beam color for plot
                  plot_model=False, #choose whether to plot modelfit components
@@ -494,6 +496,13 @@ class FitsImage(object):
                     self.components.append([component_plot, component])
             else:
                 logger.warning("No modelfit loaded!")
+
+        if plot_info:
+            text = f"Flux Density: {self.clean_image.integrated_flux_clean:.2f} Jy"
+            text += f"\nNoise: {self.clean_image.noise * 1e3:.2f} mJy/beam"
+            self.ax.text(0.96, 0.04, text, va="bottom", ha="right", transform=self.ax.transAxes, color=info_color)
+            self.ax.text(0.04, 0.96, f"{self.clean_image.name}", va="top", ha="left", transform=self.ax.transAxes, color=info_color)
+            self.ax.text(0.96, 0.96, f"{self.clean_image.date}", va="top", ha="right", transform=self.ax.transAxes, color=info_color)
 
         if plot_ridgeline:
             #plot ridgeline in image
