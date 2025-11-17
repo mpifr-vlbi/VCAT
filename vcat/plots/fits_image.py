@@ -82,6 +82,7 @@ class FitsImage(object):
                  contour_cmap = None,  # matplotlib colormap string
                  contour_alpha = 1,  # transparency
                  contour_width = 0.5,  # contour linewidth
+                 contour_factor = 2, # factor with which contour levels increase
                  im_color='', # string for matplotlib colormap
                  do_colorbar=False, #choose whether to display colorbar
                  plot_ridgeline=False, #choose whether to display the ridgeline
@@ -146,6 +147,7 @@ class FitsImage(object):
         self.plot_mode=plot_mode
         self.name = self.clean_image.name
         self.freq = self.clean_image.freq
+        self.contour_factor=contour_factor
         X = self.clean_image.X
         Y = self.clean_image.Y
         Z = self.clean_image.Z
@@ -257,7 +259,8 @@ class FitsImage(object):
 
         #get sigma levs
         if not isinstance(levs,(list,np.ndarray)) and not isinstance(levs1,(list,np.ndarray)):
-            levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_noise)
+            levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,
+                                         noise=self.clean_image.difmap_noise,base=self.contour_factor)
 
         self.levs=levs
         self.levs1=levs1
@@ -271,7 +274,8 @@ class FitsImage(object):
 
         if np.sum(lin_pol)!=0:
             if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
-                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,
+                                                           noise=self.clean_image.difmap_pol_noise,base=self.contour_factor)
                 self.levs_linpol = levs_linpol
                 self.levs1_linpol = levs1_linpol
 

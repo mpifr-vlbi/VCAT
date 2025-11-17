@@ -213,7 +213,7 @@ class ImageData(object):
 
         # Read clean files in
         if self.fits_file!="":
-            hdu_list=fits.open(self.fits_file)
+            hdu_list=fits.open(self.fits_file, memmap=False)
             self.hdu_list = hdu_list
             self.no_fits=False
 
@@ -225,7 +225,7 @@ class ImageData(object):
         #read stokes data from input files if defined
         if stokes_q != "":
             try:
-                q_fits=fits.open(stokes_q)
+                q_fits=fits.open(stokes_q, memmap=False)
                 try:
                     stokes_q = q_fits[0].data[0, 0, :, :]
                 except:
@@ -238,7 +238,7 @@ class ImageData(object):
 
         if stokes_u != "":
             try:
-                u_fits=fits.open(stokes_u)
+                u_fits=fits.open(stokes_u, memmap=False)
                 try:
                     stokes_u = u_fits[0].data[0, 0, :, :]
                 except:
@@ -365,7 +365,7 @@ class ImageData(object):
                 #get model first:
                 model_df = getComponentInfo(model,scale=self.scale)
                 #now modify fits file
-                f=fits.open(self.fits_file)
+                f=fits.open(self.fits_file, memmap=False)
                 # FITS column names
                 fits_columns = ["FLUX","DELTAX","DELTAY","MAJOR AX","MINOR AX","POSANGLE","TYPE OBJ"]
                 dtype=np.dtype([
@@ -470,8 +470,8 @@ class ImageData(object):
         
 
         try:
-            q_fits=fits.open(stokes_q_path)
-            u_fits=fits.open(stokes_u_path)
+            q_fits=fits.open(stokes_q_path, memmap=False)
+            u_fits=fits.open(stokes_u_path, memmap=False)
             self.difmap_pol_noise = np.sqrt(float(q_fits[0].header["NOISE"])**2+float(u_fits[0].header["NOISE"])**2)
             q_fits.close()
             u_fits.close()
@@ -897,7 +897,7 @@ class ImageData(object):
             # write outputs to the fits files
             if self.only_stokes_i:
                 # this means DIFMAP style fits image
-                with fits.open(self.fits_file) as f:
+                with fits.open(self.fits_file,memmap=False) as f:
                     #overwrite image data
                     f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                     f[0].data[0, 0, :, :] = new_image_i
@@ -916,7 +916,7 @@ class ImageData(object):
                     f.writeto(new_stokes_i_fits, overwrite=True)
 
                 if len(self.stokes_q) > 0:
-                    with fits.open(self.stokes_q_path) as f:
+                    with fits.open(self.stokes_q_path, memmap=False) as f:
                         # overwrite image data
                         f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                         f[0].data[0, 0, :, :] = new_image_q
@@ -938,7 +938,7 @@ class ImageData(object):
 
 
                 if len(self.stokes_u) > 0:
-                    with fits.open(self.stokes_u_path) as f:
+                    with fits.open(self.stokes_u_path, memmap=False) as f:
                         # overwrite image data
                         f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                         f[0].data[0, 0, :, :] = new_image_u
@@ -961,7 +961,7 @@ class ImageData(object):
 
             else:
                 # CASA style
-                f = fits.open(self.fits_file)
+                f = fits.open(self.fits_file, memmap=False)
                 # overwrite image data
                 f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                 f[0].data[0, 0, :, :] = new_image_i
@@ -982,7 +982,7 @@ class ImageData(object):
             try:
                 if not self.model_file_path == self.fits_file:
                     if not self.model_file_path=="":
-                        with fits.open(self.model_file_path) as f:
+                        with fits.open(self.model_file_path, memmap=False) as f:
                             new_image_model = interpolator(f[0].data[0, 0, :, :])(points).reshape(npix,npix)
                             f[0].data = np.zeros((f[0].data.shape[0], f[0].data.shape[1], npix, npix))
                             f[0].data[0, 0, :, :] = new_image_model
@@ -1101,6 +1101,7 @@ class ImageData(object):
             "contour_cmap": None,
             "contour_alpha": 1,
             "contour_width": 0.5,
+            "contour_factor": 2,
             "im_color": '',
             "do_colorbar": False,
             "plot_ridgeline": False,
@@ -1399,7 +1400,7 @@ class ImageData(object):
             #write outputs to the fitsfiles
             if self.only_stokes_i:
                 # this means DIFMAP style fits image
-                with fits.open(self.fits_file) as f:
+                with fits.open(self.fits_file, memmap=False) as f:
                     f[0].data[0, 0, :, :] = new_image_i
                     new_stokes_i_fits = self.model_save_dir+"mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                     try:
@@ -1417,7 +1418,7 @@ class ImageData(object):
                     f.writeto(new_stokes_i_fits, overwrite=True)
 
                 if len(self.stokes_q) > 0:
-                    with fits.open(self.stokes_q_path) as f:
+                    with fits.open(self.stokes_q_path, memmap=False) as f:
                         f[0].data[0, 0, :, :] = new_image_q
                         new_stokes_q_fits = self.model_save_dir+"mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                         try:
@@ -1435,7 +1436,7 @@ class ImageData(object):
                         f.writeto(new_stokes_q_fits, overwrite=True)
 
                 if len(self.stokes_u) > 0:
-                    with fits.open(self.stokes_u_path) as f:
+                    with fits.open(self.stokes_u_path, memmap=False) as f:
                         f[0].data[0, 0, :, :] = new_image_u
                         new_stokes_u_fits = self.model_save_dir+"mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.fits"
                         try:
@@ -1455,7 +1456,7 @@ class ImageData(object):
 
             else:
                 # CASA style
-                f = fits.open(self.fits_file)
+                f = fits.open(self.fits_file, memmap=False)
                 f[0].data[0, 0, :, :] = new_image_i
                 f[0].data[1, 0, :, :] = new_image_q
                 f[0].data[2, 0, :, :] = new_image_u
@@ -1475,7 +1476,7 @@ class ImageData(object):
             try:
                 if not self.model_file_path == self.fits_file:
                     input_ = np.fft.fft2(
-                        fits.open(self.model_file_path)[0].data[0, 0, :, :])  # before it was np.fft.fftn(img)
+                        fits.open(self.model_file_path, memmap=False)[0].data[0, 0, :, :])  # before it was np.fft.fftn(img)
                     offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
                     imgalign = np.fft.ifft2(offset_image)  # again before ifftn
                     new_image_model = imgalign.real
@@ -1489,7 +1490,7 @@ class ImageData(object):
                         # convert to jansky per (new) beam
                         new_image_model = Jy2JyPerBeam(new_image_model, bmaj, bmin, self.degpp * self.scale)
 
-                    with fits.open(self.model_file_path) as f:
+                    with fits.open(self.model_file_path, memmap=False) as f:
                         f[0].data[0, 0, :, :] = new_image_model
                         new_model_fits = self.model_save_dir + "mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                     self.freq / 1e9).replace(".", "_") + "GHz.fits"
@@ -1764,7 +1765,7 @@ class ImageData(object):
             # write outputs to the fits files
             if self.only_stokes_i:
                 # this means DIFMAP style fits image
-                with fits.open(self.fits_file) as f:
+                with fits.open(self.fits_file, memmap=False) as f:
                     # overwrite image data
                     f[0].data[0, 0, :, :] = new_image_i
                     new_stokes_i_fits = self.model_save_dir + "mod_files_clean/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
@@ -1780,7 +1781,7 @@ class ImageData(object):
                     f.writeto(new_stokes_i_fits, overwrite=True)
 
                 if len(self.stokes_q) > 0:
-                    with fits.open(self.stokes_q_path) as f:
+                    with fits.open(self.stokes_q_path, memmap=False) as f:
                         # overwrite image data
                         f[0].data[0, 0, :, :] = new_image_q
                         new_stokes_q_fits = self.model_save_dir + "mod_files_q/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
@@ -1798,7 +1799,7 @@ class ImageData(object):
                     new_stokes_q_fits = ""
 
                 if len(self.stokes_u) > 0:
-                    with fits.open(self.stokes_u_path) as f:
+                    with fits.open(self.stokes_u_path, memmap=False) as f:
                         # overwrite image data
                         f[0].data[0, 0, :, :] = new_image_u
                         new_stokes_u_fits = self.model_save_dir + "mod_files_u/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
@@ -1817,7 +1818,7 @@ class ImageData(object):
 
             else:
                 # CASA style
-                f = fits.open(self.fits_file)
+                f = fits.open(self.fits_file, memmap=False)
                 # overwrite image data
                 f[0].data[0, 0, :, :] = new_image_i
                 f[0].data[1, 0, :, :] = new_image_q
@@ -1834,9 +1835,9 @@ class ImageData(object):
                 if not self.model_file_path == self.fits_file:
                     if not self.model_file_path == "":
 
-                        new_image_model=scipy.ndimage.rotate(fits.open(self.model_file_path)[0].data,-angle,reshape=reshape,order=order)
+                        new_image_model=scipy.ndimage.rotate(fits.open(self.model_file_path, memmap=False)[0].data,-angle,reshape=reshape,order=order)
 
-                        with fits.open(self.model_file_path) as f:
+                        with fits.open(self.model_file_path, memmap=False) as f:
                             f[0].data[0, 0, :, :] = new_image_model
                             new_model_fits = self.model_save_dir + "mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(
                     self.freq / 1e9).replace(".", "_") + "GHz.fits"
@@ -2625,7 +2626,7 @@ class ImageData(object):
             fig, ax = plt.subplots(1,1,figsize=(6,6))
 
         if self.uvf_file!="":
-            hdu = fits.open(self.uvf_file)
+            hdu = fits.open(self.uvf_file, memmap=False)
             u_array = []
             v_array = []
 

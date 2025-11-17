@@ -575,6 +575,7 @@ class ImageCube(object):
             "contour_cmap": None,
             "contour_alpha": 1,
             "contour_width": 0.5,
+            "contour_factor": 2,
             "im_color": '',
             "do_colorbar": False,
             "plot_ridgeline": False,

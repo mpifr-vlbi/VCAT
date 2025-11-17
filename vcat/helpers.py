@@ -41,6 +41,7 @@ def get_sigma_levs(image,  # 2d array/list
                    noise_method="Image RMS",
                    noise=0,
                    plot_histogram=False,
+                   base=2
                    ):
 
     if noise_method=="Histogram Fit":
@@ -64,10 +65,10 @@ def get_sigma_levs(image,  # 2d array/list
             # Set contourlevels to mean value + 3 * rms_noise * 2 ** x
             levs1 = mean + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * noise * np.logspace(0, 100, 100,
                                                                                                endpoint=False,
-                                                                                               base=2)
+                                                                                               base=base)
             levs = mean + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * noise * np.logspace(0, 100, 100,
                                                                                               endpoint=False,
-                                                                                              base=2)
+                                                                                              base=base)
             levs = np.flip(levs)
             levs = np.concatenate((levs, levs1))
 
@@ -105,12 +106,12 @@ def get_sigma_levs(image,  # 2d array/list
     elif noise_method=="Image RMS":
         Z1 = image.flatten()
         noise = np.nanstd(Z1)
-        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
+        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=base)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
 
     elif noise_method=="DIFMAP":
-        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
+        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=base)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
     elif not noise_method=="box":
@@ -122,7 +123,7 @@ def get_sigma_levs(image,  # 2d array/list
             logger.warning("Could not do Histogram Fit for noise, will use 'box' method")
         #determine image rms from box at the bottom left corner with size of 1/10th of the image dimension
         noise = 1.8*np.std(image[0:round(len(image)/10),0:round(len(image[0])/10)]) #factor 1.8 from self-cal errors
-        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
+        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=base)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
 
