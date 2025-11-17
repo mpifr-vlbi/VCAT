@@ -114,6 +114,8 @@ class Component():
         # determine errors
         # logger.info("Will use '" + error_method + "' method for determining component errors.")
         self.get_errors(method=error_method,gain_err=self.gain_err)
+        self.delta_x_est_err = self.x_err #TODO check this!
+        self.delta_y_est_err = self.y_err #TODO check this!
 
     def __str__(self):
         line1 = f"Component with ID {self.component_number} at frequency {self.freq * 1e-9:.1f} GHz\n"
@@ -683,6 +685,8 @@ class ComponentCollection():
             coreshifts=[]
             coreshift_err=[]
             for i,comp in enumerate(components):
+                if freqs[i] < 1e-10: # exclude freqs. not in epoch for coreshifts
+                    continue
                 # This new code calculates the core shift without assuming anything about relative component positions
                 dx1 = delta_x_core[i]
                 dx2 = delta_x_core[max_i]
@@ -709,6 +713,7 @@ class ComponentCollection():
                 # coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
                 # coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
             
+            freqs = [freq for freq in freqs if freq > 1e-10] # exclude freqs. not in epoch
             result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0)
             results.append(result)
 

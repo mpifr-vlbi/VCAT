@@ -3,6 +3,7 @@ import pandas as pd
 from astropy.io import fits
 import os
 from astropy.time import Time
+from datetime import datetime, timedelta
 import sys
 import matplotlib.pyplot as plt
 from functools import partial
@@ -645,7 +646,8 @@ class ImageCube(object):
         logger.info("Regridding images")
         
         if npix == "" or pixel_size == "":
-            logger.info("Determining smallest pixel size and largest FoV from images for regridding")
+            # logger.info("Determining smallest pixel size and largest FoV from images for regridding")
+            logger.info("Automatically determining minimum pixel size and smallest FoV from images")
             FoVs = []
             npixs = []
             pixel_sizes = []
@@ -657,7 +659,7 @@ class ImageCube(object):
                 FoVs.append(npix*pixel_size)
             
             # choose the largest FoV and smallest pixel size
-            FoV_choose = np.nanmax(FoVs)
+            FoV_choose = np.nanmin(FoVs)
             pixel_size_choose = np.nanmin(pixel_sizes)
             npix_choose = FoV_choose/pixel_size_choose
             
@@ -1450,7 +1452,7 @@ class ImageCube(object):
 
         return fit
 
-    def fit_coreshift(self,ids,epoch="",k_r="",r0="",plot=False,combine_epoch=True,combine_comp=True):
+    def fit_coreshift(self,ids=None,epoch="",k_r="",r0="",plot=False,savefig=False,combine_epoch=True,combine_comp=True):
 
         if epoch=="":
             epochs=Time(self.dates).decimalyear
@@ -1462,58 +1464,154 @@ class ImageCube(object):
         if isinstance(ids, int):
             ids=[ids]
         elif not isinstance(ids, list):
-            raise Exception("Please provide valid id (int or list[int])")
+            # raise Exception("Please provide valid id (int or list[int])")
+            logger.info('No component IDs provided, calculating core-shift based on core positions only.')
 
         fits=[]
-        for i in ids:
-            cc=self.get_comp_collection(i)
-            fit=cc.get_coreshift(epochs=epochs,k_r=k_r)
-            fits.append(fit)
-        freq_to_fit = []
-        coreshift_to_fit = []
-        coreshift_err_to_fit = []
-        for j in range(len(epochs)):
-            for i in range(len(ids)):
-                freq_to_fit=np.concatenate([fits[i][j]["freqs"],freq_to_fit])
-                coreshift_to_fit=np.concatenate([fits[i][j]["coreshifts"],coreshift_to_fit])
-                coreshift_err_to_fit=np.concatenate([fits[i][j]["coreshift_err"],coreshift_err_to_fit])
-                ref_freq=fits[i][j]["ref_freq"]
+        # Calculate core-shift based on optically thin components given by id
+        if ids!=None:
+            for i in ids:
+                cc=self.get_comp_collection(i)
+                fit=cc.get_coreshift(epochs=epochs,k_r=k_r)
+                fits.append(fit)
+            freq_to_fit = []
+            coreshift_to_fit = []
+            coreshift_err_to_fit = []
+            
+            for j in range(len(epochs)):
+                for i in range(len(ids)):
+                    freq_to_fit=np.concatenate([fits[i][j]["freqs"],freq_to_fit])
+                    coreshift_to_fit=np.concatenate([fits[i][j]["coreshifts"],coreshift_to_fit])
+                    coreshift_err_to_fit=np.concatenate([fits[i][j]["coreshift_err"],coreshift_err_to_fit])
+                    ref_freq=fits[i][j]["ref_freq"]
 
-                if not combine_comp and not combine_epoch:
+                    if not combine_comp and not combine_epoch:
+                        #do the fit
+                        fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+                        if plot:
+                            plot=KinematicPlot()
+                            plot.plot_coreshift_fit(fit)
+                            if savefig==True:
+                                plt.savefig('./coreshift_'+str(self.dates[j])+'_comp'+str(ids[i])+'.png')
+                            plot.fig.show()
+
+                        freq_to_fit = []
+                        coreshift_to_fit = []
+                        coreshift_err_to_fit = []
+
+                if not combine_epoch and combine_comp:
+                    # do the fit
+                    fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+                    if plot:
+                        plot = KinematicPlot()
+                        plot.plot_coreshift_fit(fit)
+                        if savefig==True:
+                            plt.savefig('./coreshift_'+str(self.dates[j])+'.png')
+                        plot.fig.show()
+
+                    freq_to_fit = []
+                    coreshift_to_fit = []
+                    coreshift_err_to_fit = []
+                
+                if combine_epoch and combine_comp:
+                    # do the fit
+                    fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+
+                    if plot:
+                        plot = KinematicPlot()
+                        plot.plot_coreshift_fit(fit)
+                        if savefig==True:
+                            plt.savefig('./coreshift_combined.png')
+                        plot.fig.show()
+        
+        # Calculate core-shift based only on core positions, assuming the maps in the image_cube are aligned
+        else:
+            fits=self.get_coreshift_aligned(k_r=k_r,r0=r0)
+            freq_to_fit = []
+            coreshift_to_fit = []
+            coreshift_err_to_fit = []
+            for j in range(len(epochs)):
+                freq_to_fit=np.concatenate([fits[j]["freqs"],freq_to_fit])
+                coreshift_to_fit=np.concatenate([fits[j]["coreshifts"],coreshift_to_fit])
+                coreshift_err_to_fit=np.concatenate([fits[j]["coreshift_err"],coreshift_err_to_fit])
+                ref_freq=fits[j]["ref_freq"]
+
+                if not combine_epoch:
                     #do the fit
                     fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
                     if plot:
                         plot=KinematicPlot()
                         plot.plot_coreshift_fit(fit)
-                        plt.show()
+                        if savefig==True:
+                            plt.savefig('./coreshift_'+str(self.dates[j])+'.png')
+                        plot.fig.show()
 
                     freq_to_fit = []
                     coreshift_to_fit = []
                     coreshift_err_to_fit = []
-
-            if not combine_epoch and combine_comp:
+            
+            if combine_epoch:
                 # do the fit
                 fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+
                 if plot:
                     plot = KinematicPlot()
                     plot.plot_coreshift_fit(fit)
-                    plt.show()
-
-                freq_to_fit = []
-                coreshift_to_fit = []
-                coreshift_err_to_fit = []
-
-        if combine_epoch and combine_comp:
-            # do the fit
-            fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
-
-            if plot:
-                plot = KinematicPlot()
-                plot.plot_coreshift_fit(fit)
-                plt.show()
+                    if savefig==True:
+                        plt.savefig('./coreshift_combined.png')
+                    plot.fig.show()
         
         return fit
+    
+    def get_coreshift_aligned(self,k_r="",r0=""):
+        
+        results=[]
+        cores=[]
+        
+        for i, images_mjd in enumerate(self.images_mjd):
+            freqs=[]
+            cores=[]
+            scales=[]
+            for j, image_mjd in enumerate(images_mjd):
+                if image_mjd > 1:
+                    freqs.append(self.freqs[j])
+                    cores.append(self.images[i,j].get_core_component())
+                    scales.append(self.images[i,j].scale)
 
+            max_freq=np.nanmax(freqs)
+            max_ind=np.argmax(freqs)
+            
+            for freq in freqs:
+                # determine max freq. core in cores
+                core_max_freq=cores[max_ind]
+                coreshifts=[]
+                coreshift_err=[]
+                # loop again over cores (freqs) to fill lists
+                for k, core in enumerate(cores):
+                    dx=scales[max_ind]*core_max_freq.x - scales[k]*core.x
+                    dx_err=np.sqrt((scales[k]*core.x_err)**2 + (scales[max_ind]*core_max_freq.x_err)**2)
+                    dy=scales[max_ind]*core_max_freq.y - scales[k]*core.y
+                    dy_err=np.sqrt((scales[k]*core.y_err)**2 + (scales[max_ind]*core_max_freq.y_err)**2)
+                    # print('core shift x', dx, dx_err)
+                    # print('core shift y', dy, dy_err)
+                    
+                    dr = np.sqrt(dx**2 + dy**2)*1e3 # in uas
+                    if dx!=0 and dy!=0:
+                        dr_err=np.sqrt((dx**2*dx_err**2 + dy**2*dy_err**2)/(dx**2 + dy**2))*1e3 # in uas
+                    else:
+                        dr_err=scales[max_ind]*np.sqrt(core_max_freq.x_err**2 + core_max_freq.y_err**2)*1e3 # in uas
+                    
+                    coreshifts.append(dr)
+                    coreshift_err.append(dr_err)
+            
+            max_freq=max_freq*1e-9 # GHz
+            freqs=np.array(freqs)*1e-9 # GHz
+                
+            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0)
+            results.append(result)
+            
+        return results
+    
     def get_ridgeline_profile(self,value="width",counter_ridgeline=False,freq="",epoch=""):
         """
         This function returns the ridgeline profiles combined over several epochs and frequencies

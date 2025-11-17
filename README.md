@@ -26,6 +26,12 @@ It is also possible to use many functions without DIFMAP by specifying `use_difm
 
 ---
 
+## Documentation
+
+Please find the online documentation of VCAT at this link: https://mpifr-vlbi.github.io/VCAT/
+
+---
+
 ## Overview
 
 VCAT consists of the two core classes: **`ImageData`** and **`ImageCube`**.
@@ -136,8 +142,9 @@ These examples showcase how to load data, perform analysis, and generate publica
 
 ## Citation
 
-If you use **VCAT** in your research, please cite:  
-**INSERT VCAT REFERENCE HERE**
+If you use **VCAT** in your research, please cite the Zenodo release( DOI: 10.5281/zenodo.17404907)
+[<img width="191" height="20" alt="image" src="https://github.com/user-attachments/assets/7acf6177-49d1-4bd9-ad81-56987673c13e" />](https://doi.org/10.5281/zenodo.17404907)
+
 
 ---
 
