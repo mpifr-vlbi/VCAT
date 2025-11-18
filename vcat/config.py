@@ -59,8 +59,11 @@ def load_config(path=""):
         H0=67.4 #Planck Collaboration 2020
         Om0=0.315 #Planck Collaboration 2020
     else:
-        with open(path, "r") as file:
-            config = yaml.safe_load(file)
+        try:
+            with open(path, "r") as file:
+                config = yaml.safe_load(file)
+        except:
+            logging.warning(f"Could not find config file, please check if {path} exists!")
 
         LOG_LEVEL = getattr(logging, config["logging"].get("level", "INFO").upper(), logging.INFO)
         LOG_FILE = config["logging"].get("log_file", None)
