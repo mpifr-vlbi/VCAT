@@ -114,7 +114,7 @@ class Component():
         # determine errors
         # logger.info("Will use '" + error_method + "' method for determining component errors.")
         if self.noise==0 and error_method!="flat":
-            logging.warning(f"Trying to calculate SNR based errors using '{error_method}', but component noise is 0! Switching to 'flat'")
+            logger.warning(f"Trying to calculate SNR based errors using '{error_method}', but component noise is 0! Switching to 'flat'")
             error_method="flat"
         self.get_errors(method=error_method,gain_err=self.gain_err)
         self.delta_x_est_err = self.x_err #TODO check this!
