@@ -612,14 +612,22 @@ def modelfit_ehtim_full_pol(uvf_file,components,niter,npix=1024,
             run_nested_kwargs = {'maxiter': niter}
             kwargs = {'run_nested_kwargs': run_nested_kwargs}
             minimizer_kwargs = {"nlive": nwalker,'sample':'rslice'}
-            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=fit_pol,
-                                      alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
-                                      pol3='U', processes=0, **kwargs)
+            if fit_pol:
+                mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=fit_pol,
+                                          alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
+                                          pol3='U', processes=0, **kwargs)
+            else:
+                mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='vis', minimizer_func=minimizer, fit_pol=fit_pol,
+                                          alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', processes=0, **kwargs)
         else:
-            minimizer_kwargs = {'options':{'maxiter':niter}}
-            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=fit_pol,
-                                      alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
-                                      pol3='U', processes=0)
+            minimizer_kwargs = {'options': {'maxiter': niter}}
+            if fit_pol:
+                mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=fit_pol,
+                                          alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
+                                          pol3='U', processes=0)
+            else:
+                mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='vis', minimizer_func=minimizer, fit_pol=fit_pol,
+                                          alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', processes=0)
         # plot final model
         if plot:
             im = im.blur_gauss(obs.fit_beam(weighting="natural"))
