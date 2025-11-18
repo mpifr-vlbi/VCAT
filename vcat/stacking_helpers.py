@@ -511,7 +511,7 @@ def modelfit_ehtim_pol(uvf_file,components,niter,npix=1024,
 def modelfit_ehtim_full_pol(uvf_file,components,niter,npix=1024,
                        nwalker=200,minimizer="dynesty_dynamic",fov=10,plot=False,
                        max_size=5,max_flux=1,max_dist=5,
-                       circ_gauss=False,export_model="",skip_fit=False):
+                       circ_gauss=False,export_model="",skip_fit=False,fit_pol=True):
     """
     code to modelfit gaussian components to polarization (no Stokes-I) using ehtim
     Args:
@@ -587,7 +587,7 @@ def modelfit_ehtim_full_pol(uvf_file,components,niter,npix=1024,
     im = mod.make_image(fov*1e3*eh.RADPERUAS, npix)
 
     #setup prior for modelling
-    mod_prior = mod.default_prior(fit_pol=True)
+    mod_prior = mod.default_prior(fit_pol=fit_pol)
 
     for i,param in enumerate(params):
         mod_prior[i]["F0"] = {'prior_type': 'flat', 'min': 0, 'max': max_flux}
@@ -612,12 +612,12 @@ def modelfit_ehtim_full_pol(uvf_file,components,niter,npix=1024,
             run_nested_kwargs = {'maxiter': niter}
             kwargs = {'run_nested_kwargs': run_nested_kwargs}
             minimizer_kwargs = {"nlive": nwalker,'sample':'rslice'}
-            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
+            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=fit_pol,
                                       alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
                                       pol3='U', processes=0, **kwargs)
         else:
             minimizer_kwargs = {'options':{'maxiter':niter}}
-            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=True,
+            mod_fit = eh.modeler_func(obs, mod, mod_prior, d1='pvis', minimizer_func=minimizer, fit_pol=fit_pol,
                                       alpha_d1=20, minimizer_kwargs=minimizer_kwargs, pol1='I', pol2='Q',
                                       pol3='U', processes=0)
         # plot final model

@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 from vcat.config import logger, uvw, difmap_path, mfit_err_method, res_lim_method, H0, Om0
 
 class Component():
-    def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
+    def __init__(self, x=0, y=0, maj=1, min=1, pos=0, flux=1, date="1900-01-01", mjd=0, year=0, delta_x_est=0, delta_y_est=0,
                  component_number=-1, is_core=False, redshift=0, scale=60 * 60 * 10 ** 3,freq=15e9,noise=0,
                  beam_maj=0, beam_min=0, beam_pa=0, lin_pol=0, evpa=0, lin_pol_err=0, evpa_err=0,
                  snr=1, gain_err=0.05, error_method=mfit_err_method,res_lim_method=res_lim_method):
