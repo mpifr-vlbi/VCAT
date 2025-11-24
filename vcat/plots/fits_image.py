@@ -96,6 +96,7 @@ class FitsImage(object):
                  info_color="black",
                  plot_beam=True, #choose whether to plot beam or not
                  beam_color="grey", #choose beam color for plot
+                 beam_center=False, #option to set custom beam center in image coordinates [x,y]
                  plot_model=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
                  plot_comp_ids=False, #plot component ids
@@ -390,16 +391,20 @@ class FitsImage(object):
                             cmap=contour_cmap)
 
         # Set beam ellipse, sourcename and observation date positions
-        size_x = np.absolute(ra_max) + np.absolute(ra_min)
-        size_y = np.absolute(dec_max) + np.absolute(dec_min)
-        if size_x > size_y:
-            ell_x = ra_max - beam_maj
-            ell_y = dec_min + beam_maj
-        else:
-            ell_x = ra_max - beam_maj
-            ell_y = dec_min + beam_maj
-
         if plot_beam:
+
+            if not beam_center:
+                size_x = np.absolute(ra_max) + np.absolute(ra_min)
+                size_y = np.absolute(dec_max) + np.absolute(dec_min)
+                if size_x > size_y:
+                    ell_x = ra_max - beam_maj
+                    ell_y = dec_min + beam_maj
+                else:
+                    ell_x = ra_max - beam_maj
+                    ell_y = dec_min + beam_maj
+            else:
+                ell_x, ell_y = beam_center
+
             # Plot beam
             beam = Ellipse([ell_x, ell_y], beam_maj, beam_min,angle= -beam_pa + 90, fc=beam_color)
             self.ax.add_artist(beam)

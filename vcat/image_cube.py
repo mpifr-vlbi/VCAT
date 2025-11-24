@@ -588,6 +588,7 @@ class ImageCube(object):
             "line_width" : 2,
             "plot_polar": False,
             "plot_beam": True,
+            "beam_center": False,
             "beam_color": "grey",
             "plot_model": False,
             "component_color": "black",
