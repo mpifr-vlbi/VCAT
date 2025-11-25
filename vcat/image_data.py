@@ -510,7 +510,7 @@ class ImageData(object):
                 os.makedirs(model_save_dir+"mod_files_model/",exist_ok=True)
                 if self.model is not None:
                     self.model_mod_file=model_save_dir+"mod_files_model/" + self.name + "_" + self.date + "_" + "{:.0f}".format(self.freq/1e9).replace(".","_") + "GHz.mod"
-                    write_mod_file(self.model, self.model_mod_file, freq=self.freq)
+                    write_mod_file(self.model, self.model_mod_file, freq=self.freq,adv=[True,True,True,True,False,False])
             except:
                 logger.warning("FITS file does not contain model extension!")
         if self.is_ehtim_model:

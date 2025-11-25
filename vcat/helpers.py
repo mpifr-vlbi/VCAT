@@ -420,7 +420,7 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
         writepath: Filepath where to write the .mod file
         freq: Frequency of the observation in GHz
         scale: Conversion of the image scale to degrees (default milli-arc-seconds -> 60*60*1000)
-
+        adv: Option to add "v" to the .mod file to make the value fittable in DIFMAP
     Returns:
         Nothing, but writes a .mod file to writepath
     """
@@ -928,7 +928,7 @@ def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_
         os.system("rm -rf difmap.log*")
     except:
         raise Exception("Could not determine Chi-Squared! Please check difmap logs.")
-    
+
     return chi_sq_red
 
 def format_scientific(number):
