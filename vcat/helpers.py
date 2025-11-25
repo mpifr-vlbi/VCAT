@@ -923,7 +923,12 @@ def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_
         if "Iteration 00" in line:
             chi_sq_red=float(line.split("=")[1].split()[0])
 
-    os.system("rm -rf difmap.log*")
+    try:
+        chi_sq_red
+        os.system("rm -rf difmap.log*")
+    except:
+        raise Exception("Could not determine Chi-Squared! Please check difmap logs.")
+    
     return chi_sq_red
 
 def format_scientific(number):
