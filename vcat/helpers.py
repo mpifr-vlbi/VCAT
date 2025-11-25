@@ -893,7 +893,7 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100,m
     return rms
 
 #returns the reduced chi-square of a modelfit
-def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_path):
+def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_path,do_selfcal=False):
     env = os.environ.copy()
 
     # add difmap to PATH
@@ -914,6 +914,8 @@ def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_
     send_difmap_command("obs " + uvf_file)
     send_difmap_command("select i")
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))
+    if do_selfcal:
+        send_difmap_command("selfcal")
     send_difmap_command("rmod " + mod_file)
     #send modelfit 0 command to calculate chi-squared
     output=send_difmap_command("modelfit 0")
