@@ -941,7 +941,7 @@ class ComponentCollection():
         #create component DataFrame
         df = pd.DataFrame({
             "Component ID": self.ids,
-            "Year": self.years,
+            "Year": self.year,
             "MJD": self.mjds,
             "X Position [deg]": self.xs,
             "X Position Error [deg]": self.xs_err,
