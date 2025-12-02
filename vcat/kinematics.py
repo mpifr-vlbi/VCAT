@@ -940,7 +940,7 @@ class ComponentCollection():
     def get_df(self):
         #create component DataFrame
         df = pd.DataFrame({
-            "Component ID": np.full(self.component_number,len(self.years)),
+            "Component ID": self.ids,
             "Year": self.years,
             "MJD": self.mjds,
             "X Position [deg]": self.xs,
