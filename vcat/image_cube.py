@@ -2643,7 +2643,7 @@ class ImageCube(object):
     def export_component_info(self, filename):
         dfs=[]
         for cc in self.comp_collections:
-            dfs.append(cc.export_component_info())
+            dfs.append(cc.get_df())
 
         df_all=pd.concat(dfs,ignore_index=True)
 
