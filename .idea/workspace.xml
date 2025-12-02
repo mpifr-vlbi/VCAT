@@ -7,6 +7,8 @@
     <list default="true" id="ef4006ee-cec2-43fc-bd6b-23420f259aaf" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vcat/helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/helpers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vcat/image_cube.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/image_cube.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vcat/kinematics.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/kinematics.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

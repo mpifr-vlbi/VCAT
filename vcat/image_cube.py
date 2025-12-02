@@ -2639,3 +2639,14 @@ class ImageCube(object):
             raise Exception("Please select valid mode ('individual','freq','epoch','all'")
 
         return kwargs
+
+    def export_component_info(self, filename):
+        dfs=[]
+        for cc in self.comp_collections:
+            dfs.append(cc.export_component_info())
+
+        df_all=pd.concat(dfs,ignore_index=True)
+
+        df_all.to_csv(filename,index=False)
+
+        return df_all

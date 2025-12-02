@@ -936,3 +936,30 @@ class ComponentCollection():
                          scale=self.components[:,freq_ind].flatten()[0].scale,freq=self.freqs_distinct[freq_ind],noise=0,
                          beam_maj=self.components[:,freq_ind].flatten()[0].beam_maj, beam_min=self.components[:,freq_ind].flatten()[0].beam_min,
                          beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
+
+    def get_df(self):
+        #create component DataFrame
+        df = pd.DataFrame({
+            "Component ID": np.full(self.component_number,len(self.years)),
+            "Year": self.years,
+            "MJD": self.mjds,
+            "X Position [deg]": self.xs,
+            "X Position Error [deg]": self.xs_err,
+            "Y Position [deg]": self.ys,
+            "Y Position Error [deg]": self.ys_err,
+            "Distance from Core [mas]": self.dist,
+            "Distance from Core Error [mas]": self.dist_err,
+            "Major Axis [deg]": self.majs,
+            "Major Axis Error [deg]": self.majs_err,
+            "Minor Axis [deg]": self.mins,
+            "Minor Axis Error [deg]": self.mins_err,
+            "Position Angle [°]": self.posas,
+            "Flux Density [Jy]": self.fluxs,
+            "Flux Density Error [Jy]": self.fluxs_err,
+            "Tb [K]": self.tbs,
+            "Tb Error [K]": self.tbs_err,
+            "S/N": self.snrs,
+            "Resolved?": self.resolved,
+        })
+
+        return df

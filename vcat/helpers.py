@@ -586,7 +586,7 @@ def write_mod_file_from_casa(image_data,channel="i",export="export.mod"):
     """Writes a .mod file from a CASA exported .fits model file.
 
     Args:
-        file_path: Image_data object
+        image_data:
         channel: Choose the Stokes channel to use (options: "i","q","u","v")
         export: File path where to write the .mod file
 
