@@ -281,7 +281,7 @@ class MultiFitsImage(object):
                                         title=kwargs["title"][image_i,image_j],
                                         background_color=kwargs["background_color"][image_i,image_j],
                                         fig=self.fig,
-                                        ax=self.axes[i,j],
+                                        ax=self.axes[image_i,image_j],
                                         font_size_axis_title=kwargs["font_size_axis_title"][image_i,image_j],
                                         font_size_axis_tick=kwargs["font_size_axis_tick"][image_i,image_j],
                                         adjust_comp_size_to_res_lim=kwargs["adjust_comp_size_to_res_lim"][image_i,image_j],
