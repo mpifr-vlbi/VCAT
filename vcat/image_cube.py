@@ -580,6 +580,8 @@ class ImageCube(object):
             "im_color": '',
             "do_colorbar": False,
             "plot_ridgeline": False,
+            "plot_info" = False,  # choose whether to plot basic info on top of image
+            "info_color" = "black",
             "ridgeline_color": "red",
             "plot_counter_ridgeline": False,
             "counter_ridgeline_color": "red",
