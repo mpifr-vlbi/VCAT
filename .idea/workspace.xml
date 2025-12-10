@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="ef4006ee-cec2-43fc-bd6b-23420f259aaf" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vcat/plots/multi_fits_image.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/plots/multi_fits_image.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vcat/plots/jet_profile_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/plots/jet_profile_plot.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
