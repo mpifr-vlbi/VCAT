@@ -968,8 +968,8 @@ class ComponentCollection():
             "Tb Error [K]": self.tbs_err.flatten(),
             "S/N": self.snrs.flatten(),
             "Resolved?": self.resolved.flatten(),
-            "Res Lim Maj [deg]": self.res_lim_maj.flatten(),
-            "Res Lim Min [deg]": self.res_lim_min.flatten()
+            "Res Lim Maj [deg]": self.res_lim_majs.flatten(),
+            "Res Lim Min [deg]": self.res_lim_mins.flatten()
         })
 
         return df

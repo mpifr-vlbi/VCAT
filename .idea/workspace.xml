@@ -5,11 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ef4006ee-cec2-43fc-bd6b-23420f259aaf" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/VCAT.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/VCAT.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vcat/kinematics.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/kinematics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vcat/plots/kinematic_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/plots/kinematic_plot.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,7 +76,9 @@
       <option name="presentableId" value="Default" />
       <updated>1738846149268</updated>
       <workItem from="1768998376022" duration="1718000" />
-      <workItem from="1769001171066" duration="230000" />
+      <workItem from="1769001171066" duration="257000" />
+      <workItem from="1769001752029" duration="205000" />
+      <workItem from="1769002624695" duration="40000" />
     </task>
     <servers />
   </component>
