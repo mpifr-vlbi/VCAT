@@ -369,6 +369,8 @@ class ComponentCollection():
         self.snrs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.lin_pols_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.evpas_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.res_lim_majs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.res_lim_mins = np.empty((self.n_epochs,self.n_freqs),dtype=float)
 
         for i, year in enumerate(epochs):
             for j, freq in enumerate(freqs):
@@ -407,6 +409,8 @@ class ComponentCollection():
                         self.snrs[i,j]=comp.snr
                         self.lin_pols_err[i,j]=comp.lin_pol_err
                         self.evpas_err[i,j]=comp.evpa_err
+                        self.res_lim_majs[i,j]=comp.res_lim_maj
+                        self.res_lim_mins[i,j]=comp.res_lim_min
 
         try:
             self.id=np.unique(self.ids.flatten())[0]
@@ -964,6 +968,8 @@ class ComponentCollection():
             "Tb Error [K]": self.tbs_err.flatten(),
             "S/N": self.snrs.flatten(),
             "Resolved?": self.resolved.flatten(),
+            "Res Lim Maj [deg]": self.res_lim_maj.flatten(),
+            "Res Lim Min [deg]": self.res_lim_min.flatten()
         })
 
         return df

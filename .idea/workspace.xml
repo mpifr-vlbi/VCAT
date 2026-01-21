@@ -5,8 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ef4006ee-cec2-43fc-bd6b-23420f259aaf" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/VCAT.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/VCAT.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vcat/plots/jet_profile_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/plots/jet_profile_plot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vcat/kinematics.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/kinematics.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vcat/plots/kinematic_plot.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/plots/kinematic_plot.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,8 +39,11 @@
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/flep98/vcat-vlbi&quot;
+    &quot;last_opened_file_path&quot;: &quot;/home/flep98/VCAT&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
   <component name="RecentsManager">
@@ -59,7 +65,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-0978a7220b69-9867c7d4c0a4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.28294.336" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-PY-253.29346.142" />
+        <option value="bundled-python-sdk-f2b7a9f6281b-6e1f45a539f7-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.29346.142" />
       </set>
     </attachedChunks>
   </component>
@@ -71,7 +78,12 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1738846149268</updated>
+      <workItem from="1768998376022" duration="1718000" />
+      <workItem from="1769001171066" duration="230000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
 </project>
