@@ -507,7 +507,7 @@ class FitsImage(object):
                 logger.warning("No modelfit loaded!")
 
         if plot_info:
-            text = f"Flux Density: {self.clean_image.integrated_flux_clean:.2f} Jy"
+            text = f"Peak Flux Density: {np.max(self.Z):.2f} Jy/beam"
             text += f"\nNoise: {self.clean_image.noise * 1e3:.2f} mJy/beam"
             self.ax.text(0.96, 0.04, text, va="bottom", ha="right", transform=self.ax.transAxes, color=info_color)
             self.ax.text(0.04, 0.96, f"{self.clean_image.name}", va="top", ha="left", transform=self.ax.transAxes, color=info_color)
