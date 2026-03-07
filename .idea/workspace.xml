@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="ef4006ee-cec2-43fc-bd6b-23420f259aaf" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vcat/plots/fits_image.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/plots/fits_image.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vcat/image_cube.py" beforeDir="false" afterPath="$PROJECT_DIR$/vcat/image_cube.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,8 +62,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-PY-253.29346.142" />
-        <option value="bundled-python-sdk-f2b7a9f6281b-6e1f45a539f7-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.29346.142" />
+        <option value="bundled-python-sdk-2653e85de345-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.31033.139" />
       </set>
     </attachedChunks>
   </component>

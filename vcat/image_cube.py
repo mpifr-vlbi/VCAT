@@ -2407,8 +2407,8 @@ class ImageCube(object):
 
         return fits
 
-    def movie(self,plot_mode="stokes_i",freq="",noise="max",n_frames=500,interval=50,
-              start_mjd="",end_mjd="",dpi=300,fps=20,save="",plot_components=False,fill_components=False,
+    def movie(self,plot_mode="stokes_i",freq="",noise="max",duration=25,fps=20,
+              start_mjd="",end_mjd="",dpi=300,save="",plot_components=False,fill_components=False,
               ref_image="", plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
         """
         Function to create movies from image cube
@@ -2417,8 +2417,8 @@ class ImageCube(object):
             plot_mode (str): Choose plot mode ('stokes_i','lin_pol','frac_pol')
             freq (float or list[float]): Choose frequencies in GHz to create movie
             noise (str): Choose which common noise level to use ('min' or 'max')
-            n_frames (int): Number of frames
-            interval (float): Interval in milliseconds between frames
+            duration (float): Movie duration in seconds
+            fps (float): Frames per second to use
             start_mjd (float): Start MJD of the movie
             end_mjd (float): End MJD of the movie
             dpi (int): Choose resolution in dpi
@@ -2455,6 +2455,9 @@ class ImageCube(object):
                 save=[save]
         elif not isinstance(save, list):
             raise Exception("Please enter valid 'save' value.")
+
+        n_frames=fps*duration
+        interval=1000/fps
 
 
         for index,f in enumerate(freq):
