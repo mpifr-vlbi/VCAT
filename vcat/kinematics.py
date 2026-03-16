@@ -647,7 +647,7 @@ class ComponentCollection():
 
         return newComp
 
-    def get_coreshift(self, epochs="",k_r="",r0=""):
+    def get_coreshift(self, epochs="",k_r=1,r0=10,fix_k_r=False):
 
         if isinstance(epochs, str) and epochs=="":
             epochs=self.epochs_distinct
@@ -685,7 +685,7 @@ class ComponentCollection():
             coreshifts=[]
             coreshift_err=[]
             for i,comp in enumerate(components):
-                if freqs[i] < 1e-10: # exclude freqs. not in epoch for coreshifts
+                if freqs[i] < 1e-3: # exclude freqs. not in epoch for coreshifts
                     continue
                 # This new code calculates the core shift without assuming anything about relative component positions
                 dx1 = delta_x_core[i]
@@ -713,8 +713,9 @@ class ComponentCollection():
                 # coreshifts.append((dist[max_i]-dist[i])*1e3)#in uas
                 # coreshift_err.append(np.sqrt(dist_err[max_i]**2+dist_err[i]**2)*1e3)
             
-            freqs = [freq for freq in freqs if freq > 1e-10] # exclude freqs. not in epoch
-            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0)
+            freqs = [freq for freq in freqs if freq > 1e-3] # exclude freqs. not in epoch
+
+            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0,fix_k_r=fix_k_r,print_fit=False)
             results.append(result)
 
         return results

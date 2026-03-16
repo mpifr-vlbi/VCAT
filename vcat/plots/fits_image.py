@@ -237,7 +237,7 @@ class FitsImage(object):
             else:
                 self.fig = fig
             self.ax = ax
-
+        
         #set background color
         self.ax.set_facecolor(self.background_color)
 

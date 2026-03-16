@@ -35,7 +35,7 @@ from astropy import units as u
 from vcat.config import logger
 
 class ImageCube(object):
-
+    
     """ Class to handle a multi-frequency, multi-epoch Image data set
 
     Attributes:
@@ -92,7 +92,8 @@ class ImageCube(object):
                 self.dates.append(image.date)
                 self.mjds.append(image.mjd)
             images.append(image)
-
+        
+        self.image_data_list=image_data_list
         image_data_list=images
         self.freqs=np.sort(self.freqs)
         self.dates=np.sort(self.dates)
@@ -1451,8 +1452,8 @@ class ImageCube(object):
 
         return fit
 
-    def fit_coreshift(self,ids=None,epoch="",k_r="",r0="",plot=False,savefig=False,combine_epoch=True,combine_comp=True):
-
+    def fit_coreshift(self,ids=None,epoch="",k_r=1,r0=10,plot=False,savefig=False,combine_epoch=True,combine_comp=True,plot_fit_label=False,do_err='cov',fix_k_r=False):
+        
         if epoch=="":
             epochs=Time(self.dates).decimalyear
         elif isinstance(epoch,str):
@@ -1463,15 +1464,13 @@ class ImageCube(object):
         if isinstance(ids, int):
             ids=[ids]
         elif not isinstance(ids, list):
-            # raise Exception("Please provide valid id (int or list[int])")
             logger.info('No component IDs provided, calculating core-shift based on core positions only.')
-
         fits=[]
         # Calculate core-shift based on optically thin components given by id
         if ids!=None:
             for i in ids:
                 cc=self.get_comp_collection(i)
-                fit=cc.get_coreshift(epochs=epochs,k_r=k_r)
+                fit=cc.get_coreshift(epochs=epochs,k_r=k_r,r0=r0,fix_k_r=fix_k_r)
                 fits.append(fit)
             freq_to_fit = []
             coreshift_to_fit = []
@@ -1486,10 +1485,10 @@ class ImageCube(object):
 
                     if not combine_comp and not combine_epoch:
                         #do the fit
-                        fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+                        fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,do_err=do_err,print_fit=True,fix_k_r=fix_k_r)
                         if plot:
                             plot=KinematicPlot()
-                            plot.plot_coreshift_fit(fit)
+                            plot.plot_coreshift_fit(fit, plot_fit_label=plot_fit_label)
                             if savefig==True:
                                 plt.savefig('./coreshift_'+str(self.dates[j])+'_comp'+str(ids[i])+'.png')
                             plot.fig.show()
@@ -1500,10 +1499,10 @@ class ImageCube(object):
 
                 if not combine_epoch and combine_comp:
                     # do the fit
-                    fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+                    fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,do_err=do_err,print_fit=True,fix_k_r=fix_k_r)
                     if plot:
                         plot = KinematicPlot()
-                        plot.plot_coreshift_fit(fit)
+                        plot.plot_coreshift_fit(fit, plot_fit_label=plot_fit_label)
                         if savefig==True:
                             plt.savefig('./coreshift_'+str(self.dates[j])+'.png')
                         plot.fig.show()
@@ -1514,17 +1513,18 @@ class ImageCube(object):
                 
                 if combine_epoch and combine_comp:
                     # do the fit
-                    fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+                    fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,do_err=do_err,print_fit=True,fix_k_r=fix_k_r)
 
                     if plot:
                         plot = KinematicPlot()
-                        plot.plot_coreshift_fit(fit)
+                        plot.plot_coreshift_fit(fit, plot_fit_label=plot_fit_label)
                         if savefig==True:
                             plt.savefig('./coreshift_combined.png')
                         plot.fig.show()
         
         # Calculate core-shift based only on core positions, assuming the maps in the image_cube are aligned
         else:
+            # print('k_r in fit_coreshift', k_r)
             fits=self.get_coreshift_aligned(k_r=k_r,r0=r0)
             freq_to_fit = []
             coreshift_to_fit = []
@@ -1537,10 +1537,10 @@ class ImageCube(object):
 
                 if not combine_epoch:
                     #do the fit
-                    fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+                    fit=coreshift_fit(freq_to_fit,coreshift_to_fit,coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,do_err=do_err,print_fit=True,fix_k_r=fix_k_r)
                     if plot:
                         plot=KinematicPlot()
-                        plot.plot_coreshift_fit(fit)
+                        plot.plot_coreshift_fit(fit, plot_fit_label=plot_fit_label)
                         if savefig==True:
                             plt.savefig('./coreshift_'+str(self.dates[j])+'.png')
                         plot.fig.show()
@@ -1551,18 +1551,18 @@ class ImageCube(object):
             
             if combine_epoch:
                 # do the fit
-                fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,print=True)
+                fit = coreshift_fit(freq_to_fit, coreshift_to_fit, coreshift_err_to_fit,ref_freq,k_r=k_r,r0=r0,do_err=do_err,print_fit=True,fix_k_r=fix_k_r)
 
                 if plot:
                     plot = KinematicPlot()
-                    plot.plot_coreshift_fit(fit)
+                    plot.plot_coreshift_fit(fit, plot_fit_label=plot_fit_label)
                     if savefig==True:
                         plt.savefig('./coreshift_combined.png')
                     plot.fig.show()
         
         return fit
     
-    def get_coreshift_aligned(self,k_r="",r0=""):
+    def get_coreshift_aligned(self,k_r=1,r0=10):
         
         results=[]
         cores=[]
@@ -1606,7 +1606,7 @@ class ImageCube(object):
             max_freq=max_freq*1e-9 # GHz
             freqs=np.array(freqs)*1e-9 # GHz
                 
-            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0)
+            result=coreshift_fit(freqs,coreshifts,coreshift_err,max_freq,k_r=k_r,r0=r0,print_fit=False)
             results.append(result)
             
         return results
@@ -2572,6 +2572,162 @@ class ImageCube(object):
 
             ani.save(save[index],writer="ffmpeg",dpi=dpi,fps=round(1/interval*1000))
             logger.info(f"Movie for {f:.0f}GHz exported as '{save[index]}'")
+    
+    def overplot(self,freqs=True,epochs=False,show=False,savefig="",
+                 stokes_i_sigma_cut_list=[],contour_colors=[],**kwargs):
+        
+        bluish_green = '#009E73'
+        vermillion = '#E34234'
+        if contour_colors == []:
+            contour_colors = ['black','blue','#E34234',bluish_green,'orange',
+                              'cyan','magenta']
+        
+        if freqs == True:
+            nrows = 1
+            ncols = len(self.mjds)
+            # print(nrows, ncols)
+            figsize=(3*ncols,3*nrows)
+            fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+            axes = np.atleast_2d(axes)
+            for i, mjd in enumerate(self.mjds):
+                j = 0
+                
+                defaults = {
+                    "stokes_i_sigma_cut": 3,
+                    "plot_mode": "stokes_i",
+                    "im_colormap": False,
+                    "contour": True,
+                    "contour_color": 'grey',
+                    "contour_cmap": None,
+                    "contour_alpha": 1,
+                    "contour_width": 0.5,
+                    "im_color": '',
+                    "do_colorbar": False,
+                    "plot_ridgeline": False,
+                    "ridgeline_color": "red",
+                    "plot_counter_ridgeline": False,
+                    "counter_ridgeline_color": "red",
+                    "plot_line" : "",
+                    "line_color" : "black",
+                    "line_width" : 2,
+                    "plot_polar": False,
+                    "plot_beam": True,
+                    "beam_color": "grey",
+                    "plot_model": False,
+                    "component_color": "black",
+                    "plot_comp_ids": False,
+                    "plot_comp_evpas": False,
+                    "plot_clean": False,
+                    "plot_mask": False,
+                    "xlim": [],
+                    "ylim": [],
+                    "plot_evpa": False,
+                    "evpa_width": 1.5,
+                    "evpa_len": -1,
+                    "lin_pol_sigma_cut": 3,
+                    "evpa_distance": -1,
+                    "fractional_evpa_distance": 0.02,
+                    "rotate_evpa": 0,
+                    "colorbar_loc": "right",
+                    "evpa_color": "white",
+                    "title": "",
+                    "background_color": "white",
+                    "font_size_axis_title": 8,
+                    "font_size_axis_tick": 6,
+                    "rcparams": {}
+                }
+                
+                params = {**defaults, **kwargs}
+                try:
+                    if type(stokes_i_sigma_cut_list[i]) == list or type(stokes_i_sigma_cut_list[i]) == np.ndarray:
+                        params["stokes_i_sigma_cut"] = stokes_i_sigma_cut_list[i][0]
+                        # print(stokes_i_sigma_cut_list[i][0])
+                    else:
+                        params["stokes_i_sigma_cut"] = stokes_i_sigma_cut_list[0]
+                except IndexError:
+                    logger.warning("For overplotting images with multiple epochs, please provide values"
+                                   " in stokes_i_sigma_cut_list for each epoch. Use defaults for now instead.")
+                    params["stokes_i_sigma_cut"] = 3
+                params["contour_color"] = contour_colors[0]
+                
+                freqs_images = [image.freq for image in self.image_data_list if abs(image.mjd - mjd) <= self.date_tolerance]
+                images = [image for image in self.image_data_list if abs(image.mjd - mjd) <= self.date_tolerance]
+                
+                # Plot first image as basis #
+                from vcat.plots.fits_image import FitsImage
+                plot = FitsImage(images[0], ax=axes[0,i], **params)
+                ax = plot.ax
+                
+                # Determine correct contour levels from inputs #
+                if stokes_i_sigma_cut_list == []:
+                    stokes_i_sigma_cut_list_use = np.repeat(params['stokes_i_sigma_cut'], len(images))
+                else:
+                    try:
+                        if type(stokes_i_sigma_cut_list[i]) != list \
+                        and type(stokes_i_sigma_cut_list[i]) != np.ndarray:
+                            # check if only a single epoch is present
+                            if len(self.mjds) == 1:
+                                stokes_i_sigma_cut_list_use = stokes_i_sigma_cut_list
+                            else:
+                                logger.warning("For overplotting images with multiple epochs, please provide values"
+                                               " in stokes_i_sigma_cut_list for each epoch. Use defaults for now instead.")
+                                stokes_i_sigma_cut_list_use = np.repeat(params['stokes_i_sigma_cut'], len(images))
+                        else:
+                            stokes_i_sigma_cut_list_use = stokes_i_sigma_cut_list[i]
+                    except IndexError:
+                        logger.warning("For overplotting images with multiple epochs, please provide values"
+                                       " in stokes_i_sigma_cut_list for each epoch. Use defaults for now instead.")
+                        stokes_i_sigma_cut_list_use = np.repeat(params['stokes_i_sigma_cut'], len(images))
+                legend_lines = []
+                
+                # Overplot other images #
+                for j, image in enumerate(images):
+                    if j != 0:    # already plotted base image
+                        
+                        from vcat.helpers import get_sigma_levs
+                        try:
+                            sigma_cont_lim = stokes_i_sigma_cut_list_use[j]
+                        except IndexError:
+                            logger.warning("Provided stokes_i_sigma_cut_list has wrong shape for epochs and"
+                                           " frequencies used. Use default of 3 for now instead.")
+                            sigma_cont_lim = 3
+                        
+                        levs, levs1 = get_sigma_levs(
+                            image.Z,
+                            sigma_contour_limit=sigma_cont_lim,
+                            noise=0,
+                            plot_histogram=False
+                            )
+                        
+                        ax.contour(
+                            image.X, image.Y, image.Z,
+                            linewidths=params['contour_width'],
+                            levels=levs,
+                            colors=contour_colors[j],
+                            alpha=params['contour_alpha'],
+                            cmap=params['contour_cmap']
+                            )
+                        import matplotlib.lines as mlines
+                        legend_line = mlines.Line2D(
+                            [], [], color=contour_colors[j],
+                            linestyle='solid', linewidth=params['contour_width'],
+                            label=f"{freqs_images[j]/1E9:.1f} GHz"
+                            )
+                        legend_lines.append(legend_line)
+
+                ax.legend(handles=legend_lines, fontsize=8, loc='best')
+                if savefig != "":
+                    if savefig.split(".")[-1] in ("png","jpg","jpeg","pdf","gif"):
+                        fig.savefig(savefig, dpi=300, bbox_inches='tight', transparent=False)
+                    else:
+                        fig.savefig(savefig+".png",dpi=300,bbox_inches="tight", transparent=False)
+                if show == True:
+                    fig.show()
+                plt.close(fig)
+        elif freqs == False and epochs == True:
+            logger.info('Overplotting by epochs coming soon!')
+        elif freqs == True and epochs == True:
+            logger.warning('Overplotting both frequencies and epochs is not supported.')
 
     def format_kwargs(self,kwargs,mode):
 

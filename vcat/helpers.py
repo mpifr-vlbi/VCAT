@@ -350,28 +350,78 @@ def get_comp_peak_rms(x, y, fits_file, uvf_file, mfit_file, stokes_i_mod_file, c
     
     return S_p, rms
 
-def coreshift_fit(freqs,coreshifts,coreshift_err,ref_freq,k_r="",r0=0,print=False):
-
-        #define core shift function (Lobanov 1998)
-        def delta_r(nu,r0,k_r,ref_freq):
-            return r0*((nu/ref_freq)**(-1/k_r)-1)
-
-        if k_r=="":
-            params, covariance = curve_fit(lambda nu, k, r0: delta_r(nu,r0,k,ref_freq),freqs,coreshifts,p0=[1,10],sigma=coreshift_err,maxfev=10000)
-            r0_fitted, k_r_fitted = params
+def coreshift_fit(freqs,coreshifts,coreshift_err,ref_freq,k_r=1,r0=10,do_err='cov',print_fit=False,fix_k_r=False):
+    
+    # define core shift function (Lobanov 1998)
+    def delta_r(nu,k_r,r0,ref_freq):
+        return r0*((nu/ref_freq)**(-1/k_r)-1)
+    if fix_k_r == True:
+        if len(freqs) > 1:
+            try:
+                params, covariance = curve_fit(lambda nu, r0: delta_r(nu,k_r,r0,ref_freq),freqs,coreshifts,p0=[r0],sigma=coreshift_err,maxfev=10000)
+                k_r_fitted = k_r
+                r0_fitted = params[0]
+            except RuntimeError:
+                logger.warning('Core-shift fit did not coverge, returning starting parameters.')
+                params = [r0]
+                covariance = [np.nan]
+                k_r_fitted, r0_fitted = [k_r, r0]
+            DoF = len(coreshifts) - len(params)
+            if do_err == 'cov':
+                k_r_fitted_err = 0
+                r0_fitted_err = np.sqrt(np.diag(covariance))[0]
+            else:
+                # TODO: implement other error estimation methods
+                r0_fitted_err = 0
+                k_r_fitted_err = 0
         else:
-            params, covariance = curve_fit(lambda nu, r0: delta_r(nu,r0,k_r,ref_freq),freqs,coreshifts,p0=[1],sigma=coreshift_err,maxfev=10000)
-            k_r_fitted=k_r
-            r0_fitted = params[0]
+            logger.warning('Not sufficient DoF for core-shift fit.')
+            k_r_fitted = k_r
+            r0_fitted = np.nan
+            k_r_fitted_err = np.nan
+            r0_fitted_err = np.nan
+            DoF = np.nan
+    else:
+        if len(freqs) > 2:
+            try:
+                params, covariance = curve_fit(lambda nu, k, r0: delta_r(nu,k,r0,ref_freq),freqs,coreshifts,p0=[k_r,r0],sigma=coreshift_err,maxfev=10000)
+                k_r_fitted, r0_fitted = params
+            except RuntimeError:
+                logger.warning('Core-shift fit did not coverge, returning starting parameters.')
+                params = [k_r, r0]
+                covariance = np.full((len(params), len(params)), np.nan)
+                k_r_fitted, r0_fitted = params
+            DoF = len(coreshifts) - len(params)
+            if do_err == 'cov':
+                k_r_fitted_err, r0_fitted_err = np.sqrt(np.diag(covariance))
+            else:
+                # TODO: implement other error estimation methods
+                k_r_fitted_err = 0
+                r0_fitted_err = 0
+        else:
+            logger.warning('Not sufficient DoF for core-shift fit.')
+            k_r_fitted = np.nan
+            r0_fitted = np.nan
+            k_r_fitted_err = np.nan
+            r0_fitted_err = np.nan
+            DoF = np.nan
+    
+    model = np.array(delta_r(freqs,r0_fitted,k_r_fitted,ref_freq))
+    chisq = np.sum((model - np.array(coreshifts))**2/np.array(coreshift_err)**2)
+    chisq_red = chisq/DoF
 
-        if print:
-            logger.info(f"Fitted k_r: {k_r_fitted}")
-            logger.info(f"Fitted r0: {r0_fitted}")
+    if print_fit:
+        logger.info(f"Fitted k_r: {k_r_fitted} +/- {k_r_fitted_err}")
+        logger.info(f"Fitted r0: {r0_fitted} +/- {r0_fitted_err}")
+        logger.info(f"Fit chisq: {chisq_red}")
 
-        result={"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":ref_freq,"freqs":freqs,"coreshifts":coreshifts,
-                "coreshift_err":coreshift_err,"ref_freq":ref_freq}
+    result={"k_r":k_r_fitted,"r0":r0_fitted,"ref_freq":ref_freq,"freqs":freqs,"coreshifts":coreshifts,
+            "coreshift_err":coreshift_err,"ref_freq":ref_freq,"k_r_err":k_r_fitted_err,"r0_err":r0_fitted_err}
 
-        return result
+    return result
+
+def get_bootstrap_errors():
+    print('Coming soon!')
 
 def calculate_dist_with_err(x1, y1, x2, y2, sigma_x1, sigma_y1, sigma_x2, sigma_y2):
     dx = x2 - x1
