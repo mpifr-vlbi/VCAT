@@ -1144,11 +1144,6 @@ class ImageData(object):
         params = {**defaults, **kwargs}
         plot=FitsImage(self, **params)
         
-        print('defaults["xlim"]')
-        print(defaults["xlim"])
-        print('params["xlim"]')
-        print(params["xlim"])
-        
         if savefig!="":
             plot.export(savefig)
         if show:
