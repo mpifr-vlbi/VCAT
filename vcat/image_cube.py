@@ -92,8 +92,7 @@ class ImageCube(object):
                 self.dates.append(image.date)
                 self.mjds.append(image.mjd)
             images.append(image)
-        
-        self.image_data_list=image_data_list
+
         image_data_list=images
         self.freqs=np.sort(self.freqs)
         self.dates=np.sort(self.dates)
@@ -147,6 +146,9 @@ class ImageCube(object):
             line3 = f"Epochs: " + ", ".join(self.dates)
 
         return line1+line2+line3
+
+    def image_data_list(self):
+        return self.images.flatten()
 
     def import_files(self,fits_files="", uvf_files="", stokes_q_files="", stokes_u_files="", model_fits_files="",
                      date_tolerance=1,freq_tolerance=1,**kwargs):
@@ -2573,15 +2575,9 @@ class ImageCube(object):
             ani.save(save[index],writer="ffmpeg",dpi=dpi,fps=round(1/interval*1000))
             logger.info(f"Movie for {f:.0f}GHz exported as '{save[index]}'")
     
-    def overplot(self,freqs=True,epochs=False,show=False,savefig="",
-                 stokes_i_sigma_cut_list=[],contour_colors=[],**kwargs):
-        
-        bluish_green = '#009E73'
-        vermillion = '#E34234'
-        if contour_colors == []:
-            contour_colors = ['black','blue','#E34234',bluish_green,'orange',
-                              'cyan','magenta']
-        
+    def stackplot(self,freqs=True,epochs=False,show_plot=False,savefig="",
+                 stokes_i_sigma_cut_list=[],contour_colors=plot_colors,**kwargs):
+
         if freqs == True:
             nrows = 1
             ncols = len(self.mjds)
@@ -2591,76 +2587,29 @@ class ImageCube(object):
             axes = np.atleast_2d(axes)
             for i, mjd in enumerate(self.mjds):
                 j = 0
-                
-                defaults = {
-                    "stokes_i_sigma_cut": 3,
-                    "plot_mode": "stokes_i",
-                    "im_colormap": False,
-                    "contour": True,
-                    "contour_color": 'grey',
-                    "contour_cmap": None,
-                    "contour_alpha": 1,
-                    "contour_width": 0.5,
-                    "im_color": '',
-                    "do_colorbar": False,
-                    "plot_ridgeline": False,
-                    "ridgeline_color": "red",
-                    "plot_counter_ridgeline": False,
-                    "counter_ridgeline_color": "red",
-                    "plot_line" : "",
-                    "line_color" : "black",
-                    "line_width" : 2,
-                    "plot_polar": False,
-                    "plot_beam": True,
-                    "beam_color": "grey",
-                    "plot_model": False,
-                    "component_color": "black",
-                    "plot_comp_ids": False,
-                    "plot_comp_evpas": False,
-                    "plot_clean": False,
-                    "plot_mask": False,
-                    "xlim": [],
-                    "ylim": [],
-                    "plot_evpa": False,
-                    "evpa_width": 1.5,
-                    "evpa_len": -1,
-                    "lin_pol_sigma_cut": 3,
-                    "evpa_distance": -1,
-                    "fractional_evpa_distance": 0.02,
-                    "rotate_evpa": 0,
-                    "colorbar_loc": "right",
-                    "evpa_color": "white",
-                    "title": "",
-                    "background_color": "white",
-                    "font_size_axis_title": 8,
-                    "font_size_axis_tick": 6,
-                    "rcparams": {}
-                }
-                
-                params = {**defaults, **kwargs}
+
                 try:
                     if type(stokes_i_sigma_cut_list[i]) == list or type(stokes_i_sigma_cut_list[i]) == np.ndarray:
-                        params["stokes_i_sigma_cut"] = stokes_i_sigma_cut_list[i][0]
-                        # print(stokes_i_sigma_cut_list[i][0])
+                        stokes_i_sigma_cut = stokes_i_sigma_cut_list[i][0]
                     else:
-                        params["stokes_i_sigma_cut"] = stokes_i_sigma_cut_list[0]
+                        stokes_i_sigma_cut = stokes_i_sigma_cut_list[0]
                 except IndexError:
                     logger.warning("For overplotting images with multiple epochs, please provide values"
                                    " in stokes_i_sigma_cut_list for each epoch. Use defaults for now instead.")
-                    params["stokes_i_sigma_cut"] = 3
-                params["contour_color"] = contour_colors[0]
+                    stokes_i_sigma_cut = 3
+                contour_color = contour_colors[0]
                 
-                freqs_images = [image.freq for image in self.image_data_list if abs(image.mjd - mjd) <= self.date_tolerance]
-                images = [image for image in self.image_data_list if abs(image.mjd - mjd) <= self.date_tolerance]
+                freqs_images = [image.freq for image in self.image_data_list() if abs(image.mjd - mjd) <= self.date_tolerance]
+                images = [image for image in self.image_data_list() if abs(image.mjd - mjd) <= self.date_tolerance]
                 
                 # Plot first image as basis #
                 from vcat.plots.fits_image import FitsImage
-                plot = FitsImage(images[0], ax=axes[0,i], **params)
-                ax = plot.ax
+                plot = images[0].plot(ax=axes[0,i], fig=fig, contour_color=contour_color,
+                                      stokes_i_sigma_cut=stokes_i_sigma_cut,show=False,plot_beam=False)
                 
                 # Determine correct contour levels from inputs #
                 if stokes_i_sigma_cut_list == []:
-                    stokes_i_sigma_cut_list_use = np.repeat(params['stokes_i_sigma_cut'], len(images))
+                    stokes_i_sigma_cut_list_use = np.repeat(stokes_i_sigma_cut, len(images))
                 else:
                     try:
                         if type(stokes_i_sigma_cut_list[i]) != list \
@@ -2671,59 +2620,41 @@ class ImageCube(object):
                             else:
                                 logger.warning("For overplotting images with multiple epochs, please provide values"
                                                " in stokes_i_sigma_cut_list for each epoch. Use defaults for now instead.")
-                                stokes_i_sigma_cut_list_use = np.repeat(params['stokes_i_sigma_cut'], len(images))
+                                stokes_i_sigma_cut_list_use = np.repeat(stokes_i_sigma_cut, len(images))
                         else:
                             stokes_i_sigma_cut_list_use = stokes_i_sigma_cut_list[i]
                     except IndexError:
                         logger.warning("For overplotting images with multiple epochs, please provide values"
                                        " in stokes_i_sigma_cut_list for each epoch. Use defaults for now instead.")
-                        stokes_i_sigma_cut_list_use = np.repeat(params['stokes_i_sigma_cut'], len(images))
+                        stokes_i_sigma_cut_list_use = np.repeat(stokes_i_sigma_cut, len(images))
                 legend_lines = []
                 
                 # Overplot other images #
                 for j, image in enumerate(images):
                     if j != 0:    # already plotted base image
-                        
-                        from vcat.helpers import get_sigma_levs
                         try:
                             sigma_cont_lim = stokes_i_sigma_cut_list_use[j]
                         except IndexError:
                             logger.warning("Provided stokes_i_sigma_cut_list has wrong shape for epochs and"
                                            " frequencies used. Use default of 3 for now instead.")
                             sigma_cont_lim = 3
-                        
-                        levs, levs1 = get_sigma_levs(
-                            image.Z,
-                            sigma_contour_limit=sigma_cont_lim,
-                            noise=0,
-                            plot_histogram=False
-                            )
-                        
-                        ax.contour(
-                            image.X, image.Y, image.Z,
-                            linewidths=params['contour_width'],
-                            levels=levs,
-                            colors=contour_colors[j],
-                            alpha=params['contour_alpha'],
-                            cmap=params['contour_cmap']
-                            )
+
+                        plot.overplot(image,stokes_i_sigma_cut=sigma_cont_lim,contour_color=contour_colors[j],plot_beam=False)
+
                         import matplotlib.lines as mlines
                         legend_line = mlines.Line2D(
                             [], [], color=contour_colors[j],
-                            linestyle='solid', linewidth=params['contour_width'],
+                            linestyle='solid', linewidth=plot.contour_width,
                             label=f"{freqs_images[j]/1E9:.1f} GHz"
                             )
                         legend_lines.append(legend_line)
 
-                ax.legend(handles=legend_lines, fontsize=8, loc='best')
+                plot.ax.legend(handles=legend_lines, fontsize=8, loc='best')
+
                 if savefig != "":
-                    if savefig.split(".")[-1] in ("png","jpg","jpeg","pdf","gif"):
-                        fig.savefig(savefig, dpi=300, bbox_inches='tight', transparent=False)
-                    else:
-                        fig.savefig(savefig+".png",dpi=300,bbox_inches="tight", transparent=False)
-                if show == True:
-                    fig.show()
-                plt.close(fig)
+                    plot.export(savefig)
+                if show_plot:
+                    plt.show()
         elif freqs == False and epochs == True:
             logger.info('Overplotting by epochs coming soon!')
         elif freqs == True and epochs == True:
