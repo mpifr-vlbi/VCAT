@@ -1144,14 +1144,15 @@ class ImageData(object):
             "font_size_axis_tick": 6,
             "rcparams": {}
         }
-
+        
         params = {**defaults, **kwargs}
         plot=FitsImage(self, **params)
+        
         if savefig!="":
             plot.export(savefig)
         if show:
             plt.show()
-
+        
         return plot
 
     def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,

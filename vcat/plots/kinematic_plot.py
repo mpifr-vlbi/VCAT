@@ -582,11 +582,13 @@ class KinematicPlot(object):
 
         self.ax.plot([x_min, x_max], [y(x_min), y(x_max)], color, label=label)
 
-    def plot_coreshift_fit(self, fit_result):
+    def plot_coreshift_fit(self, fit_result, plot_fit_label=False):
 
         # read out fit_results
         k_r = fit_result["k_r"]
+        k_r_err = fit_result["k_r_err"]
         r0 = fit_result["r0"]
+        r0_err = fit_result["r0_err"]
         ref_freq = fit_result["ref_freq"]
         freqs = fit_result["freqs"]
         coreshifts = fit_result["coreshifts"]
@@ -600,7 +602,10 @@ class KinematicPlot(object):
         plt.errorbar(freqs, coreshifts, yerr=coreshift_err, fmt=".", linetype=None, label='Data', color='red')
         nu_fine = np.linspace(min(freqs), max(freqs), 100)
         delta_r_fitted = delta_r(nu_fine, k_r, r0, ref_freq)
-        plt.plot(nu_fine, delta_r_fitted, label='Fitted Curve', color='blue')
+        if plot_fit_label == True:
+            plt.plot(nu_fine, delta_r_fitted, label=f'Fitted Curve: k_r={k_r:.2f} +/- {k_r_err:.2f}', color='blue')
+        else:
+            plt.plot(nu_fine, delta_r_fitted, label='Fitted Curve', color='blue')
         plt.xlabel('Frequency [GHz]')
         plt.ylabel(f'Distance to {"{:.1f}".format(ref_freq)}GHz core [$\mu$as]')
         plt.legend()

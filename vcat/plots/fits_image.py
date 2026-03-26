@@ -162,6 +162,7 @@ class FitsImage(object):
         lin_pol=self.clean_image.lin_pol
         self.lin_pol=self.clean_image.lin_pol
         self.evpa_width=evpa_width
+        self.contour_width=contour_width
         # set default evpa_len if not given
         if evpa_len==-1:
             npix=len(X)
@@ -242,7 +243,7 @@ class FitsImage(object):
             else:
                 self.fig = fig
             self.ax = ax
-
+        
         #set background color
         self.ax.set_facecolor(self.background_color)
 
@@ -548,6 +549,9 @@ class FitsImage(object):
             self.ax.set_ylabel('Relative DEC. [' + unit + ']',fontsize=font_size_axis_title)
 
         #self.fig.tight_layout()
+
+    def overplot(self,image_data,**kwargs):
+        return FitsImage(image_data,fig=self.fig,ax=self.ax,**kwargs)
 
 
     def plotColormap(self,
