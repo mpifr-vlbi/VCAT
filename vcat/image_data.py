@@ -282,10 +282,14 @@ class ImageData(object):
         if self.degpp > 0.01:
             self.unit = 'deg'
             self.scale = 1.
-        elif self.degpp > 6.94e-6:
+        elif self.degpp > 6.94e-6: # 25 mas
             self.unit = 'arcmin'
             self.scale = 60.
-        elif self.degpp > 1.157e-7:
+        # elif self.degpp > 1.157e-7:
+        # I don't know where this default value comes from (threshold at around 0.4 mas for pixel size),
+        # but I (FMP) used some S-band data with 0.5 mas pixel size and they were displayed
+        # in arcseconds which was not appropriate imo. I set the new limit now to 1 mas pixel size.
+        elif self.degpp > 2.776e-7: # 1 mas
             self.scale = 60. * 60.
             self.unit = 'arcsec'
         else:
@@ -1301,7 +1305,7 @@ class ImageData(object):
 
 
         else:
-            warning.warn("Please use valid align method ('cross_correlation','brightest').")
+            warnings.warn("Please use valid align method ('cross_correlation','brightest').")
 
         #shift shifted image
         return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
