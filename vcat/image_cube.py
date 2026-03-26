@@ -579,9 +579,12 @@ class ImageCube(object):
             "contour_cmap": None,
             "contour_alpha": 1,
             "contour_width": 0.5,
+            "contour_factor": 2,
             "im_color": '',
             "do_colorbar": False,
             "plot_ridgeline": False,
+            "plot_info": False,  # choose whether to plot basic info on top of image
+            "info_color": "black",
             "ridgeline_color": "red",
             "plot_counter_ridgeline": False,
             "counter_ridgeline_color": "red",
@@ -590,6 +593,7 @@ class ImageCube(object):
             "line_width" : 2,
             "plot_polar": False,
             "plot_beam": True,
+            "beam_center": False,
             "beam_color": "grey",
             "plot_model": False,
             "component_color": "black",
@@ -2405,8 +2409,8 @@ class ImageCube(object):
 
         return fits
 
-    def movie(self,plot_mode="stokes_i",freq="",noise="max",n_frames=500,interval=50,
-              start_mjd="",end_mjd="",dpi=300,fps=20,save="",plot_components=False,fill_components=False,
+    def movie(self,plot_mode="stokes_i",freq="",noise="max",duration=25,fps=20,
+              start_mjd="",end_mjd="",dpi=300,save="",plot_components=False,fill_components=False,
               ref_image="", plot_timeline=True, component_cmap="hot_r",title="",**kwargs):
         """
         Function to create movies from image cube
@@ -2415,8 +2419,8 @@ class ImageCube(object):
             plot_mode (str): Choose plot mode ('stokes_i','lin_pol','frac_pol')
             freq (float or list[float]): Choose frequencies in GHz to create movie
             noise (str): Choose which common noise level to use ('min' or 'max')
-            n_frames (int): Number of frames
-            interval (float): Interval in milliseconds between frames
+            duration (float): Movie duration in seconds
+            fps (float): Frames per second to use
             start_mjd (float): Start MJD of the movie
             end_mjd (float): End MJD of the movie
             dpi (int): Choose resolution in dpi
@@ -2453,6 +2457,9 @@ class ImageCube(object):
                 save=[save]
         elif not isinstance(save, list):
             raise Exception("Please enter valid 'save' value.")
+
+        n_frames=fps*duration
+        interval=1000/fps
 
 
         for index,f in enumerate(freq):
@@ -2724,3 +2731,14 @@ class ImageCube(object):
             raise Exception("Please select valid mode ('individual','freq','epoch','all'")
 
         return kwargs
+
+    def export_component_info(self, filename):
+        dfs=[]
+        for cc in self.comp_collections:
+            dfs.append(cc.get_df())
+
+        df_all=pd.concat(dfs,ignore_index=True)
+
+        df_all.to_csv(filename,index=False)
+
+        return df_all

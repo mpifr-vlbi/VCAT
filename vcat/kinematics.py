@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 from vcat.config import logger, uvw, difmap_path, mfit_err_method, res_lim_method, H0, Om0
 
 class Component():
-    def __init__(self, x, y, maj, min, pos, flux, date, mjd, year, delta_x_est=0, delta_y_est=0,
+    def __init__(self, x=0, y=0, maj=1, min=1, pos=0, flux=1, date="1900-01-01", mjd=0, year=0, delta_x_est=0, delta_y_est=0,
                  component_number=-1, is_core=False, redshift=0, scale=60 * 60 * 10 ** 3,freq=15e9,noise=0,
                  beam_maj=0, beam_min=0, beam_pa=0, lin_pol=0, evpa=0, lin_pol_err=0, evpa_err=0,
                  snr=1, gain_err=0.05, error_method=mfit_err_method,res_lim_method=res_lim_method):
@@ -113,6 +113,9 @@ class Component():
 
         # determine errors
         # logger.info("Will use '" + error_method + "' method for determining component errors.")
+        if self.noise==0 and error_method!="flat":
+            logger.warning(f"Trying to calculate SNR based errors using '{error_method}', but component noise is 0! Switching to 'flat'")
+            error_method="flat"
         self.get_errors(method=error_method,gain_err=self.gain_err)
         self.delta_x_est_err = self.x_err #TODO check this!
         self.delta_y_est_err = self.y_err #TODO check this!
@@ -366,6 +369,8 @@ class ComponentCollection():
         self.snrs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.lin_pols_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
         self.evpas_err = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.res_lim_majs = np.empty((self.n_epochs,self.n_freqs),dtype=float)
+        self.res_lim_mins = np.empty((self.n_epochs,self.n_freqs),dtype=float)
 
         for i, year in enumerate(epochs):
             for j, freq in enumerate(freqs):
@@ -404,6 +409,8 @@ class ComponentCollection():
                         self.snrs[i,j]=comp.snr
                         self.lin_pols_err[i,j]=comp.lin_pol_err
                         self.evpas_err[i,j]=comp.evpa_err
+                        self.res_lim_majs[i,j]=comp.res_lim_maj
+                        self.res_lim_mins[i,j]=comp.res_lim_min
 
         try:
             self.id=np.unique(self.ids.flatten())[0]
@@ -934,3 +941,36 @@ class ComponentCollection():
                          scale=self.components[:,freq_ind].flatten()[0].scale,freq=self.freqs_distinct[freq_ind],noise=0,
                          beam_maj=self.components[:,freq_ind].flatten()[0].beam_maj, beam_min=self.components[:,freq_ind].flatten()[0].beam_min,
                          beam_pa=self.components[:,freq_ind].flatten()[0].beam_pa)
+
+    def get_df(self):
+        #create component DataFrame
+        df = pd.DataFrame({
+            "Component ID": self.ids.flatten(),
+            "Year": self.year.flatten(),
+            "MJD": self.mjds.flatten(),
+            "X Position [deg]": self.xs.flatten(),
+            "X Position Error [deg]": self.x_errs.flatten(),
+            "Y Position [deg]": self.ys.flatten(),
+            "Y Position Error [deg]": self.y_errs.flatten(),
+            "Distance from Core [mas]": self.dist.flatten(),
+            "Distance from Core Error [mas]": self.dist_err.flatten(),
+            "Major Axis [deg]": self.majs.flatten(),
+            "Major Axis Error [deg]": self.majs_err.flatten(),
+            "Minor Axis [deg]": self.mins.flatten(),
+            "Minor Axis Error [deg]": self.mins_err.flatten(),
+            "Position Angle [°]": self.posas.flatten(),
+            "Flux Density [Jy]": self.fluxs.flatten(),
+            "Flux Density Error [Jy]": self.fluxs_err.flatten(),
+            "Linear Polarization [Jy]": self.lin_pols.flatten(),
+            "Linear Polarization Error [Jy]": self.lin_pols_err.flatten(),
+            "EVPA [deg]": self.evpas.flatten(),
+            "EVPA Error [deg]": self.evpas_err.flatten(),
+            "Tb [K]": self.tbs.flatten(),
+            "Tb Error [K]": self.tbs_err.flatten(),
+            "S/N": self.snrs.flatten(),
+            "Resolved?": self.resolved.flatten(),
+            "Res Lim Maj [deg]": self.res_lim_majs.flatten(),
+            "Res Lim Min [deg]": self.res_lim_mins.flatten()
+        })
+
+        return df

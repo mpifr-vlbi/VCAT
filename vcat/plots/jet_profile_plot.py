@@ -116,7 +116,7 @@ class JetProfilePlot(object):
         elif fitfunc == 'brokenPowerlaw':
             if fit_r0:
                 function = broken_powerlaw_withr0(beta,x,s=s)
-                text = '{}\n$W_\\mathrm{{0}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{u}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{d}}={:.2f}\\pm{:.2f}$\n$z_\\mathrm{{B}} = {:.1f}\\pm {:.1f}$ mas \n r0={:2.f}\\pm{:.2f}$mas\n'.format(
+                text = '{}\n$W_\\mathrm{{0}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{u}}={:.2f}\\pm{:.2f}$\n$k_\\mathrm{{d}}={:.2f}\\pm{:.2f}$\n$z_\\mathrm{{B}} = {:.1f}\\pm {:.1f}$ mas \n r0={:.2f}\\pm{:.2f}$mas\n'.format(
                     label, beta[0], betaerr[0], beta[1], betaerr[1], beta[2], betaerr[2], beta[3], betaerr[3], beta[4],
                     betaerr[4])
             else:

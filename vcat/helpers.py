@@ -41,6 +41,7 @@ def get_sigma_levs(image,  # 2d array/list
                    noise_method="Image RMS",
                    noise=0,
                    plot_histogram=False,
+                   base=2
                    ):
 
     if noise_method=="Histogram Fit":
@@ -64,10 +65,10 @@ def get_sigma_levs(image,  # 2d array/list
             # Set contourlevels to mean value + 3 * rms_noise * 2 ** x
             levs1 = mean + np.min(Z1) - 10 ** (-5) + sigma_contour_limit * noise * np.logspace(0, 100, 100,
                                                                                                endpoint=False,
-                                                                                               base=2)
+                                                                                               base=base)
             levs = mean + np.min(Z1) - 10 ** (-5) - sigma_contour_limit * noise * np.logspace(0, 100, 100,
                                                                                               endpoint=False,
-                                                                                              base=2)
+                                                                                              base=base)
             levs = np.flip(levs)
             levs = np.concatenate((levs, levs1))
 
@@ -105,12 +106,12 @@ def get_sigma_levs(image,  # 2d array/list
     elif noise_method=="Image RMS":
         Z1 = image.flatten()
         noise = np.nanstd(Z1)
-        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
+        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=base)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
 
     elif noise_method=="DIFMAP":
-        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
+        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=base)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
     elif not noise_method=="box":
@@ -122,7 +123,7 @@ def get_sigma_levs(image,  # 2d array/list
             logger.warning("Could not do Histogram Fit for noise, will use 'box' method")
         #determine image rms from box at the bottom left corner with size of 1/10th of the image dimension
         noise = 1.8*np.std(image[0:round(len(image)/10),0:round(len(image[0])/10)]) #factor 1.8 from self-cal errors
-        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=2)
+        levs1 = sigma_contour_limit * noise * np.logspace(0, 100, 100, endpoint=False, base=base)
         levs = np.flip(-levs1)
         levs = np.concatenate((levs, levs1))
 
@@ -469,7 +470,7 @@ def write_mod_file(model_df,writepath,freq,scale=60*60*1000,adv=False):
         writepath: Filepath where to write the .mod file
         freq: Frequency of the observation in GHz
         scale: Conversion of the image scale to degrees (default milli-arc-seconds -> 60*60*1000)
-
+        adv: Option to add "v" to the .mod file to make the value fittable in DIFMAP
     Returns:
         Nothing, but writes a .mod file to writepath
     """
@@ -635,7 +636,7 @@ def write_mod_file_from_casa(image_data,channel="i",export="export.mod"):
     """Writes a .mod file from a CASA exported .fits model file.
 
     Args:
-        file_path: Image_data object
+        image_data:
         channel: Choose the Stokes channel to use (options: "i","q","u","v")
         export: File path where to write the .mod file
 
@@ -942,7 +943,7 @@ def get_noise_from_residual_map(residual_fits, center_x, center_y, rms_box=100,m
     return rms
 
 #returns the reduced chi-square of a modelfit
-def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_path):
+def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_path,do_selfcal=False):
     env = os.environ.copy()
 
     # add difmap to PATH
@@ -963,6 +964,8 @@ def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_
     send_difmap_command("obs " + uvf_file)
     send_difmap_command("select i")
     send_difmap_command('uvw '+str(weighting[0])+','+str(weighting[1]))
+    if do_selfcal:
+        send_difmap_command("selfcal")
     send_difmap_command("rmod " + mod_file)
     #send modelfit 0 command to calculate chi-squared
     output=send_difmap_command("modelfit 0")
@@ -972,7 +975,12 @@ def get_model_chi_square_red(uvf_file,mod_file,weighting=uvw,difmap_path=difmap_
         if "Iteration 00" in line:
             chi_sq_red=float(line.split("=")[1].split()[0])
 
-    os.system("rm -rf difmap.log*")
+    try:
+        chi_sq_red
+        os.system("rm -rf difmap.log*")
+    except:
+        raise Exception("Could not determine Chi-Squared! Please check difmap logs.")
+
     return chi_sq_red
 
 def format_scientific(number):

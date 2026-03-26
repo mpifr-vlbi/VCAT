@@ -82,6 +82,7 @@ class FitsImage(object):
                  contour_cmap = None,  # matplotlib colormap string
                  contour_alpha = 1,  # transparency
                  contour_width = 0.5,  # contour linewidth
+                 contour_factor = 2, # factor with which contour levels increase
                  im_color='', # string for matplotlib colormap
                  do_colorbar=False, #choose whether to display colorbar
                  plot_ridgeline=False, #choose whether to display the ridgeline
@@ -91,8 +92,11 @@ class FitsImage(object):
                  plot_line="", #Provide two points for plotting a line
                  line_color="black",
                  line_width=2, #width of the line
+                 plot_info=False, #choose whether to plot basic info on top of image
+                 info_color="black",
                  plot_beam=True, #choose whether to plot beam or not
                  beam_color="grey", #choose beam color for plot
+                 beam_center=False, #option to set custom beam center in image coordinates [x,y]
                  plot_model=False, #choose whether to plot modelfit components
                  component_color="black", # choose component color for Gauss component
                  plot_comp_ids=False, #plot component ids
@@ -144,6 +148,7 @@ class FitsImage(object):
         self.plot_mode=plot_mode
         self.name = self.clean_image.name
         self.freq = self.clean_image.freq
+        self.contour_factor=contour_factor
         X = self.clean_image.X
         Y = self.clean_image.Y
         Z = self.clean_image.Z
@@ -256,7 +261,8 @@ class FitsImage(object):
 
         #get sigma levs
         if not isinstance(levs,(list,np.ndarray)) and not isinstance(levs1,(list,np.ndarray)):
-            levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_noise)
+            levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,
+                                         noise=self.clean_image.difmap_noise,base=self.contour_factor)
 
         self.levs=levs
         self.levs1=levs1
@@ -270,7 +276,8 @@ class FitsImage(object):
 
         if np.sum(lin_pol)!=0:
             if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
-                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,noise=self.clean_image.difmap_pol_noise)
+                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,
+                                                           noise=self.clean_image.difmap_pol_noise,base=self.contour_factor)
                 self.levs_linpol = levs_linpol
                 self.levs1_linpol = levs1_linpol
 
@@ -385,16 +392,20 @@ class FitsImage(object):
                             cmap=contour_cmap)
 
         # Set beam ellipse, sourcename and observation date positions
-        size_x = np.absolute(ra_max) + np.absolute(ra_min)
-        size_y = np.absolute(dec_max) + np.absolute(dec_min)
-        if size_x > size_y:
-            ell_x = ra_max - beam_maj
-            ell_y = dec_min + beam_maj
-        else:
-            ell_x = ra_max - beam_maj
-            ell_y = dec_min + beam_maj
-
         if plot_beam:
+
+            if not beam_center:
+                size_x = np.absolute(ra_max) + np.absolute(ra_min)
+                size_y = np.absolute(dec_max) + np.absolute(dec_min)
+                if size_x > size_y:
+                    ell_x = ra_max - beam_maj
+                    ell_y = dec_min + beam_maj
+                else:
+                    ell_x = ra_max - beam_maj
+                    ell_y = dec_min + beam_maj
+            else:
+                ell_x, ell_y = beam_center
+
             # Plot beam
             beam = Ellipse([ell_x, ell_y], beam_maj, beam_min,angle= -beam_pa + 90, fc=beam_color)
             self.ax.add_artist(beam)
@@ -495,6 +506,13 @@ class FitsImage(object):
                     self.components.append([component_plot, component])
             else:
                 logger.warning("No modelfit loaded!")
+
+        if plot_info:
+            text = f"Peak Flux Density: {np.max(self.Z):.2f} Jy/beam"
+            text += f"\nNoise: {self.clean_image.noise * 1e3:.2f} mJy/beam"
+            self.ax.text(0.96, 0.04, text, va="bottom", ha="right", transform=self.ax.transAxes, color=info_color)
+            self.ax.text(0.04, 0.96, f"{self.clean_image.name}", va="top", ha="left", transform=self.ax.transAxes, color=info_color)
+            self.ax.text(0.96, 0.96, f"{self.clean_image.date}", va="top", ha="right", transform=self.ax.transAxes, color=info_color)
 
         if plot_ridgeline:
             #plot ridgeline in image
