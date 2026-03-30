@@ -2646,15 +2646,16 @@ class ImageCube(object):
                                            " frequencies used. Use default of 3 for now instead.")
                             sigma_cont_lim = 3
 
-                        plot.overplot(image,stokes_i_sigma_cut=sigma_cont_lim,contour_color=contour_colors[j],plot_beam=False)
+                        plot.overplot(image,stokes_i_sigma_cut=sigma_cont_lim,contour_color=contour_colors[j],
+                                      plot_beam=False,title=" ")
 
-                        import matplotlib.lines as mlines
-                        legend_line = mlines.Line2D(
-                            [], [], color=contour_colors[j],
-                            linestyle='solid', linewidth=plot.contour_width,
-                            label=f"{freqs_images[j]/1E9:.1f} GHz"
-                            )
-                        legend_lines.append(legend_line)
+                    import matplotlib.lines as mlines
+                    legend_line = mlines.Line2D(
+                        [], [], color=contour_colors[j],
+                        linestyle='solid', linewidth=plot.contour_width,
+                        label=f"{freqs_images[j]/1E9:.1f} GHz"
+                        )
+                    legend_lines.append(legend_line)
 
                 plot.ax.legend(handles=legend_lines, fontsize=8, loc='best')
 
