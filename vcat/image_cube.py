@@ -2525,6 +2525,7 @@ class ImageCube(object):
             linpol_vmax = plot.linpol_vmax
             fracpol_vmax = plot.fracpol_vmax
             stokes_i_vmax = plot.stokes_i_vmax
+            linthresh = plot.linthresh
 
             if start_mjd=="":
                 start_mjd=np.min(self.images_mjd[:,ind].flatten())
@@ -2551,7 +2552,7 @@ class ImageCube(object):
                 year_title=Time(current_mjd,format="mjd").decimalyear
                 plot=ref_image.plot(plot_mode=plot_mode,fig=fig, ax=ax, show=False, title=f"Year: {year_title:.2f}",
                                levs=levs,levs1=levs1,levs_linpol=levs_linpol,levs1_linpol=levs1_linpol,
-                                linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,stokes_i_vmax=stokes_i_vmax,**kwargs)
+                                linpol_vmax=linpol_vmax, fracpol_vmax=fracpol_vmax,stokes_i_vmax=stokes_i_vmax,linthresh=linthresh,**kwargs)
 
                 #plot_components if necessary:
                 if plot_components:
