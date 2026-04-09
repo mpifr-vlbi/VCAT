@@ -112,6 +112,7 @@ class FitsImage(object):
                  stokes_i_vmax="", #input vmax for plot
                  fracpol_vmax="", #input vmax for plot
                  linpol_vmax="", #input vmax for plot
+                 linthresh="", #input linthresh to use for colormap
                  plot_polar=False, #choose to plot image in polar coordinates
                  ###HERE STARTS POLARIZATION INPUT
                  plot_evpa=False, #decide whether to plot EVPA or not
@@ -202,6 +203,7 @@ class FitsImage(object):
         self.stokes_i_vmax=stokes_i_vmax
         self.linpol_vmax=linpol_vmax
         self.fracpol_vmax=fracpol_vmax
+        self.linthresh=linthresh
         self.col=""
         self.lin_pol_sigma_cut=lin_pol_sigma_cut
         self.stokes_i_sigma_cut=stokes_i_sigma_cut
@@ -576,10 +578,12 @@ class FitsImage(object):
                 im_color = cmaps.neon_r
 
             if vmax > 0.4:
+                if self.linthresh=="":
+                    self.linthresh = 0.4
                 self.col = self.ax.imshow(Z,
                                origin='lower',
                                cmap=im_color,
-                               norm=colors.SymLogNorm(linthresh=0.4,
+                               norm=colors.SymLogNorm(linthresh=self.linthresh,
                                                        vmax=vmax, vmin=vmin), extent=extent)
             else:
                 self.col = self.ax.imshow(Z,
@@ -636,19 +640,20 @@ class FitsImage(object):
             if im_color =="":
                 im_color = "cubehelix_r"
 
-            linthresh = 10.0 * self.clean_image.pol_noise
+            if self.linthresh=="":
+                self.linthresh = 10.0 * self.clean_image.pol_noise
             if self.linpol_vmax=="":
-                vmax = np.max([np.max(Z), linthresh])
+                vmax = np.max([np.max(Z), self.linthresh])
                 self.linpol_vmax=vmax
             else:
                 vmax=self.linpol_vmax
 
             vmin = 0
-            if linthresh < 0.5 * np.max([vmax, -vmin]):
+            if self.linthresh < 0.5 * np.max([vmax, -vmin]) or self.linthresh != "":
                 self.col = self.ax.imshow(Z,
                                origin='lower',
                                cmap=im_color,
-                               norm=colors.SymLogNorm(linthresh=linthresh,
+                               norm=colors.SymLogNorm(linthresh=self.linthresh,
                                                        vmax=vmax, vmin=vmin),extent=extent)
             else:
                 self.col = self.ax.imshow(Z,
@@ -744,7 +749,9 @@ class FitsImage(object):
             else:
                 vmax=self.stokes_i_vmax
 
-            self.col = self.ax.imshow(Z, cmap=im_color, norm=colors.SymLogNorm(linthresh=abs(levs1[0]), linscale=0.5, vmin=levs1[0],
+            if self.linthresh=="":
+                self.linthresh=abs(levs1[0])
+            self.col = self.ax.imshow(Z, cmap=im_color, norm=colors.SymLogNorm(linthresh=self.linthresh, linscale=0.5, vmin=levs1[0],
                                                                         vmax=vmax, base=10.), extent=extent,
                                 origin='lower')
 

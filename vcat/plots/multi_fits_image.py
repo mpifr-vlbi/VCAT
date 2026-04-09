@@ -153,6 +153,7 @@ class MultiFitsImage(object):
                     kwargs["stokes_i_vmax"][i,j]=plot.stokes_i_vmax
                     kwargs["linpol_vmax"][i,j]=plot.linpol_vmax
                     kwargs["fracpol_vmax"][i,j]=plot.fracpol_vmax
+                    kwargs["lintresh"][i,j]=plot.linthresh
 
             col=plot.col
             plt.close(plot.fig)
@@ -179,6 +180,7 @@ class MultiFitsImage(object):
                     kwargs["stokes_i_vmax"][i, j] = plot.stokes_i_vmax
                     kwargs["linpol_vmax"][i, j] = plot.linpol_vmax
                     kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
+                    kwargs["lintresh"][i, j] = plot.linthresh
 
                 col.append(plot.col)
                 plt.close(plot.fig)
@@ -206,6 +208,7 @@ class MultiFitsImage(object):
                     kwargs["stokes_i_vmax"][i, j] = plot.stokes_i_vmax
                     kwargs["linpol_vmax"][i, j] = plot.linpol_vmax
                     kwargs["fracpol_vmax"][i, j] = plot.fracpol_vmax
+                    kwargs["lintresh"][i, j] = plot.linthresh
 
                 col.append(plot.col)
                 plt.close(plot.fig)
@@ -268,6 +271,7 @@ class MultiFitsImage(object):
                                         stokes_i_vmax=kwargs["stokes_i_vmax"][image_i,image_j],  # input vmax for plot
                                         fracpol_vmax=kwargs["fracpol_vmax"][image_i,image_j],  # input vmax for plot
                                         linpol_vmax=kwargs["linpol_vmax"][image_i,image_j],  # input vmax for plot
+                                        linthresh=kwargs["linthresh"][image_i,image_j],
                                         plot_evpa=kwargs["plot_evpa"][image_i,image_j],
                                         evpa_width=kwargs["evpa_width"][image_i,image_j],
                                         evpa_len=kwargs["evpa_len"][image_i,image_j],

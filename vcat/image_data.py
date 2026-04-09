@@ -1129,6 +1129,7 @@ class ImageData(object):
             "plot_mask": False,
             "xlim": [],
             "ylim": [],
+            "linthresh": "",
             "plot_evpa": False,
             "evpa_width": 1.5,
             "evpa_len": -1,
