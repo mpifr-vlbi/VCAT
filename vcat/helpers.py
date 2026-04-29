@@ -813,7 +813,7 @@ def total_flux_from_mod(mod_file,squared=False):
     for line in lines:
         if not line.startswith("!"):
             linepart=line.split()
-            flux="".join(filter(str.isdigit,linepart)) # filter in case it contains "v"
+            flux=linepart[0].rstrip("v") # filter in case it contains "v"
             if squared:
                 total_flux+=float(flux)**2
             else:
