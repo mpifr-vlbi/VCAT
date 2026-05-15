@@ -14,7 +14,7 @@ from skimage.registration import phase_cross_correlation
 from scipy.interpolate import RegularGridInterpolator
 import copy
 from sympy import Ellipse, Point, Line
-from astropy.utils.exceptions import ErfaWarning
+from erfa import ErfaWarning
 import numpy as np
 import scipy.ndimage
 from astropy.nddata import Cutout2D
@@ -321,18 +321,23 @@ class ImageData(object):
         self.X = np.linspace(0, hdu_list[0].header["NAXIS1"], hdu_list[0].header["NAXIS1"],
                         endpoint=False)  # NAXIS1: number of pixels at R.A.-axis
         for j in range(len(self.X)):
-            self.X[j] = (self.X[j] - hdu_list[0].header["CRPIX1"]) * hdu_list[0].header[
+            self.X[j] = (self.X[j] - (hdu_list[0].header["CRPIX1"]-1)) * hdu_list[0].header[
                 "CDELT1"] * self.scale  # CRPIX1: reference pixel, CDELT1: deg/pixel
-        self.X[int(hdu_list[0].header["CRPIX1"])] = 0.0
+        self.X[int(hdu_list[0].header["CRPIX1"]-1)] = 0.0
 
         self.Y = np.linspace(0, hdu_list[0].header["NAXIS2"], hdu_list[0].header["NAXIS2"],
                         endpoint=False)  # NAXIS2: number of pixels at Dec.-axis
         for j in range(len(self.Y)):
-            self.Y[j] = (self.Y[j] - hdu_list[0].header["CRPIX2"]) * hdu_list[0].header[
+            self.Y[j] = (self.Y[j] - (hdu_list[0].header["CRPIX2"]-1)) * hdu_list[0].header[
                 "CDELT2"] * self.scale  # CRPIX2: reference pixel, CDELT2: deg/pixel
-        self.Y[int(hdu_list[0].header["CRPIX2"])] = 0.0
+        self.Y[int(hdu_list[0].header["CRPIX2"]-1)] = 0.0
 
-        self.extent = np.max(self.X), np.min(self.X), np.min(self.Y), np.max(self.Y)
+        self.extent = (
+            np.max(self.X)+0.5*hdu_list[0].header["CDELT1"] * self.scale,
+            np.min(self.X)-0.5*hdu_list[0].header["CDELT1"] * self.scale,
+            np.min(self.Y)-0.5*hdu_list[0].header["CDELT2"] * self.scale,
+            np.max(self.Y)+0.5*hdu_list[0].header["CDELT2"] * self.scale
+        )
 
         if not self.no_fits:
             self.image_data = hdu_list[0].data
@@ -1954,7 +1959,7 @@ class ImageData(object):
 
     def center(self,mode="stokes_i",useDIFMAP=True):
         """
-        Function to center the brightest pixel of the image.
+        Function to center the brightest pixel of the image or the core.
 
         Args:
             mode: Choose which map to use ('stokes_i', 'lin_pol','core')
