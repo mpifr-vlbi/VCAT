@@ -607,7 +607,7 @@ class ComponentCollection():
     def get_fluxes(self):
         return [comp.flux for comp in self.components]
 
-    def get_average_component(self,freq="",epochs="",weighted=True,filter_unresolved=True,snr_cut=0):
+    def get_average_component(self,freq="",epochs="",weighted=True,filter_unresolved=True,snr_cut=0,median=False):
 
         data=self.get_model_profile(freq=freq,epochs=epochs,filter_unresolved=filter_unresolved,snr_cut=snr_cut)
 
@@ -622,7 +622,7 @@ class ComponentCollection():
             new_min_err = np.sqrt(1 / np.sum(1 / np.array(data["min_err"]) ** 2))
             new_flux = np.average(data["flux"],weights=1/ np.array(data["flux_err"]) ** 2)
             new_flux_err = np.sqrt(1 / np.sum(1 / np.array(data["flux_err"]) ** 2))
-        else:
+        elif not median:
             new_x = np.average(data["x"])
             new_x_err = np.std(data["x"])
             new_y = np.average(data["y"])
@@ -633,7 +633,17 @@ class ComponentCollection():
             new_min_err = np.std(data["min"])
             new_flux = np.average(data["flux"])
             new_flux_err = np.std(data["flux"])
-
+        else:
+            new_x = np.median(data["x"])
+            new_x_err = np.std(data["x"])
+            new_y = np.median(data["y"])
+            new_y_err = np.std(data["y"])
+            new_maj = np.median(data["maj"])
+            new_maj_err = np.std(data["maj"])
+            new_min = np.median(data["min"])
+            new_min_err = np.std(data["min"])
+            new_flux = np.median(data["flux"])
+            new_flux_err = np.std(data["flux"])
 
 
         new_lin_pol = np.average(data["lin_pol"])
