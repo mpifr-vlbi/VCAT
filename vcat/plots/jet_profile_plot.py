@@ -65,6 +65,8 @@ class JetProfilePlot(object):
 
             secx = ax.secondary_xaxis('top', functions=(mas_to_pc, pc_to_mas))
             secx.set_xlabel(secxax)
+            self.secx=secx
+
 
         if jet=="Twin":
             self.axes[0].invert_xaxis()
@@ -72,6 +74,7 @@ class JetProfilePlot(object):
             if secyax:
                 secy = self.axes[1].secondary_yaxis('right', functions=(mas_to_pc, pc_to_mas))
                 secy.set_ylabel(secyax)
+                self.secy=secy
 
     def plot_profile(self,dist,width,width_err,color,marker,label):
 
