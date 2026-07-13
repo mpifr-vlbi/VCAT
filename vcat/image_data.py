@@ -836,7 +836,7 @@ class ImageData(object):
                 os.system(f"cp {self.stokes_u_path} {outputfile}")
                 logger.info(f"Stokes {polarization} succesfully exported to {outputfile}.")
 
-    def regrid(self,npix="",pixel_size="",useDIFMAP=True,mask_outside=False):
+    def regrid(self,npix="",pixel_size="",useDIFMAP=True,useEHTIM=False,mask_outside=False):
         """
         This method regrids the image in full polarization
 
@@ -887,16 +887,56 @@ class ImageData(object):
         new_mask[new_mask >= 0.5] = True
 
         if self.uvf_file=="" or useDIFMAP==False:
-            # Interpolate values at new grid points
-            new_image_i = interpolator(self.Z)(points).reshape(npix, npix)
 
-            #try polarization
-            try:
-                new_image_q = interpolator(self.stokes_q)(points).reshape(npix, npix)
-                new_image_u = interpolator(self.stokes_u)(points).reshape(npix, npix)
-            except:
-                logger.warning("Unable to regrid polarization, probably no polarization loaded")
+            if useEHTIM==True:
+                try:
+                    import ehtim as eh
+                except ModuleNotFoundError:
+                    logger.warning("Unable to load ehtim for regridding, fall back to default option instead.")
+                    # Interpolate values at new grid points
+                    new_image_i = interpolator(self.Z)(points).reshape(npix, npix)
+                    #try polarization
+                    try:
+                        new_image_q = interpolator(self.stokes_q)(points).reshape(npix, npix)
+                        new_image_u = interpolator(self.stokes_u)(points).reshape(npix, npix)
+                    except:
+                        logger.warning("Unable to regrid polarization, probably no polarization loaded")
+                
+                common_fov = np.deg2rad(npix*pixel_size/self.scale)
+                ppb = PXPERBEAM(self.beam_maj, self.beam_min, self.degpp*self.scale)
 
+                img_i = eh.image.load_fits(self.fits_file, aipscc=True)
+                img_i_regrid = img_i.regrid_image(common_fov, npix, interp='linear')
+                # TODO remove these testing statements
+                # # TESTING #
+                # img_i_regrid.display(show=True, scale='log')
+                # print(common_fov,npix)
+                # input('plot regrid with ehtim')
+                new_image_i = img_i_regrid.imarr(pol='I').copy()*ppb
+                del img_i, img_i_regrid
+                
+                try:
+                    img_q = eh.image.load_fits(self.stokes_q, aipscc=True)
+                    img_q_regrid = img_q.regrid_image(common_fov, npix, interp='linear')
+                    new_image_q = img_q_regrid.imarr(pol='Q').copy()*ppb
+                    del img_q, img_q_regrid
+
+                    img_u = eh.image.load_fits(self.stokes_u, aipscc=True)
+                    img_u_regrid = img_u.regrid_image(common_fov, npix, interp='linear')
+                    new_image_u = img_u_regrid.imarr(pol='U').copy()*ppb
+                    del img_u, img_u_regrid
+                except:
+                    logger.warning("Unable to regrid polarization, probably no polarization loaded")
+                        
+            else:
+                # Interpolate values at new grid points
+                new_image_i = interpolator(self.Z)(points).reshape(npix, npix)
+                #try polarization
+                try:
+                    new_image_q = interpolator(self.stokes_q)(points).reshape(npix, npix)
+                    new_image_u = interpolator(self.stokes_u)(points).reshape(npix, npix)
+                except:
+                    logger.warning("Unable to regrid polarization, probably no polarization loaded")
 
             # write outputs to the fits files
             if self.only_stokes_i:
@@ -1074,26 +1114,34 @@ class ImageData(object):
 
         if not self.model_inp:
             new_model_fits = ""
+        
+        final_im_data = ImageData(fits_file=new_stokes_i_fits,
+                                  uvf_file=self.uvf_file,
+                                  stokes_q=new_stokes_q_fits,
+                                  stokes_u=new_stokes_u_fits,
+                                  mask=new_mask,
+                                  ridgeline=self.ridgeline,
+                                  redshift=self.redshift,
+                                  counter_ridgeline=self.counter_ridgeline,
+                                  noise_method=self.noise_method,
+                                  model_save_dir=self.model_save_dir,
+                                  model=new_model_fits,
+                                  correct_rician_bias=self.correct_rician_bias,
+                                  comp_ids=self.get_model_info()[0],
+                                  core_comp_id=self.get_model_info()[1],
+                                  difmap_path=self.difmap_path,
+                                  fit_comp_polarization=self.fit_comp_pol,
+                                  fit_comp_pol_errors=self.fit_comp_pol_errors,
+                                  uvw=self.uvw,
+                                  uvtaper=self.uvtaper)
 
-        return ImageData(fits_file=new_stokes_i_fits,
-                         uvf_file=self.uvf_file,
-                         stokes_q=new_stokes_q_fits,
-                         stokes_u=new_stokes_u_fits,
-                         mask=new_mask,
-                         ridgeline=self.ridgeline,
-                         redshift=self.redshift,
-                         counter_ridgeline=self.counter_ridgeline,
-                         noise_method=self.noise_method,
-                         model_save_dir=self.model_save_dir,
-                         model=new_model_fits,
-                         correct_rician_bias=self.correct_rician_bias,
-                         comp_ids=self.get_model_info()[0],
-                         core_comp_id=self.get_model_info()[1],
-                         difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors,
-                         uvw=self.uvw,
-                         uvtaper=self.uvtaper)
+        if useEHTIM == True:
+            # determine new noise based on old and new pixel per beam values
+            ppb = PXPERBEAM(self.beam_maj, self.beam_min, self.degpp*self.scale)
+            new_ppb = PXPERBEAM(self.beam_maj, self.beam_min, final_im_data.degpp*final_im_data.scale)
+            final_im_data.noise = self.noise/ppb*new_ppb
+
+        return final_im_data
 
     def plot(self,show=True,savefig="",**kwargs):
         defaults = {
@@ -1156,7 +1204,7 @@ class ImageData(object):
         return plot
 
     def align(self,image_data2,masked_shift=True,method="cross_correlation",beam_arg="common", auto_regrid=False,
-              useDIFMAP=True,comp_ids="",weight_by_comp_err=True):
+              useDIFMAP=True,useEHTIM=False,comp_ids="",weight_by_comp_err=True,adjust_uvrange=False,mask_noise=False):
         """
         This function aligns the image to a reference image (image_data2).
 
@@ -1172,6 +1220,7 @@ class ImageData(object):
         Returns:
             image (ImageData): aligned imaged (possibly also regridded and restored if auto_regrid=True).
         """
+
         if self==image_data2:
             return self
 
@@ -1183,26 +1232,30 @@ class ImageData(object):
                 #determin common image parameters
                 pixel_size=np.min([self.degpp*self.scale,image_data2.degpp*image_data2.scale])
                 #TODO: change this to maximum FoV? (to make sure no information is lost in any map)
-                # aligning this also with the edit by FMP in image_cube.py regrid function
                 min_fov=np.min([self.degpp*len(self.X)*self.scale,image_data2.degpp*len(image_data2.X)*self.scale])
                 npix=int(min_fov/pixel_size)
+                logger.info(f"Choosing pixel size of {pixel_size:.5f} " + self.unit + f" and FoV of {min_fov:.3f} " + self.unit)
 
                 #get common beam
                 common_beam=get_common_beam([self.beam_maj,image_data2.beam_maj],
                                             [self.beam_min,image_data2.beam_min],
                                             [self.beam_pa,image_data2.beam_pa],arg=beam_arg)
 
+                #get common uv range
+                if adjust_uvrange == True:
+                    common_uvrange = get_common_uvrange([self, image_data2], useDIFMAP=useDIFMAP)
+                else:
+                    common_uvrange = [0,0]
+
                 #regrid images
                 image_self = self.copy()
                 # convolve with common beam
-                image_self = image_self.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
-                image_self = image_self.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
+                image_self = image_self.regrid(npix, pixel_size, useDIFMAP=useDIFMAP, useEHTIM=useEHTIM)
+                image_self = image_self.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP, useEHTIM=useEHTIM, uvrange=common_uvrange)
 
                 # same for image 2
-                image_data2 = image_data2.regrid(npix, pixel_size, useDIFMAP=useDIFMAP)
-                image_data2 = image_data2.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP)
-
-
+                image_data2 = image_data2.regrid(npix, pixel_size, useDIFMAP=useDIFMAP, useEHTIM=useEHTIM)
+                image_data2 = image_data2.restore(common_beam[0], common_beam[1], common_beam[2], useDIFMAP=useDIFMAP, useEHTIM=useEHTIM, uvrange=common_uvrange)
 
             else:
                 if not (method=="modelcomp" or method=="model_comp" or method=="model"):
@@ -1214,13 +1267,23 @@ class ImageData(object):
             image_self=self.copy()
 
         if method=="cross_correlation" or method=="crosscorrelation":
+            # TODO remove these testing statements
+            # Save images for testing
+            # if useEHTIM:
+            #     np.save("image1_VCAT_ehtim.npy", image_self.Z)
+            #     np.save("image2_VCAT_ehtim.npy", image_data2.Z)
+            # else:
+            #     np.save("image1_VCAT_difmap.npy", image_self.Z)
+            #     np.save("image2_VCAT_difmap.npy", image_data2.Z)
             if (np.all(image_data2.mask==False) and np.all(image_self.mask==False)) or masked_shift==False:
-
                 shift,error,diffphase = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
             else:
                 # contrary to the skikit-image documentation, only the shift is returned for masked cross-correlation
                 shift = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
+                # this seems to have changed in recent versions, however, so include this failsafe
+                if type(shift) != list and type(shift) != np.ndarray:
+                    shift,error,diffphase = phase_cross_correlation(image_data2.Z,image_self.Z,upsample_factor=100,reference_mask=image_data2.mask,moving_mask=image_self.mask)
                 logger.info('will apply shift (x,y): [{} : {}] {}'.format(-shift[1]*image_self.scale*image_self.degpp, shift[0]*image_self.scale*image_self.degpp,self.unit))
 
         elif method=="brightest":
@@ -1313,9 +1376,9 @@ class ImageData(object):
             warnings.warn("Please use valid align method ('cross_correlation','brightest').")
 
         #shift shifted image
-        return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP)
+        return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM)
 
-    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",useDIFMAP=True,mask_outside=False):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",useDIFMAP=True,useEHTIM=False,mask_outside=False,uvrange=[0,0]):
         """
         This allows you to restore the ImageData object with a custom beam either with DIFMAP or just the image itself
 
@@ -1339,13 +1402,9 @@ class ImageData(object):
         if posa==-1:
             posa=self.beam_pa
 
-
         #TODO basic sanity check if uvf file is present and if polarization is there
         if self.uvf_file=="" or useDIFMAP==False:
-            #this means there is no valid .uvf file or we don't want to use DIFMAP
-
-            logger.warning("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
-
+            
             # shift in degree
             shift_x_deg = shift_x / self.scale
             shift_y_deg = shift_y / self.scale
@@ -1354,54 +1413,182 @@ class ImageData(object):
             shift_x = -int(shift_x / self.scale / self.degpp)
             shift_y = int(shift_y / self.scale / self.degpp)
 
-            #shift the image mask
-            input_ = np.fft.fft2(self.mask)  # before it was np.fft.fftn(img)
-            offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
-            imgalign = np.fft.ifft2(offset_image)  # again before ifftn
-            new_mask = np.real(imgalign) > 0.5
+            if useEHTIM==True:
+                try:
+                    import ehtim as eh
+                except ModuleNotFoundError:
+                    #this means there is no valid .uvf file or we don't want to use DIFMAP
+                    logger.warning("Unable to load ehtim for restoring, fall back to default option instead.")
 
-            # shift image directly
-            input_ = np.fft.fft2(self.Z)  # before it was np.fft.fftn(img)
-            offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
-            imgalign = np.fft.ifft2(offset_image)  # again before ifftn
-            new_image_i = imgalign.real
-            if not (bmaj == -1 and bmin == -1 and posa == -1):
-                #convert to jansky per pixel
-                new_image_i = JyPerBeam2Jy(new_image_i,self.beam_maj,self.beam_min,self.degpp*self.scale)
-                new_image_i = convolve_with_elliptical_gaussian(new_image_i, bmaj / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))),
-                                                             bmin / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))), posa)
-                #convert to jansky per (new) beam
-                new_image_i = Jy2JyPerBeam(new_image_i,bmaj,bmin,self.degpp*self.scale)
-            # try polarization
-            try:
-                input_ = np.fft.fft2(self.stokes_q)  # before it was np.fft.fftn(img)
+                    #shift the image mask
+                    input_ = np.fft.fft2(self.mask)  # before it was np.fft.fftn(img)
+                    offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                    imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                    new_mask = np.real(imgalign) > 0.5
+
+                    # shift image directly
+                    input_ = np.fft.fft2(self.Z)  # before it was np.fft.fftn(img)
+                    offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                    imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                    new_image_i = imgalign.real
+                    if not (bmaj == -1 and bmin == -1 and posa == -1):
+                        #convert to jansky per pixel
+                        new_image_i = JyPerBeam2Jy(new_image_i,self.beam_maj,self.beam_min,self.degpp*self.scale)
+                        new_image_i = convolve_with_elliptical_gaussian(new_image_i, bmaj / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                    bmin / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))), posa)
+                        #convert to jansky per (new) beam
+                        new_image_i = Jy2JyPerBeam(new_image_i,bmaj,bmin,self.degpp*self.scale)
+                    # try polarization
+                    try:
+                        input_ = np.fft.fft2(self.stokes_q)  # before it was np.fft.fftn(img)
+                        offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                        imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                        new_image_q = imgalign.real
+                        if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                            new_image_q = JyPerBeam2Jy(new_image_q, self.beam_maj, self.beam_min, self.degpp * self.scale)
+                            new_image_q = convolve_with_elliptical_gaussian(new_image_q,
+                                                                            bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                            bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
+                            # convert to jansky per (new) beam
+                            new_image_q = Jy2JyPerBeam(new_image_q, bmaj, bmin, self.degpp * self.scale)
+
+                        input_ = np.fft.fft2(self.stokes_u)  # before it was np.fft.fftn(img)
+                        offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                        imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                        new_image_u = imgalign.real
+                        if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                            new_image_u = JyPerBeam2Jy(new_image_u, self.beam_maj, self.beam_min, self.degpp * self.scale)
+                            new_image_u= convolve_with_elliptical_gaussian(new_image_u,bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                            bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
+                            # convert to jansky per (new) beam
+                            new_image_u = Jy2JyPerBeam(new_image_u, bmaj, bmin, self.degpp * self.scale)
+
+                    except:
+                        new_image_q = ""
+                        new_image_u = ""
+                        new_stokes_u_fits = ""
+                        new_stokes_q_fits = ""
+                
+                #shift the image mask
+                input_ = np.fft.fft2(self.mask)  # before it was np.fft.fftn(img)
                 offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
                 imgalign = np.fft.ifft2(offset_image)  # again before ifftn
-                new_image_q = imgalign.real
-                if not (bmaj==-1 and bmin ==-1 and posa==-1):
-                    new_image_q = JyPerBeam2Jy(new_image_q, self.beam_maj, self.beam_min, self.degpp * self.scale)
-                    new_image_q = convolve_with_elliptical_gaussian(new_image_q,
-                                                                    bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
-                                                                    bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
-                    # convert to jansky per (new) beam
-                    new_image_q = Jy2JyPerBeam(new_image_q, bmaj, bmin, self.degpp * self.scale)
+                new_mask = np.real(imgalign) > 0.5
 
-                input_ = np.fft.fft2(self.stokes_u)  # before it was np.fft.fftn(img)
+                #shift the image using ehtim
+                if not (bmaj == -1 and bmin == -1 and posa == -1):
+                    ppb = PXPERBEAM(self.beam_maj, self.beam_min, self.degpp*self.scale)
+                    new_ppb = PXPERBEAM(bmaj, bmin, self.degpp*self.scale)
+                else:
+                    ppb = 1
+                    new_ppb = ppb
+                
+                beam_rad = [
+                    np.deg2rad(bmaj/self.scale),
+                    np.deg2rad(bmin/self.scale),
+                    np.deg2rad(posa),
+                ]
+                
+                img_i = eh.image.load_fits(self.fits_file, aipscc=True)
+                # TODO remove these testing statements
+                # TESTING #
+                # img_i.display(show=True, scale='log')
+                # input('testing restore when loading fits image with ehtim')
+                img_i_shift = img_i.shift([shift_y, shift_x])    # note that
+                    # in contrast to documentation, the shifts have to be given
+                    # in y (Dec) first and then in x (RA)
+                if not (bmaj == -1 and bmin == -1 and posa == -1):
+                    img_i_shift_blur = img_i_shift.blur_gauss(beam_rad, frac=1)
+                else:
+                    img_i_shift_blur = img_i_shift.copy()
+                # TODO remove these testing statements
+                # img_i_shift_blur.display(show=True, scale='log')
+                # input('testing restore when loading fits image with ehtim')
+                new_image_i = np.flipud(img_i_shift_blur.imarr(pol='I').copy())*new_ppb
+                del img_i, img_i_shift, img_i_shift_blur
+
+                try:
+                    img_q = eh.image.load_fits(self.stokes_q, aipscc=True)
+                    img_q_shift = img_q.shift([shift_y, shift_x])    # note that
+                        # in contrast to documentation, the shifts have to be given
+                        # in y (Dec) first and then in x (RA)
+                    if not (bmaj == -1 and bmin == -1 and posa == -1):
+                        img_q_shift_blur = img_q_shift.blur_gauss(beam_rad, frac=1)
+                    else:
+                        img_q_shift_blur = img_q_shift.copy()
+                    new_image_q = np.flipud(img_q_shift_blur.imarr(pol='Q').copy())*new_ppb
+                    del img_q, img_q_shift, img_q_shift_blur
+
+                    img_u = eh.image.load_fits(self.stokes_u, aipscc=True)
+                    img_u_shift = img_u.shift([shift_y, shift_x])    # note that
+                        # in contrast to documentation, the shifts have to be given
+                        # in y (Dec) first and then in x (RA)
+                    if not (bmaj == -1 and bmin == -1 and posa == -1):
+                        img_u_shift_blur = img_u_shift.blur_gauss(beam_rad, frac=1)
+                    else:
+                        img_u_shift_blur = img_u_shift.copy()
+                    new_image_u = np.flipud(img_u_shift_blur.imarr(pol='U').copy())*new_ppb
+                    del img_u, img_u_shift, img_u_shift_blur
+
+                except:
+                    new_image_q = ""
+                    new_image_u = ""
+                    new_stokes_u_fits = ""
+                    new_stokes_q_fits = ""
+            
+            else:
+                #this means there is no valid .uvf file or we don't want to use DIFMAP
+
+                logger.warning("No .uvf file attached or useDIFMAP=False selected, will do simple shift of image only")
+
+                #shift the image mask
+                input_ = np.fft.fft2(self.mask)  # before it was np.fft.fftn(img)
                 offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
                 imgalign = np.fft.ifft2(offset_image)  # again before ifftn
-                new_image_u = imgalign.real
-                if not (bmaj==-1 and bmin ==-1 and posa==-1):
-                    new_image_u = JyPerBeam2Jy(new_image_u, self.beam_maj, self.beam_min, self.degpp * self.scale)
-                    new_image_u= convolve_with_elliptical_gaussian(new_image_u,bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
-                                                                    bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
-                    # convert to jansky per (new) beam
-                    new_image_u = Jy2JyPerBeam(new_image_u, bmaj, bmin, self.degpp * self.scale)
+                new_mask = np.real(imgalign) > 0.5
 
-            except:
-                new_image_q = ""
-                new_image_u = ""
-                new_stokes_u_fits = ""
-                new_stokes_q_fits = ""
+                # shift image directly
+                input_ = np.fft.fft2(self.Z)  # before it was np.fft.fftn(img)
+                offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                new_image_i = imgalign.real
+                if not (bmaj == -1 and bmin == -1 and posa == -1):
+                    #convert to jansky per pixel
+                    new_image_i = JyPerBeam2Jy(new_image_i,self.beam_maj,self.beam_min,self.degpp*self.scale)
+                    new_image_i = convolve_with_elliptical_gaussian(new_image_i, bmaj / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                bmin / self.scale / self.degpp/(2*np.sqrt(2*np.log(2))), posa)
+                    #convert to jansky per (new) beam
+                    new_image_i = Jy2JyPerBeam(new_image_i,bmaj,bmin,self.degpp*self.scale)
+                # try polarization
+                try:
+                    input_ = np.fft.fft2(self.stokes_q)  # before it was np.fft.fftn(img)
+                    offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                    imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                    new_image_q = imgalign.real
+                    if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                        new_image_q = JyPerBeam2Jy(new_image_q, self.beam_maj, self.beam_min, self.degpp * self.scale)
+                        new_image_q = convolve_with_elliptical_gaussian(new_image_q,
+                                                                        bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                        bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
+                        # convert to jansky per (new) beam
+                        new_image_q = Jy2JyPerBeam(new_image_q, bmaj, bmin, self.degpp * self.scale)
+
+                    input_ = np.fft.fft2(self.stokes_u)  # before it was np.fft.fftn(img)
+                    offset_image = fourier_shift(input_, shift=[shift_y, shift_x])
+                    imgalign = np.fft.ifft2(offset_image)  # again before ifftn
+                    new_image_u = imgalign.real
+                    if not (bmaj==-1 and bmin ==-1 and posa==-1):
+                        new_image_u = JyPerBeam2Jy(new_image_u, self.beam_maj, self.beam_min, self.degpp * self.scale)
+                        new_image_u= convolve_with_elliptical_gaussian(new_image_u,bmaj/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),
+                                                                        bmin/self.scale/self.degpp/(2*np.sqrt(2*np.log(2))),posa)
+                        # convert to jansky per (new) beam
+                        new_image_u = Jy2JyPerBeam(new_image_u, bmaj, bmin, self.degpp * self.scale)
+
+                except:
+                    new_image_q = ""
+                    new_image_u = ""
+                    new_stokes_u_fits = ""
+                    new_stokes_q_fits = ""
 
             #write outputs to the fitsfiles
             if self.only_stokes_i:
@@ -1540,7 +1727,7 @@ class ImageData(object):
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                    uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
+                    uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
             new_stokes_i_fits+=".fits"
 
@@ -1554,7 +1741,7 @@ class ImageData(object):
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
                         n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                         mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
-                        weighting=self.uvw,uvtaper=self.uvtaper)
+                        weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
                     new_model_fits+=".fits"
                 else:
@@ -1573,7 +1760,7 @@ class ImageData(object):
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
+                               uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
                 new_stokes_q_fits+=".fits"
 
@@ -1582,7 +1769,7 @@ class ImageData(object):
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
                     n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
                     mod_files=[self.stokes_u_mod_file],clean_mod_files=[self.stokes_i_mod_file],
-                               uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
+                               uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
                 new_stokes_u_fits+=".fits"
 
@@ -1594,28 +1781,34 @@ class ImageData(object):
 
         if not self.model_inp:
             new_model_fits = ""
+        
+        final_im_data = ImageData(fits_file=new_stokes_i_fits,
+                                  uvf_file=new_uvf_file,
+                                  stokes_q=new_stokes_q_fits,
+                                  stokes_u=new_stokes_u_fits,
+                                  mask=new_mask,
+                                  ridgeline=self.ridgeline,
+                                  redshift=self.redshift,
+                                  counter_ridgeline=self.counter_ridgeline,
+                                  noise_method=self.noise_method,
+                                  model_save_dir=self.model_save_dir,
+                                  model=new_model_fits,
+                                  correct_rician_bias=self.correct_rician_bias,
+                                  comp_ids=self.get_model_info()[0],
+                                  core_comp_id=self.get_model_info()[1],
+                                  difmap_path=self.difmap_path,
+                                  fit_comp_polarization=self.fit_comp_pol,
+                                  fit_comp_pol_errors=self.fit_comp_pol_errors,
+                                  uvw=self.uvw,
+                                  uvtaper=self.uvtaper)
+        
+        # need to recalculate noise if ehtim was used
+        if useEHTIM == True:
+            final_im_data.noise = self.noise/ppb*new_ppb
 
-        return ImageData(fits_file=new_stokes_i_fits,
-                         uvf_file=new_uvf_file,
-                         stokes_q=new_stokes_q_fits,
-                         stokes_u=new_stokes_u_fits,
-                         mask=new_mask,
-                         ridgeline=self.ridgeline,
-                         redshift=self.redshift,
-                         counter_ridgeline=self.counter_ridgeline,
-                         noise_method=self.noise_method,
-                         model_save_dir=self.model_save_dir,
-                         model=new_model_fits,
-                         correct_rician_bias=self.correct_rician_bias,
-                         comp_ids=self.get_model_info()[0],
-                         core_comp_id=self.get_model_info()[1],
-                         difmap_path=self.difmap_path,
-                         fit_comp_polarization=self.fit_comp_pol,
-                         fit_comp_pol_errors=self.fit_comp_pol_errors,
-                         uvw=self.uvw,
-                         uvtaper=self.uvtaper)
+        return final_im_data
 
-    def shift(self,shift_x,shift_y,useDIFMAP=True):
+    def shift(self,shift_x,shift_y,useDIFMAP=True,useEHTIM=False):
         """
         Function to shift the image in RA and Dec.
 
@@ -1631,7 +1824,7 @@ class ImageData(object):
         """
         try:
             #We can just call the restore() function without doing the restore steps
-            return self.restore(-1,-1,-1,shift_x,shift_y,useDIFMAP=useDIFMAP)
+            return self.restore(-1,-1,-1,shift_x,shift_y,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM)
         except:
             raise Exception("No shift possible, something went wrong!")
 
@@ -2277,6 +2470,44 @@ class ImageData(object):
             for i, comp in enumerate(self.components):
                 core=self.components[core_ind]
                 self.components[i].set_distance_to_core(core.x, core.y,core.x_err,core.y_err)
+    
+    def get_uvrange(self, useDIFMAP=True):
+        
+        if useDIFMAP == True:
+            env = os.environ.copy()
+
+            # add difmap to PATH
+            if difmap_path != None and not difmap_path in os.environ['PATH']:
+                env['PATH'] = env['PATH'] + ':{0}'.format(difmap_path)
+
+            # remove potential difmap boot files (we don't need them)
+            env["DIFMAP_LOGIN"] = ""
+            # Initialize difmap call
+            child = pexpect.spawn('difmap', encoding='utf-8', echo=False, env=env)
+            child.expect_exact("0>",None, 2)
+
+            def send_difmap_command(command,prompt="0>"):
+                child.sendline(command)
+                child.expect_exact(prompt, None, 2)
+                logger.debug(command)
+                logger.debug("DIFMAP Output: %s", child.before)
+
+            send_difmap_command("obs " + self.uvf_file)
+            send_difmap_command("select i")
+            send_difmap_command("print(vis_stats(uvrad))")
+            try:
+                uvrange = list(map(float, child.before.split()[-2:]))
+            except ValueError:
+                logger.warning('Could not determine uv range in dataset with difmap.')
+                uvrange = [0, 0]
+
+        else:
+            logger.warning("Cannot determine uv range in dataset without difmap yet.")
+            uvrange = [0, 0]
+        
+        os.system("rm -rf difmap.log*")
+
+        return uvrange
 
     def get_component(self,id):
         """

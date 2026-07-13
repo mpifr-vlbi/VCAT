@@ -117,7 +117,7 @@ def get_sigma_levs(image,  # 2d array/list
     elif not noise_method=="box":
         raise Exception("Please define valid noise method ('Histogram Fit', 'box', 'DIFMAP', 'Image RMS')")
 
-    #If someting went wrong with the Histogram Fit, we will  use the box method per default
+    #If someting went wrong with the Histogram Fit, we will use the box method per default
     if noise_method=="box" or (noise_method=="Histogram Fit" and levs1[0]<=0):
         if (noise_method=="Histogram Fit" and levs1[0]<=0):
             logger.warning("Could not do Histogram Fit for noise, will use 'box' method")
@@ -1067,6 +1067,27 @@ def getMinVolEllipse(P=None, tolerance=0.1):
 
         return (center, radii, rotation)
 
+def get_common_uvrange(images, useDIFMAP=True):
+    '''
+    Args:
+        images: image_data objects
+    Returns:
+        common_uvrange: List with maximum lowest and minimum largest uv distance covered in all datasets
+    '''
+    
+    uv_ranges = []
+    for image in images:
+        uv_range = image.get_uvrange(useDIFMAP=useDIFMAP)
+        uv_ranges.append(uv_range)
+
+    arr = np.array(uv_ranges)
+    max_uvrange0 = arr[:, 0].max()
+    min_uvrange1 = arr[:, 1].min()
+    common_uvrange = [max_uvrange0, min_uvrange1]
+    logger.info(f'Adjusting uv range for datasets to be between {max_uvrange0} and {min_uvrange1} Mlambda')
+    
+    return common_uvrange
+
 def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_beams=False):
     '''Derive the beam to be used for the maps to be aligned.
 
@@ -1171,9 +1192,9 @@ def get_common_beam(majs,mins,posas,arg='common',ppe=100,tolerance=0.0001,plot_b
     else:
         raise Exception("Please use a valid arg value ('common', 'max', 'median', 'mean', 'circ')")
 
-
     common_beam=[_maj,_min,_pos]
-    logger.info("{} beam calculated: {}".format(arg,common_beam))
+    common_beam_print = [float(x) for x in common_beam]
+    logger.info("{} beam calculated: {}".format(arg,common_beam_print))
     return common_beam
 
 def elliptical_gaussian_kernel(size_x, size_y, sigma_x, sigma_y, theta):
