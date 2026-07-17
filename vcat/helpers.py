@@ -771,6 +771,7 @@ def get_date(filename):
         # Plot date
         time = hdu_list[0].header["DATE-OBS"]
         time = time.split("T")[0]
+        time = time.split("(")[0] #handles some files from RFC catalogue
         time = time.split("/")
         if len(time) == 1:
             date = time[0]
