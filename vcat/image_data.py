@@ -257,7 +257,10 @@ class ImageData(object):
             self.name = hdu_list[0].header["OBJECT"]
         except:
             self.name = "Source"
-        self.date = get_date(fits_file)
+        try:
+            self.date = get_date(fits_file)
+        except:
+            self.date = "3000-01-01"
         try:
             self.ra=float(hdu_list[0].header["OBSRA"])
         except:
