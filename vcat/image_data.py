@@ -253,8 +253,19 @@ class ImageData(object):
         self.stokes_q=stokes_q
 
         # Set name
-        self.name = hdu_list[0].header["OBJECT"]
+        try:
+            self.name = hdu_list[0].header["OBJECT"]
+        except:
+            self.name = "Source"
         self.date = get_date(fits_file)
+        try:
+            self.ra=float(hdu_list[0].header["OBSRA"])
+        except:
+            self.ra = 0.00
+        try:
+            self.dec=float(hdu_list[0].header["OBSDEC"])
+        except:
+            self.dec = 0.00
         self.mjd = Time(self.date).mjd
         self.year = Time(self.date).decimalyear
         try:
