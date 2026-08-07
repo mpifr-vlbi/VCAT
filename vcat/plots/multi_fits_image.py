@@ -54,6 +54,7 @@ class MultiFitsImage(object):
         super().__init__()
 
         self.image_cube=image_cube
+
         if not swap_axis:
             self.nrows, self.ncols = self.image_cube.shape
         else:
@@ -238,6 +239,7 @@ class MultiFitsImage(object):
                     self.plots[i,j]=FitsImage(image_data=self.image_cube.images[image_i,image_j],
                                         stokes_i_sigma_cut=kwargs["stokes_i_sigma_cut"][image_i,image_j],
                                         plot_mode=kwargs["plot_mode"][image_i,image_j],
+                                        beam_center=kwargs["beam_center"][image_i,image_j],
                                         im_colormap=kwargs["im_colormap"][image_i,image_j],
                                         contour=kwargs["contour"][image_i,image_j],
                                         contour_color=kwargs["contour_color"][image_i,image_j],
@@ -301,6 +303,8 @@ class MultiFitsImage(object):
                 shared_colorbar_label="Linear Polarization Fraction"
             elif kwargs["plot_mode"][0, 0] == "spix":
                 shared_colorbar_label="Spectral Index"
+            elif kwargs["plot_mode"][0, 0] == "spix_err":
+                shared_colorbar_label="Spectral Index Error"
             elif kwargs["plot_mode"][0, 0] == "rm":
                 shared_colorbar_label="Rotation Measure [rad/m^2]"
             elif kwargs["plot_mode"][0, 0] == "residual":

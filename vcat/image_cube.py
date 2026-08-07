@@ -17,8 +17,15 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 from astropy.cosmology import FlatLambdaCDM
 from vcat.image_data import ImageData
-from vcat.helpers import (get_common_beam, sort_fits_by_date_and_frequency,
-                          sort_uvf_by_date_and_frequency, closest_index, func_turn,plot_pixel_fit,fit_width, coreshift_fit)
+from vcat.helpers import (
+    get_common_beam,
+    get_common_uvrange,
+    sort_fits_by_date_and_frequency,
+    sort_uvf_by_date_and_frequency,
+    closest_index,
+    func_turn,plot_pixel_fit,fit_width,
+    coreshift_fit
+)
 from vcat.plots.evolution_plot import EvolutionPlot
 from vcat.plots.multi_fits_image import MultiFitsImage
 from vcat.plots.kinematic_plot import KinematicPlot
@@ -393,8 +400,8 @@ class ImageCube(object):
         else:
             raise Exception("Please specify valid mode ('all','freq','epoch')")
 
-    def restore(self,bmaj=-1,bmin=-1,posa=-1,arg="common",mode="all", useDIFMAP=True,
-                shift_x=0,shift_y=0,ppe=100,tolerance=0.0001,plot_beams=False):
+    def restore(self,bmaj=-1,bmin=-1,posa=-1,arg="common",mode="all",useDIFMAP=True,
+                useEHTIM=False,shift_x=0,shift_y=0,ppe=100,tolerance=0.0001,plot_beams=False,adjust_uvrange=False):
         """
         This function allows to restore the ImageCube with a custom beam
 
@@ -434,11 +441,16 @@ class ImageCube(object):
         logger.info("Restoring images")
 
         if mode=="all":
+            #get common uv range
+            if adjust_uvrange == True:
+                common_uvrange = get_common_uvrange(self.images.flatten(), useDIFMAP=useDIFMAP)
+            else:
+                common_uvrange = [0,0]
             for ind, image in enumerate(tqdm(self.images.flatten(),desc="Processing")):
                 if isinstance(image, ImageData):
                     npix=len(image.X)*2
                     pixel_size=image.degpp*image.scale
-                    new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,pixel_size=pixel_size,useDIFMAP=useDIFMAP)
+                    new_image=image.restore(beams[0],beams[1],beams[2],shift_x=shift_x,shift_y=shift_y,npix=npix,pixel_size=pixel_size,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange)
                     images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
@@ -447,12 +459,17 @@ class ImageCube(object):
                 shift_y_i = shift_y[i] if isinstance(shift_y,list) else shift_y
 
                 image_select=self.images[:,i].flatten()
+                #get common uv range
+                if adjust_uvrange == True:
+                    common_uvrange = get_common_uvrange(image_select, useDIFMAP=useDIFMAP)
+                else:
+                    common_uvrange = [0,0]
                 for ind2,image in enumerate(tqdm(image_select,desc="Processing")):
                     if isinstance(image, ImageData):
                         npix = len(image.X) * 2
                         pixel_size = image.degpp * image.scale
                         images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
-                                            pixel_size=pixel_size,useDIFMAP=useDIFMAP))
+                                            pixel_size=pixel_size,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange))
         elif mode=="epoch":
             for i in tqdm(range(len(self.dates)),desc="Processing"):
                 # check if parameters were input per frequency or for all frequencies
@@ -460,12 +477,17 @@ class ImageCube(object):
                 shift_y_i = shift_y[i] if isinstance(shift_y, list) else shift_y
 
                 image_select=self.images[i,:].flatten()
+                #get common uv range
+                if adjust_uvrange == True:
+                    common_uvrange = get_common_uvrange(image_select, useDIFMAP=useDIFMAP)
+                else:
+                    common_uvrange = [0,0]
                 for ind2, image in enumerate(image_select):
                     if isinstance(image, ImageData):
                         npix = len(image.X) * 2
                         pixel_size = image.degpp * image.scale
                         images.append(image.restore(beams[i][0],beams[i][1],beams[i][2],shift_x=shift_x_i,shift_y=shift_y_i,npix=npix,
-                                            pixel_size=pixel_size,useDIFMAP=useDIFMAP))
+                                            pixel_size=pixel_size,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange))
         else:
             raise Exception("Please specify a restore shift mode ('all', 'freq', 'epoch')")
 
@@ -646,19 +668,21 @@ class ImageCube(object):
 
         return plot
 
-    def regrid(self,npix="", pixel_size="",mode="all",useDIFMAP=True,mask_outside=False):
+    def regrid(self,npix="", pixel_size="",mode="all",useDIFMAP=True,useEHTIM=False,mask_outside=False):
         # initialize empty array
         images = []
         
         logger.info("Regridding images")
         
         if npix == "" or pixel_size == "":
+            #TODO: change this to maximum FoV? (to make sure no information is lost in any map)
             # logger.info("Determining smallest pixel size and largest FoV from images for regridding")
             logger.info("Automatically determining minimum pixel size and smallest FoV from images")
             FoVs = []
             npixs = []
             pixel_sizes = []
             for ind, image in enumerate(tqdm(self.images.flatten(),desc="Processing")):
+                unit_print = image.unit
                 npix = len(image.X)
                 npixs.append(npix)
                 pixel_size = image.degpp*image.scale
@@ -672,19 +696,19 @@ class ImageCube(object):
             
             # determine next-largest n_pix that is a power of 2
             npixs_ok = [2**x for x in range(14)]    # maximum 16k pixels
-            diff = 1E6
             for i, npix in enumerate(npixs_ok):
-                if npix > npix_choose:
+                if npix >= npix_choose:
                     npix_choose = npix
                     break
             FoV_choose = npix_choose*pixel_size_choose
             npix = npix_choose
             pixel_size = pixel_size_choose
-        
+            logger.info(f"Choosing pixel size of {pixel_size:.5f} {unit_print} and FoV of {FoV_choose:.3f} {unit_print}")
+
         if mode=="all":
             for image in tqdm(self.images.flatten(),desc="Processing"):
                 if isinstance(image, ImageData):
-                    new_image=image.regrid(npix=npix,pixel_size=pixel_size,useDIFMAP=useDIFMAP,mask_outside=mask_outside)
+                    new_image=image.regrid(npix=npix,pixel_size=pixel_size,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,mask_outside=mask_outside)
                     images.append(new_image)
         elif mode=="freq":
             for i in range(len(self.freqs)):
@@ -695,7 +719,7 @@ class ImageCube(object):
                 image_select = self.images[:, i]
                 for image in tqdm(image_select,desc="Processing"):
                     if isinstance(image, ImageData):
-                        images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i,useDIFMAP=useDIFMAP, mask_outside=mask_outside))
+                        images.append(image.regrid(npix=npix_i,pixel_size=pixel_size_i,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,mask_outside=mask_outside))
         elif mode=="epoch":
             for i in tqdm(range(len(self.dates)),desc="Processing"):
                 # check if parameters were input per frequency or for all frequencies
@@ -705,7 +729,7 @@ class ImageCube(object):
                 image_select = self.images[i, :]
                 for image in image_select:
                     if isinstance(image, ImageData):
-                        images.append(image.regrid(npix=npix_i, pixel_size=pixel_size_i, useDIFMAP=useDIFMAP, mask_outside=mask_outside))
+                        images.append(image.regrid(npix=npix_i,pixel_size=pixel_size_i,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,mask_outside=mask_outside))
         else:
             raise Exception("Please specify valid regrid mode ('all', 'epoch', 'freq')!")
 
@@ -754,7 +778,8 @@ class ImageCube(object):
                          new_import=False)
 
     def align(self,mode="all",beam_maj=-1,beam_min=-1,beam_posa=-1,npix="",pixel_size="",
-              ref_freq="",ref_epoch="",beam_arg="common",masked_shift=True,method="cross_correlation",useDIFMAP=True,ref_image="",ppe=100, tolerance=0.0001,remove_components=[]):
+              ref_freq="",ref_epoch="",beam_arg="common",masked_shift=True,method="cross_correlation",
+              useDIFMAP=True,useEHTIM=False,ref_image="",ppe=100, tolerance=0.0001,remove_components=[],adjust_uvrange=False):
 
         # get beam(s)
         if beam_maj == -1 and beam_min == -1 and beam_posa == -1:
@@ -771,6 +796,13 @@ class ImageCube(object):
         images_new=[]
         if mode=="all":
             images=self.images.flatten()
+
+            #get common uv range
+            if adjust_uvrange == True:
+                common_uvrange = get_common_uvrange(images, useDIFMAP=useDIFMAP)
+            else:
+                common_uvrange = [0,0]
+
             if ref_image=="":
                 if npix=="" or pixel_size=="":
                     #find largest FOV to use for regridding
@@ -792,9 +824,9 @@ class ImageCube(object):
                 beams=[ref_image.beam_maj,ref_image.beam_min,ref_image.beam_posa]
 
             #regrid images
-            im_cube=self.regrid(npix,pixel_size,mode=mode,useDIFMAP=useDIFMAP)
+            im_cube=self.regrid(npix,pixel_size,mode=mode,useDIFMAP=useDIFMAP,seEHTIM=useEHTIM)
             #restore images
-            im_cube=im_cube.restore(beams[0],beams[1],beams[2],mode=mode,useDIFMAP=useDIFMAP)
+            im_cube=im_cube.restore(beams[0],beams[1],beams[2],mode=mode,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange)
 
             images=im_cube.images.flatten()
 
@@ -808,11 +840,17 @@ class ImageCube(object):
                 ref_image=images[0]
             # align images
             for image in images:
-                images_new.append(image.align(ref_image,masked_shift=masked_shift,method=method,useDIFMAP=useDIFMAP))
+                images_new.append(image.align(ref_image,masked_shift=masked_shift,method=method,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange))
 
         elif mode=="freq":
             for i in range(len(self.freqs)):
                 images=self.images[:,i].flatten()
+
+                #get common uv range
+                if adjust_uvrange == True:
+                    common_uvrange = get_common_uvrange(images, useDIFMAP=useDIFMAP)
+                else:
+                    common_uvrange = [0,0]
 
                 ref_image_i = ref_image[i] if isinstance(ref_image,list) else ref_image
                 npix_i = npix[i] if isinstance(npix,list) else npix
@@ -841,9 +879,9 @@ class ImageCube(object):
 
                 #regrid images
                 im_cube=ImageCube(images)
-                im_cube=im_cube.regrid(npix_i,pixel_size_i,mode="all",useDIFMAP=useDIFMAP)
+                im_cube=im_cube.regrid(npix_i,pixel_size_i,mode="all",useDIFMAP=useDIFMAP,useEHTIM=useEHTIM)
                 #restore images
-                im_cube=im_cube.restore(beam_i[0],beam_i[1],beam_i[2],mode="all",useDIFMAP=useDIFMAP)
+                im_cube=im_cube.restore(beam_i[0],beam_i[1],beam_i[2],mode="all",useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange)
 
                 images=im_cube.images.flatten()
                 #choose reference_image (this is pretty random)
@@ -855,11 +893,17 @@ class ImageCube(object):
                         ref_image_i=images[j]
                 #align images
                 for image in images:
-                    images_new.append(image.align(ref_image_i,masked_shift=True,method=method,useDIFMAP=useDIFMAP))
+                    images_new.append(image.align(ref_image_i,masked_shift=True,method=method,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange))
 
         elif mode=="epoch":
             for i in range(len(self.dates)):
                 images = self.images[i, :].flatten()
+
+                #get common uv range
+                if adjust_uvrange == True:
+                    common_uvrange = get_common_uvrange(images, useDIFMAP=useDIFMAP)
+                else:
+                    common_uvrange = [0,0]
 
                 ref_image_i = ref_image[i] if isinstance(ref_image, list) else ref_image
                 npix_i = npix[i] if isinstance(npix, list) else npix
@@ -890,7 +934,7 @@ class ImageCube(object):
                 im_cube = ImageCube(images)
                 im_cube = im_cube.regrid(npix_i, pixel_size_i, mode="all", useDIFMAP=useDIFMAP)
                 # restore images
-                im_cube = im_cube.restore(beam_i[0], beam_i[1], beam_i[2], mode="all", useDIFMAP=useDIFMAP)
+                im_cube = im_cube.restore(beam_i[0], beam_i[1], beam_i[2], mode="all", useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange)
                 images = im_cube.images.flatten()
 
                 # choose reference_image (this is pretty random)
@@ -902,7 +946,7 @@ class ImageCube(object):
                         ref_image_i = images[j]
                 # align images
                 for image in images:
-                    images_new.append(image.align(ref_image_i, masked_shift=True, method=method, useDIFMAP=useDIFMAP))
+                    images_new.append(image.align(ref_image_i, masked_shift=True,method=method,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM,uvrange=common_uvrange))
         else:
             raise Exception("Please use a valid align mode ('all', 'epoch', 'freq').")
 
@@ -1069,16 +1113,25 @@ class ImageCube(object):
             spix1=image1.Z*(image1.Z>image1.noise*sigma_lim)*(image2.Z>image2.noise*sigma_lim)
             spix2=image2.Z*(image2.Z>image2.noise*sigma_lim)*(image1.Z>image1.noise*sigma_lim)
 
-            spix1[spix1==0] = image1.noise*sigma_lim
-            spix2[spix2==0] = image2.noise*sigma_lim
+            # spix1[spix1==0] = image1.noise*sigma_lim
+            # spix2[spix2==0] = image2.noise*sigma_lim
+            spix1[spix1==0] = np.nan
+            spix2[spix2==0] = np.nan
 
             a = np.log10(spix2/spix1)/np.log10(freq2/freq1)
 
             logger.info('Spectral index max(alpha)={} - min(alpha)={}\nCutoff {}<alpha<{}'.format(ma.amax(a),ma.amin(a),spix_vmin,spix_vmax))
 
-            a[a<spix_vmin]=spix_vmin
-            a[a>spix_vmax]=spix_vmax
-            a[spix2==image2.noise*sigma_lim] = spix_vmin
+            # previously, this was set so that spectral index information
+            # outside of the region of interest was put as the limit. Better to
+            # set it to NaN so that we accurately reflect distrust in information
+            # outside of the set boundaries
+            # a[a<spix_vmin]=spix_vmin
+            # a[a>spix_vmax]=spix_vmax
+            # a[spix2==image2.noise*sigma_lim] = spix_vmin
+            a[a<spix_vmin]=np.nan
+            a[a>spix_vmax]=np.nan
+            a[spix2==image2.noise*sigma_lim] = np.nan
 
             # TODO maybe it makes sense to introduce a new SpixData Class here? The current solution is a bit hacky, but it works
             if ref_image=="":
@@ -1090,6 +1143,338 @@ class ImageCube(object):
             image_copy.spix_vmax=spix_vmax
             if plot:
                 image_copy.plot(plot_mode="spix",im_colormap=True,do_colorbar=True)
+
+            spec_ind_maps.append(image_copy)
+
+        return ImageCube(image_data_list=spec_ind_maps,date_tolerance=self.date_tolerance,freq_tolerance=self.freq_tolerance,
+                         new_import=False)
+
+    def get_spectral_index_err_map(self, freq1, freq2,ref_image="",epoch="",
+                                   spix_vmin=0,spix_vmax=5,sigma_lim=3,plot=False,
+                                   calc_sys_err='',shift=None, output=None,
+                                   beam_frac_err=1/3, memmap=True, gain_err=0.1,
+                                   n_mc=100, plot_diag=False):
+        #TODO implement fitting spix across more than two frequencies
+
+        #TODO basic check if images are aligned and same pixels if not, align automatically
+
+        logger.info('Computing spectral index error map')
+        if isinstance(epoch, list):
+            epochs=epoch
+        elif epoch=="":
+            epochs=self.dates
+        else:
+            epochs=[epoch]
+
+        spec_ind_maps=[]
+        for epoch in epochs:
+            i=closest_index(self.mjds,Time(epoch).mjd)
+            images=self.images[i,:].flatten()
+
+            #find images to use
+            image1=images[closest_index(self.freqs,freq1*1e9)]
+            image2=images[closest_index(self.freqs,freq2*1e9)]
+
+            ix = len(image1.X) // 2
+            iy = len(image1.Y) // 2
+
+            #filter according to sigma cut
+            spix1=image1.Z*(image1.Z>image1.noise*sigma_lim)*(image2.Z>image2.noise*sigma_lim)
+            spix2=image2.Z*(image2.Z>image2.noise*sigma_lim)*(image1.Z>image1.noise*sigma_lim)
+
+            # spix1[spix1==0] = image1.noise*sigma_lim
+            # spix2[spix2==0] = image2.noise*sigma_lim
+            spix1[spix1==0] = np.nan
+            spix2[spix2==0] = np.nan
+            
+            I_err1 = gain_err*spix1 + image1.noise    # according to Kim & Trippe 2014
+            # I_err1 = np.sqrt((gain_err*spix1)**2 + noise1**2)    # leads to quite
+                # small errors.
+            I_err2 = gain_err*spix2 + image2.noise    # according to Kim & Trippe 2014
+            # I_err2 = np.sqrt((gain_err*spix2)**2 + noise2**2)    # leads to quite
+                # small errors.
+            
+            a_err_stat = 1/np.log10(freq2/freq1)*np.sqrt((I_err2/spix2)**2\
+                         + (I_err1/spix1)**2)    # according to Kim & Trippe 2014
+            
+            if calc_sys_err == '':
+                a_err_sys = 0
+            else:
+                if shift is not None:                    
+                    sample_size = n_mc
+
+                    if calc_sys_err == 'beam':
+                        logger.info('Compute systematic spix error due to image alignment based on beam size.')
+                        
+                        # should be unecessary but just in case compute mean beam again (crudely)
+                        _maj = max([image1.beam_maj, image2.beam_maj])
+                        _min = max([image1.beam_min, image2.beam_min])
+                        _pos = np.mean([image1.beam_pa, image2.beam_pa])*np.pi/180
+
+                        x_beam_proj = (np.cos(_pos)**2/_min**2
+                                    + np.sin(_pos)**2/_maj**2)**(-0.5)
+                        y_beam_proj = (np.sin(_pos)**2/_min**2
+                                    + np.cos(_pos)**2/_maj**2)**(-0.5)
+                        
+                        x_beam_proj_px = x_beam_proj/(image1.degpp*image1.scale)
+                        y_beam_proj_px = y_beam_proj/(image1.degpp*image1.scale)
+                        
+                        # Calculate shift uncertainty as fraction of beam size,
+                        # projected in RA and DEC (as in Cho et al. 2024)
+                        sigma_shift_x = x_beam_proj*beam_frac_err
+                        sigma_shift_y = y_beam_proj*beam_frac_err
+                        sigma_shift_x_px = round(x_beam_proj_px*beam_frac_err, 0)
+                        sigma_shift_y_px = round(y_beam_proj_px*beam_frac_err, 0)
+                    
+                    elif calc_sys_err == 'crosscorr':
+                        sigma_shift_x = image1.degpp*image1.scale  # 1 px (good according to Fromm et al. 2013)
+                        sigma_shift_y = image1.degpp*image1.scale
+                    
+
+                    logger.info('Assumed alignment uncertainty as standard deviation (y,x) [px]: {0:.3f}, {1:.3f}'.format(sigma_shift_y_px,sigma_shift_x_px))
+                    
+                    '''
+                    Sample shifts from a 2D-Gaussian with sample size given above.
+                    A sample size of 100 seems to give robust results, while at
+                    at the same time does not use too much memory.
+                    '''
+
+                    test_shifts = np.random.multivariate_normal(
+                        mean=[
+                            round(shift[0]),  # x
+                            round(shift[1])   # y
+                        ],
+                        cov=[
+                            [sigma_shift_x**2, 0],
+                            [0, sigma_shift_y**2]
+                        ],
+                        size=sample_size
+                    )
+                    test_shifts = np.vstack((test_shifts, [0, 0]))
+
+                    test_shifts_x = test_shifts[:,0]
+                    test_shifts_y = test_shifts[:,1]
+
+                    if plot_diag:
+                        
+                        '''
+                        In the following, plot sample shifts in both 2D and as histograms
+                        in RA and Dec for checking.
+                        '''
+                        fig = plt.figure(1, figsize=[16,16])
+                        ax = fig.add_subplot(111)
+
+                        plt.scatter(test_shifts_x, test_shifts_y)
+                        plt.errorbar([round(shift[1])],
+                                    [round(shift[0])],
+                                    xerr=[sigma_shift_x],
+                                    yerr=[sigma_shift_y],
+                                    linewidth=2,
+                                    elinewidth=2,
+                                    color='red',
+                                    ecolor='red')
+                        
+                        plt.xlabel(f'Shift R.A. [{image1.unit}]', fontsize=26)
+                        plt.ylabel(f'Shift DEC. [{image1.unit}]', fontsize=26)
+                        plt.xticks(fontsize=22)
+                        plt.yticks(fontsize=22)
+                        ax.axis('scaled')
+                        
+                        if output is not None:
+                            fig.savefig('shifts_dist_between_{:d}_{:d}_{:s}.png'.\
+                                            format(int(freq1),int(freq2),output),
+                                        dpi=300, bbox_inches="tight")
+                        else:
+                            fig.savefig('shifts_dist_between_{:d}_{:d}.png'.\
+                                            format(int(freq1),int(freq2)),
+                                        dpi=300, bbox_inches="tight")
+                        plt.close(fig)
+                        plt.close('all')
+                        
+                        fig = plt.figure(1, figsize=[16,9])
+                        plt.hist(test_shifts_y, bins=50)
+                        plt.axvline(round(shift[1], 0),
+                                    label='Best shift: {:.1f} {}'.\
+                                        format(round(shift[1], 0),image1.unit))
+                        plt.axvline(round(shift[1], 0) + sigma_shift_y,
+                                    ls='dashed',
+                                    label='Std. dev. of shift: {:.1f} {}'.format(sigma_shift_y, image1.unit))
+                        plt.axvline(round(shift[1], 0) - sigma_shift_y,
+                                    ls='dashed')
+                        
+                        plt.xlabel(f'Shift DEC. [{image1.unit}]', fontsize=26)
+                        plt.ylabel(r'$N$', fontsize=26)
+                        plt.xticks(fontsize=22)
+                        plt.yticks(fontsize=22)
+                        plt.legend(loc='best', fontsize=20)
+
+                        if output is not None:
+                            fig.savefig('shift_y_err_dist_between_{:d}_{:d}_{:s}.png'.\
+                                            format(int(freq1),int(freq2),output),
+                                        dpi=300, bbox_inches="tight")
+                        else:
+                            fig.savefig('shift_y_err_dist_between_{:d}_{:d}.png'.\
+                                            format(int(freq1),int(freq2)),
+                                        dpi=300, bbox_inches="tight")
+                        plt.close(fig)
+                        plt.close('all')
+                        
+                        fig = plt.figure(1, figsize=[16,9])
+                        plt.hist(test_shifts_x, bins=50)
+                        plt.axvline(round(shift[0], 0),
+                                    label='Best shift: {:.1f} {}'.\
+                                        format(round(shift[1], 0),image1.unit))
+                        plt.axvline(round(shift[0], 0) + sigma_shift_x,
+                                    ls='dashed',
+                                    label='Std. dev. of shift: {:.1f} {}'.format(sigma_shift_x,image1.unit))
+                        plt.axvline(round(shift[0], 0) - sigma_shift_x,
+                                    ls='dashed')
+                        
+                        plt.xlabel(f'Shift R.A. [{image1.unit}]',
+                                fontsize=26)
+                        plt.ylabel(r'$N$', fontsize=26)
+                        plt.xticks(fontsize=22)
+                        plt.yticks(fontsize=22)
+                        plt.legend(loc='best', fontsize=20)
+                        
+                        if output is not None:
+                            fig.savefig('shift_x_err_dist_between_{:d}_{:d}_{:s}.png'.\
+                                            format(int(freq1),int(freq2),output),
+                                        dpi=300, bbox_inches="tight")
+                        else:
+                            fig.savefig('shift_x_err_dist_between_{:d}_{:d}.png'.\
+                                            format(int(freq1),int(freq2)),
+                                        dpi=300, bbox_inches="tight")
+                        plt.close(fig)
+                        plt.close('all')
+
+                    '''
+                    Calculate spectral index map for all sample shifts.
+                    '''
+                    try:
+                        os.remove('./tmp/a_test.dat')
+                    except:
+                        pass
+                    if not os.path.exists('./tmp/'):
+                        os.mkdir('./tmp/')
+                    # array can get pretty large, so read and write to disk by default
+                    if memmap:
+                        a_test = np.memmap(
+                            './tmp/a_test.dat',
+                            dtype='float32',
+                            mode='w+',
+                            shape=(len(test_shifts), len(image1.X), len(image1.Y))
+                        )
+                    else:
+                        a_test = np.zeros((len(test_shifts), len(image1.X), len(image1.Y)))
+
+                    for iter, test_shift in enumerate(test_shifts):
+                        image2_copy = image2.copy()
+
+                        # this is the non-working code to apply test shifts
+                        # image2_shift_test = image2_copy.shift(
+                        #     test_shift[0],
+                        #     test_shift[1],
+                        #     useDIFMAP=False
+                        # )
+                        # image2_shift_test_imarr = image2_shift_test.Z
+                        # if iter == range(len(test_shifts))[-1]:
+                            # image2_shift_test = image2_copy
+                        
+                        # TODO: improve this workaround and fix above code
+                        from scipy.ndimage import fourier_shift
+                        def apply_shift(img,shift):
+                            offset_image = fourier_shift(np.fft.fftn(img), shift)
+                            imgalign = np.fft.ifftn(offset_image)
+                            img2 = imgalign.real
+
+                            return img2
+
+                        image2_shift_test_imarr = apply_shift(
+                            image2_copy.Z,
+                            [test_shift[1], test_shift[0]],
+                        )
+                        del image2_copy
+
+                        spix2_test = (image2_shift_test_imarr
+                            *(image2_shift_test_imarr>image2.noise*sigma_lim)
+                            *(image1.Z>image1.noise*sigma_lim)
+                        )
+                        spix2_test[spix2_test == 0] = np.nan
+
+                        a_test[iter] = np.log10(spix2_test/spix1)/np.log10(freq2/freq1)
+                    
+                    '''
+                    Take standard deviation of posterior distribution of spectral
+                    index as systematic error
+                    '''
+                    a_err_sys = np.std(a_test, axis=0)
+
+                    print(np.any(np.isnan(a_err_sys) == True))
+
+                    if plot_diag:
+                        # spectral index arr at central pixel from MC sim.
+                        spix_dist_arr = a_test[0:-1, ix, iy]
+
+                        a = a_test[-1]  # best spix map from best shift
+
+                        fig = plt.figure(1, figsize=[16,9])
+                        plt.hist(spix_dist_arr, bins=50)
+                        plt.axvline(a[ix, iy],
+                                    label='Spectral index at image center: {:.3f}'.\
+                                        format(a[ix, iy]))
+                        plt.axvline(a[ix, iy]
+                                    + a_err_sys[ix, iy], ls='dashed',
+                                    label='Std. dev.: {:.3f}'.format(a_err_sys[ix, iy]))
+                        plt.axvline(a[ix, iy]
+                                    - a_err_sys[ix, iy], ls='dashed')
+                        
+                        plt.xlabel(r'$\alpha$',
+                                fontsize=26)
+                        plt.ylabel(r'$N$', fontsize=26)
+                        plt.xticks(fontsize=22)
+                        plt.yticks(fontsize=22)
+                        plt.legend(loc='best', fontsize=20)
+                        
+                        if output is not None:
+                            fig.savefig('spix_err_dist_between_{:d}_{:d}_{:s}.png'.\
+                                            format(int(freq1),int(freq2),output),
+                                        dpi=300, bbox_inches="tight")
+                        else:
+                            fig.savefig('spix_err_dist_between_{:d}_{:d}.png'.\
+                                            format(int(freq1),int(freq2)),
+                                        dpi=300, bbox_inches="tight")
+                        plt.close(fig)
+                        plt.close('all')
+
+                else:
+                    a_err_sys = 0
+            
+            a_err_sys_clean = np.nan_to_num(a_err_sys, nan=0.0)  # set NaN to 0
+            a_err = np.sqrt(a_err_stat**2 + a_err_sys_clean**2)
+
+            logger.info('Spectral index error max(delta_alpha)={} - min(delta_alpha)={}\nCutoff {}<delta_alpha<{}'.format(np.nanmax(a_err),np.nanmin(a_err),spix_vmin,spix_vmax))
+
+            # previously, this was set so that spectral index information
+            # outside of the region of interest was put as the limit. Better to
+            # set it to NaN so that we accurately reflect distrust in information
+            # outside of the set boundaries
+            # a_err[a_err<spix_vmin]=spix_vmin
+            # a_err[a_err>spix_vmax]=spix_vmax
+            # a_err[spix2==image2.noise*sigma_lim] = spix_vmin
+            a_err[a_err<spix_vmin]=np.nan
+            a_err[a_err>spix_vmax]=np.nan
+            a_err[spix2==image2.noise*sigma_lim] = np.nan
+
+            if ref_image=="":
+                ref_image=image2
+            image_copy=ref_image.copy()
+            image_copy.spix=a_err
+            image_copy.is_spix=True
+            image_copy.spix_vmin=spix_vmin
+            image_copy.spix_vmax=spix_vmax
+            if plot:
+                image_copy.plot(plot_mode="spix_err",im_colormap=True,do_colorbar=True)
 
             spec_ind_maps.append(image_copy)
 
@@ -2669,6 +3054,7 @@ class ImageCube(object):
             logger.info('Overplotting by epochs coming soon!')
         elif freqs == True and epochs == True:
             logger.warning('Overplotting both frequencies and epochs is not supported.')
+        plt.close(fig)
 
     def format_kwargs(self,kwargs,mode):
 
