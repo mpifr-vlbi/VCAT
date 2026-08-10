@@ -238,7 +238,7 @@ class FitsImage(object):
             dec_min, dec_max = ylim
 
         if ax==None and fig==None:
-            self.fig, self.ax = plt.subplots(1, 1,layout="constrained")
+            self.fig, self.ax = plt.subplots(1, 1)
         else:
             if fig==None:
                 self.fig = plt.figure()

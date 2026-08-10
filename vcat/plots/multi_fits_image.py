@@ -60,7 +60,7 @@ class MultiFitsImage(object):
             self.ncols, self.nrows = self.image_cube.shape
         if figsize=="":
             figsize=(3*self.ncols,3*self.nrows)
-        self.fig, self.axes = plt.subplots(self.nrows, self.ncols, figsize=figsize,layout="constrained")
+        self.fig, self.axes = plt.subplots(self.nrows, self.ncols, figsize=figsize)
         self.axes=np.atleast_2d(self.axes)
         # the above line converts self.axes automatically to an array of shape (1,X)
         # if self.axes is effectively one-dimensional, independent of swap_axis. Now include this:
