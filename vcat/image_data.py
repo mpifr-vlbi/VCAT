@@ -379,7 +379,7 @@ class ImageData(object):
                 # use difmap to load the model and create model .fits file and store it as model_file_path
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa,
-                               outname=new_model_fits, n_pixel=len(self.X)*2, pixel_size=self.degpp*self.scale,
+                               outname=new_model_fits, n_pixel=len(self.X)*2, pixel_size=self.degpp*60*60*1e3,
                                mod_files=[model],clean_mod_files=[model], uvf_files=[uvf_file], do_selfcal=True)
 
             else:
@@ -1039,7 +1039,7 @@ class ImageData(object):
             fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                            bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                            channel="i", output_dir=self.model_save_dir + "mod_files_clean", outname=new_stokes_i_fits,
-                           n_pixel=npix, pixel_size=pixel_size,
+                           n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                            mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                            weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1054,7 +1054,7 @@ class ImageData(object):
                                    bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                    channel="i", output_dir=self.model_save_dir + "mod_files_model",
                                    outname=new_model_fits,
-                                   n_pixel=npix, pixel_size=pixel_size,
+                                   n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                                    mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                                    weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1072,7 +1072,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="q", output_dir=self.model_save_dir + "mod_files_q", outname=new_stokes_q_fits,
-                               n_pixel=npix, pixel_size=pixel_size,
+                               n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                                mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                                weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1081,7 +1081,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="u", output_dir=self.model_save_dir + "mod_files_u", outname=new_stokes_u_fits,
-                               n_pixel=npix, pixel_size=pixel_size,
+                               n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                                mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],
                                weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1558,7 +1558,7 @@ class ImageData(object):
             fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
-                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                     mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file],
                     uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1572,7 +1572,7 @@ class ImageData(object):
                     fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                         bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
-                        n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                        n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                         mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                         weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1591,7 +1591,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
-                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                     mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file],
                                uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1600,7 +1600,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
-                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                     mod_files=[self.stokes_u_mod_file],clean_mod_files=[self.stokes_i_mod_file],
                                uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper)
 
