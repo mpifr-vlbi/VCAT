@@ -14,7 +14,7 @@ from skimage.registration import phase_cross_correlation
 from scipy.interpolate import RegularGridInterpolator
 import copy
 from sympy import Ellipse, Point, Line
-from astropy.utils.exceptions import ErfaWarning
+from erfa import ErfaWarning
 import numpy as np
 import scipy.ndimage
 from astropy.nddata import Cutout2D
@@ -253,8 +253,22 @@ class ImageData(object):
         self.stokes_q=stokes_q
 
         # Set name
-        self.name = hdu_list[0].header["OBJECT"]
-        self.date = get_date(fits_file)
+        try:
+            self.name = hdu_list[0].header["OBJECT"]
+        except:
+            self.name = "Source"
+        try:
+            self.date = get_date(fits_file)
+        except:
+            self.date = "3000-01-01"
+        try:
+            self.ra=float(hdu_list[0].header["OBSRA"])
+        except:
+            self.ra = 0.00
+        try:
+            self.dec=float(hdu_list[0].header["OBSDEC"])
+        except:
+            self.dec = 0.00
         self.mjd = Time(self.date).mjd
         self.year = Time(self.date).decimalyear
         try:
@@ -321,18 +335,23 @@ class ImageData(object):
         self.X = np.linspace(0, hdu_list[0].header["NAXIS1"], hdu_list[0].header["NAXIS1"],
                         endpoint=False)  # NAXIS1: number of pixels at R.A.-axis
         for j in range(len(self.X)):
-            self.X[j] = (self.X[j] - hdu_list[0].header["CRPIX1"]) * hdu_list[0].header[
+            self.X[j] = (self.X[j] - (hdu_list[0].header["CRPIX1"]-1)) * hdu_list[0].header[
                 "CDELT1"] * self.scale  # CRPIX1: reference pixel, CDELT1: deg/pixel
-        self.X[int(hdu_list[0].header["CRPIX1"])] = 0.0
+        self.X[int(hdu_list[0].header["CRPIX1"]-1)] = 0.0
 
         self.Y = np.linspace(0, hdu_list[0].header["NAXIS2"], hdu_list[0].header["NAXIS2"],
                         endpoint=False)  # NAXIS2: number of pixels at Dec.-axis
         for j in range(len(self.Y)):
-            self.Y[j] = (self.Y[j] - hdu_list[0].header["CRPIX2"]) * hdu_list[0].header[
+            self.Y[j] = (self.Y[j] - (hdu_list[0].header["CRPIX2"]-1)) * hdu_list[0].header[
                 "CDELT2"] * self.scale  # CRPIX2: reference pixel, CDELT2: deg/pixel
-        self.Y[int(hdu_list[0].header["CRPIX2"])] = 0.0
+        self.Y[int(hdu_list[0].header["CRPIX2"]-1)] = 0.0
 
-        self.extent = np.max(self.X), np.min(self.X), np.min(self.Y), np.max(self.Y)
+        self.extent = (
+            np.max(self.X)+0.5*hdu_list[0].header["CDELT1"] * self.scale,
+            np.min(self.X)-0.5*hdu_list[0].header["CDELT1"] * self.scale,
+            np.min(self.Y)-0.5*hdu_list[0].header["CDELT2"] * self.scale,
+            np.max(self.Y)+0.5*hdu_list[0].header["CDELT2"] * self.scale
+        )
 
         if not self.no_fits:
             self.image_data = hdu_list[0].data
@@ -360,7 +379,7 @@ class ImageData(object):
                 # use difmap to load the model and create model .fits file and store it as model_file_path
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa,
-                               outname=new_model_fits, n_pixel=len(self.X)*2, pixel_size=self.degpp*self.scale,
+                               outname=new_model_fits, n_pixel=len(self.X)*2, pixel_size=self.degpp*60*60*1e3,
                                mod_files=[model],clean_mod_files=[model], uvf_files=[uvf_file], do_selfcal=True)
 
             else:
@@ -1060,7 +1079,7 @@ class ImageData(object):
             fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                            bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                            channel="i", output_dir=self.model_save_dir + "mod_files_clean", outname=new_stokes_i_fits,
-                           n_pixel=npix, pixel_size=pixel_size,
+                           n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                            mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                            weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1075,7 +1094,7 @@ class ImageData(object):
                                    bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                    channel="i", output_dir=self.model_save_dir + "mod_files_model",
                                    outname=new_model_fits,
-                                   n_pixel=npix, pixel_size=pixel_size,
+                                   n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                                    mod_files=[self.model_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                                    weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1093,7 +1112,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="q", output_dir=self.model_save_dir + "mod_files_q", outname=new_stokes_q_fits,
-                               n_pixel=npix, pixel_size=pixel_size,
+                               n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                                mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                                weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1102,7 +1121,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                                bmaj=self.beam_maj, bmin=self.beam_min, posa=self.beam_pa, shift_x=0, shift_y=0,
                                channel="u", output_dir=self.model_save_dir + "mod_files_u", outname=new_stokes_u_fits,
-                               n_pixel=npix, pixel_size=pixel_size,
+                               n_pixel=npix, pixel_size=pixel_size*self.scale/(60*60*1e3),
                                mod_files=[self.stokes_u_mod_file], clean_mod_files=[self.stokes_i_mod_file],uvf_files=[self.uvf_file],
                                weighting=self.uvw,uvtaper=self.uvtaper)
 
@@ -1177,6 +1196,7 @@ class ImageData(object):
             "plot_mask": False,
             "xlim": [],
             "ylim": [],
+            "linthresh": "",
             "plot_evpa": False,
             "evpa_width": 1.5,
             "evpa_len": -1,
@@ -1726,7 +1746,7 @@ class ImageData(object):
             fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="i",output_dir=self.model_save_dir+"mod_files_clean",outname=new_stokes_i_fits,
-                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                     mod_files=[self.stokes_i_mod_file],clean_mod_files=[self.stokes_i_mod_file],
                     uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
@@ -1740,7 +1760,7 @@ class ImageData(object):
                     fold_with_beam([self.fits_file], difmap_path=self.difmap_path,
                         bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x, shift_y=shift_y,
                         channel="i", output_dir=self.model_save_dir + "mod_files_model", outname=new_model_fits,
-                        n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                        n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                         mod_files=[self.model_mod_file], clean_mod_files=[self.stokes_i_mod_file], uvf_files=[self.uvf_file],
                         weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
@@ -1759,7 +1779,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa,shift_x=shift_x,shift_y=shift_y,
                     channel="q",output_dir=self.model_save_dir+"mod_files_q",outname=new_stokes_q_fits,
-                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                     mod_files=[self.stokes_q_mod_file],clean_mod_files=[self.stokes_i_mod_file],
                                uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
@@ -1768,7 +1788,7 @@ class ImageData(object):
                 fold_with_beam([self.fits_file],difmap_path=self.difmap_path,
                     bmaj=bmaj, bmin=bmin, posa=posa, shift_x=shift_x,shift_y=shift_y,
                     channel="u",output_dir=self.model_save_dir+"mod_files_u",outname=new_stokes_u_fits,
-                    n_pixel=len(self.X)*2,pixel_size=self.degpp*self.scale,
+                    n_pixel=len(self.X)*2,pixel_size=self.degpp*60*60*1e3,
                     mod_files=[self.stokes_u_mod_file],clean_mod_files=[self.stokes_i_mod_file],
                                uvf_files=[self.uvf_file],weighting=self.uvw,uvtaper=self.uvtaper,uvrange=uvrange)
 
@@ -2147,7 +2167,7 @@ class ImageData(object):
 
     def center(self,mode="stokes_i",useDIFMAP=True):
         """
-        Function to center the brightest pixel of the image.
+        Function to center the brightest pixel of the image or the core.
 
         Args:
             mode: Choose which map to use ('stokes_i', 'lin_pol','core')

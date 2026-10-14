@@ -771,6 +771,7 @@ def get_date(filename):
         # Plot date
         time = hdu_list[0].header["DATE-OBS"]
         time = time.split("T")[0]
+        time = time.split("(")[0] #handles some files from RFC catalogue
         time = time.split("/")
         if len(time) == 1:
             date = time[0]
@@ -813,10 +814,11 @@ def total_flux_from_mod(mod_file,squared=False):
     for line in lines:
         if not line.startswith("!"):
             linepart=line.split()
+            flux=linepart[0].rstrip("v") # filter in case it contains "v"
             if squared:
-                total_flux+=float(linepart[0])**2
+                total_flux+=float(flux)**2
             else:
-                total_flux+=float(linepart[0])
+                total_flux+=float(flux)
     return total_flux
                 
 def PXPERBEAM(b_maj,b_min,px_inc):
