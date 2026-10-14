@@ -263,8 +263,12 @@ class FitsImage(object):
 
         #get sigma levs
         if not isinstance(levs,(list,np.ndarray)) and not isinstance(levs1,(list,np.ndarray)):
-            levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,
-                                         noise=self.clean_image.difmap_noise,base=self.contour_factor)
+            # levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method=self.noise_method,
+            #                              noise=self.clean_image.difmap_noise,base=self.contour_factor)
+            # turns out that recalculating the image noise here is not great when ehtim was used to regrid and restore images.
+            # instead, use now noise_method="DIFMAP" here, that will just take the existing image noise level
+            levs, levs1 = get_sigma_levs(Z,stokes_i_sigma_cut,noise_method="DIFMAP",
+                                         noise=self.clean_image.noise,base=self.contour_factor)
 
         self.levs=levs
         self.levs1=levs1
@@ -278,8 +282,12 @@ class FitsImage(object):
 
         if np.sum(lin_pol)!=0:
             if not isinstance(levs_linpol,(list,np.ndarray)) and not isinstance(levs1_linpol,(list,np.ndarray)):
-                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,
-                                                           noise=self.clean_image.difmap_pol_noise,base=self.contour_factor)
+                # levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method=self.noise_method,
+                #                                            noise=self.clean_image.difmap_pol_noise,base=self.contour_factor)
+                # turns out that recalculating the image noise here is not great when ehtim was used to regrid and restore images.
+                # instead, use now noise_method="DIFMAP" here, that will just take the existing image noise level
+                levs_linpol, levs1_linpol = get_sigma_levs(lin_pol, lin_pol_sigma_cut,noise_method="DIFMAP",
+                                                           noise=self.clean_image.pol_noise,base=self.contour_factor)
                 self.levs_linpol = levs_linpol
                 self.levs1_linpol = levs1_linpol
 
@@ -306,10 +314,16 @@ class FitsImage(object):
             else:
                 Z=self.clean_image.residual_map
             self.plotColormap(Z,im_color,levs,levs1,extent,label="Residual Flux Density [Jy/beam]", do_colorbar=self.do_colorbar)
+
         if plot_mode=="spix" and np.sum(self.clean_image.spix)!=0:
             self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index", do_colorbar=self.do_colorbar)
         elif plot_mode=="spix":
             logger.warning("Trying to plot spectral index but no spectral index available!")
+
+        if plot_mode=="spix_err" and np.sum(self.clean_image.spix)!=0:
+            self.plotColormap(self.clean_image.spix,im_color,levs,levs1,extent,label="Spectral Index Error", do_colorbar=self.do_colorbar)
+        elif plot_mode=="spix_err":
+            logger.warning("Trying to plot spectral index but no spectral index error available!")
 
         if plot_mode=="rm" and np.sum(self.clean_image.rm)!=0:
             if plot_polar:
@@ -688,7 +702,7 @@ class FitsImage(object):
                     cbar = self.fig.colorbar(self.col, use_gridspec=True, cax=cax)
                 cbar.set_label(label, fontsize=self.ax.xaxis.label.get_size())
 
-        elif label=="Spectral Index":
+        elif label=="Spectral Index" or label=="Spectral Index Error":
             if im_color=="":
                 im_color="hot_r"
 
