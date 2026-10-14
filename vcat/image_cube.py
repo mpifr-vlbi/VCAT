@@ -1201,6 +1201,7 @@ class ImageCube(object):
             else:
                 if shift is not None:                    
                     sample_size = n_mc
+                    shift_px = np.round(np.array(shift)/(image1.degpp*image1.scale),0)
 
                     if calc_sys_err == 'beam':
                         logger.info('Compute systematic spix error due to image alignment based on beam size.')
@@ -1240,8 +1241,8 @@ class ImageCube(object):
 
                     test_shifts = np.random.multivariate_normal(
                         mean=[
-                            round(shift[0]),  # x
-                            round(shift[1])   # y
+                            shift[0],  # if x shift in image units
+                            shift[1]   # if y shift in image units
                         ],
                         cov=[
                             [sigma_shift_x**2, 0],
@@ -1249,7 +1250,10 @@ class ImageCube(object):
                         ],
                         size=sample_size
                     )
-                    test_shifts = np.vstack((test_shifts, [0, 0]))
+                    test_shifts_px = test_shifts/(image1.degpp*image1.scale)
+
+                    test_shifts = np.vstack((test_shifts, [shift[0], shift[1]]))
+                    test_shifts_px = np.vstack((test_shifts_px, [shift_px[0], shift_px[1]]))
 
                     test_shifts_x = test_shifts[:,0]
                     test_shifts_y = test_shifts[:,1]
@@ -1264,14 +1268,14 @@ class ImageCube(object):
                         ax = fig.add_subplot(111)
 
                         plt.scatter(test_shifts_x, test_shifts_y)
-                        plt.errorbar([round(shift[1])],
-                                    [round(shift[0])],
-                                    xerr=[sigma_shift_x],
-                                    yerr=[sigma_shift_y],
-                                    linewidth=2,
-                                    elinewidth=2,
-                                    color='red',
-                                    ecolor='red')
+                        plt.errorbar([shift[0]],
+                                     [shift[1]],
+                                     xerr=[sigma_shift_x],
+                                     yerr=[sigma_shift_y],
+                                     linewidth=2,
+                                     elinewidth=2,
+                                     color='red',
+                                     ecolor='red')
                         
                         plt.xlabel(f'Shift R.A. [{image1.unit}]', fontsize=26)
                         plt.ylabel(f'Shift DEC. [{image1.unit}]', fontsize=26)
@@ -1292,14 +1296,17 @@ class ImageCube(object):
                         
                         fig = plt.figure(1, figsize=[16,9])
                         plt.hist(test_shifts_y, bins=50)
-                        plt.axvline(round(shift[1], 0),
+                        plt.axvline(shift[1],
                                     label='Best shift: {:.1f} {}'.\
-                                        format(round(shift[1], 0),image1.unit))
-                        plt.axvline(round(shift[1], 0) + sigma_shift_y,
+                                        format(shift[1], image1.unit),
+                                    color='red')
+                        plt.axvline(shift[1] + sigma_shift_y,
                                     ls='dashed',
-                                    label='Std. dev. of shift: {:.1f} {}'.format(sigma_shift_y, image1.unit))
-                        plt.axvline(round(shift[1], 0) - sigma_shift_y,
-                                    ls='dashed')
+                                    label='Std. dev. of shift: {:.1f} {}'.\
+                                        format(sigma_shift_y, image1.unit),
+                                    color='red')
+                        plt.axvline(shift[1] - sigma_shift_y,
+                                    ls='dashed', color='red')
                         
                         plt.xlabel(f'Shift DEC. [{image1.unit}]', fontsize=26)
                         plt.ylabel(r'$N$', fontsize=26)
@@ -1320,14 +1327,17 @@ class ImageCube(object):
                         
                         fig = plt.figure(1, figsize=[16,9])
                         plt.hist(test_shifts_x, bins=50)
-                        plt.axvline(round(shift[0], 0),
+                        plt.axvline(shift[0],
                                     label='Best shift: {:.1f} {}'.\
-                                        format(round(shift[1], 0),image1.unit))
-                        plt.axvline(round(shift[0], 0) + sigma_shift_x,
+                                        format(shift[0], image1.unit),
+                                    color='red')
+                        plt.axvline(shift[0] + sigma_shift_x,
                                     ls='dashed',
-                                    label='Std. dev. of shift: {:.1f} {}'.format(sigma_shift_x,image1.unit))
-                        plt.axvline(round(shift[0], 0) - sigma_shift_x,
-                                    ls='dashed')
+                                    label='Std. dev. of shift: {:.1f} {}'.\
+                                        format(sigma_shift_x,image1.unit),
+                                    color='red')
+                        plt.axvline(shift[0] - sigma_shift_x,
+                                    ls='dashed', color='red')
                         
                         plt.xlabel(f'Shift R.A. [{image1.unit}]',
                                 fontsize=26)
@@ -1367,7 +1377,7 @@ class ImageCube(object):
                     else:
                         a_test = np.zeros((len(test_shifts), len(image1.X), len(image1.Y)))
 
-                    for iter, test_shift in enumerate(test_shifts):
+                    for iter, test_shift_px in enumerate(test_shifts_px):
                         image2_copy = image2.copy()
 
                         # this is the non-working code to apply test shifts
@@ -1383,6 +1393,10 @@ class ImageCube(object):
                         # TODO: improve this workaround and fix above code
                         from scipy.ndimage import fourier_shift
                         def apply_shift(img,shift):
+                            # shift in y,x
+                            shift[0] *= -1
+                            # print(shift)
+                            # input(f'using shift {shift} for fourier_shift')
                             offset_image = fourier_shift(np.fft.fftn(img), shift)
                             imgalign = np.fft.ifftn(offset_image)
                             img2 = imgalign.real
@@ -1391,10 +1405,12 @@ class ImageCube(object):
 
                         image2_shift_test_imarr = apply_shift(
                             image2_copy.Z,
-                            [test_shift[1], test_shift[0]],
+                            [test_shift_px[1], test_shift_px[0]],
                         )
                         del image2_copy
 
+                        # spix1 = image1.Z
+                        # spix2_test = image2_shift_test_imarr
                         spix2_test = (image2_shift_test_imarr
                             *(image2_shift_test_imarr>image2.noise*sigma_lim)
                             *(image1.Z>image1.noise*sigma_lim)
@@ -1407,9 +1423,7 @@ class ImageCube(object):
                     Take standard deviation of posterior distribution of spectral
                     index as systematic error
                     '''
-                    a_err_sys = np.std(a_test, axis=0)
-
-                    print(np.any(np.isnan(a_err_sys) == True))
+                    a_err_sys = np.nanstd(a_test, axis=0)
 
                     if plot_diag:
                         # spectral index arr at central pixel from MC sim.
@@ -1421,12 +1435,14 @@ class ImageCube(object):
                         plt.hist(spix_dist_arr, bins=50)
                         plt.axvline(a[ix, iy],
                                     label='Spectral index at image center: {:.3f}'.\
-                                        format(a[ix, iy]))
-                        plt.axvline(a[ix, iy]
-                                    + a_err_sys[ix, iy], ls='dashed',
-                                    label='Std. dev.: {:.3f}'.format(a_err_sys[ix, iy]))
-                        plt.axvline(a[ix, iy]
-                                    - a_err_sys[ix, iy], ls='dashed')
+                                        format(a[ix, iy]),
+                                    color='red')
+                        plt.axvline(a[ix, iy] + a_err_sys[ix, iy], ls='dashed',
+                                    label='Std. dev.: {:.3f}'.\
+                                        format(a_err_sys[ix, iy]),
+                                    color='red')
+                        plt.axvline(a[ix, iy] - a_err_sys[ix, iy],
+                                    ls='dashed', color='red')
                         
                         plt.xlabel(r'$\alpha$',
                                 fontsize=26)
@@ -1445,11 +1461,17 @@ class ImageCube(object):
                                         dpi=300, bbox_inches="tight")
                         plt.close(fig)
                         plt.close('all')
+                    
+                    try:
+                        os.remove('./tmp/a_test.dat')
+                    except:
+                        pass
 
                 else:
                     a_err_sys = 0
             
             a_err_sys_clean = np.nan_to_num(a_err_sys, nan=0.0)  # set NaN to 0
+            # a_err_sys_clean = a_err_sys
             a_err = np.sqrt(a_err_stat**2 + a_err_sys_clean**2)
 
             logger.info('Spectral index error max(delta_alpha)={} - min(delta_alpha)={}\nCutoff {}<delta_alpha<{}'.format(np.nanmax(a_err),np.nanmin(a_err),spix_vmin,spix_vmax))
@@ -3031,7 +3053,7 @@ class ImageCube(object):
                                            " frequencies used. Use default of 3 for now instead.")
                             sigma_cont_lim = 3
 
-                        plot.overplot(image,stokes_i_sigma_cut=sigma_cont_lim,contour_color=contour_colors[j],plot_beam=False)
+                        plot.overplot(image,stokes_i_sigma_cut=sigma_cont_lim,contour_color=contour_colors[j],plot_beam=False,**kwargs)
 
                         import matplotlib.lines as mlines
                         legend_line = mlines.Line2D(

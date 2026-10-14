@@ -1376,7 +1376,8 @@ class ImageData(object):
             warnings.warn("Please use valid align method ('cross_correlation','brightest').")
 
         #shift shifted image
-        return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM)
+        shift_out = np.array([-shift[1],shift[0]])*image_self.scale*image_self.degpp
+        return image_self.shift(-shift[1]*image_self.scale*image_self.degpp,shift[0]*image_self.scale*image_self.degpp,useDIFMAP=useDIFMAP,useEHTIM=useEHTIM), shift_out
 
     def restore(self,bmaj=-1,bmin=-1,posa=-1,shift_x=0,shift_y=0,npix="",pixel_size="",useDIFMAP=True,useEHTIM=False,mask_outside=False,uvrange=[0,0]):
         """
